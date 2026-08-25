@@ -166,7 +166,17 @@
 		</div>
 
 		{#if view === 'workbook' && workbook?.title}
-			<span class="hidden min-w-0 truncate text-sm font-medium md:block">{workbook.title}</span>
+			<!--
+				A minimum width, or nothing. Between the two tabs on the left and
+				the four controls on the right this had no slack of its own and
+				collapsed to "Calde…", which reads as a rendering fault rather than
+				as a long title. Given 7rem it either says something or the toolbar
+				scrolls, and below `lg` the breadcrumb is already naming the
+				document.
+			-->
+			<span class="hidden min-w-[7rem] truncate text-sm font-medium lg:block">
+				{workbook.title}
+			</span>
 		{/if}
 
 		{#if view === 'workbook' && sheets.length}

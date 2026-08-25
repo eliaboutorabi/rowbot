@@ -89,6 +89,7 @@
 
 	let scroller = $state<HTMLDivElement>();
 	const pageEls: HTMLElement[] = [];
+	const thumbEls: HTMLElement[] = [];
 	const pageCanvases: HTMLCanvasElement[] = [];
 	const thumbCanvases: HTMLCanvasElement[] = [];
 	// Plain Sets, not SvelteSets: these are render bookkeeping that no template
@@ -137,7 +138,9 @@
 
 		canvas.width = viewport.width;
 		canvas.height = viewport.height;
-		canvas.style.height = `${unscaled.height * scale}px`;
+		// No inline height: both canvases reserve the page's aspect ratio in CSS
+		// before anything is drawn, so the box is already the right shape and an
+		// inline pixel height computed from an assumed width can only fight it.
 
 		const context = canvas.getContext('2d');
 		if (context) await drawPage(pdfPage, canvas, context, viewport);
@@ -234,12 +237,19 @@
 		current = best;
 	}
 
+	/**
+	 * The one way to move to a page — from the thumbnail rail, and from a cell
+	 * in the sheet asking to be shown where it came from.
+	 *
+	 * Smooth is the nice default and the wrong one for anyone who has asked the
+	 * system for less motion: seven pages of animated travel is exactly the
+	 * movement that setting exists to stop. The indicator is nudged directly
+	 * because an instant jump can land before a scroll event is dispatched.
+	 */
 	function goTo(index: number) {
-		// Smooth is the nice default and the wrong one for anyone who has asked
-		// the system for less motion — seven pages of animated travel is exactly
-		// the kind of movement that setting exists to stop.
 		const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 		pageEls[index]?.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
+		if (calm) trackCurrent();
 	}
 
 	/* ── Overlay ─────────────────────────────────────────────────────── */
@@ -322,11 +332,28 @@
 		if (!page) return;
 
 		flashing = request.tablePath;
-		tick().then(() => pageEls[page.index]?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+		tick().then(() => goTo(page.index));
 
 		clearTimeout(flashTimer);
 		flashTimer = setTimeout(() => (flashing = null), 2600);
 		return () => clearTimeout(flashTimer);
+	});
+
+	/**
+	 * Keep the rail showing the page you are on.
+	 *
+	 * Without this the rail is only useful for the first handful of pages: read
+	 * your way to page fifteen and it is still showing one to six, with the
+	 * highlight somewhere off the top. `nearest` so it scrolls the minimum, and
+	 * never the page column — that is the thing the reader is looking at.
+	 */
+	$effect(() => {
+		const target = thumbEls[current];
+		if (!target) return;
+		// `tick`, not `requestAnimationFrame`: this only needs Svelte to have
+		// applied the class change, and a frame callback never arrives at all
+		// while the tab is in the background.
+		tick().then(() => target.scrollIntoView({ block: 'nearest', inline: 'nearest' }));
 	});
 
 	const canLink = (block: Block) =>
@@ -383,6 +410,7 @@
 					{#each pages as info (info.index)}
 						<li>
 							<button
+								bind:this={thumbEls[info.index]}
 								type="button"
 								class={cn(
 									'block w-full rounded-md p-1 text-left transition-colors',
@@ -391,6 +419,13 @@
 								aria-current={current === info.index ? 'page' : undefined}
 								onclick={() => goTo(info.index)}
 							>
+								<!--
+									The page's real aspect, reserved before anything is drawn.
+									Thumbnails render lazily and used to resize as they arrived,
+									which shuffled every entry below them down the rail — and
+									moved the active one back out of view just after it had been
+									scrolled into it.
+								-->
 								<span
 									class={cn(
 										'block overflow-hidden rounded-sm bg-white',
@@ -402,6 +437,9 @@
 										width="96"
 										height="124"
 										class="block w-full"
+										style:aspect-ratio={info.width && info.height
+											? `${info.width} / ${info.height}`
+											: '96 / 124'}
 									></canvas>
 								</span>
 								<span
