@@ -125,7 +125,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 						const final = result.current;
 						if (final) {
-							if (final.workbook.sheets.length) {
+							if (final.revision > 0 && final.workbook.sheets.length) {
 								await saveWorkbook(
 									doc.id,
 									activeRun.id,
@@ -147,7 +147,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 
 						// Whatever the agent finished before the failure is still worth
 						// keeping — this is the difference between a hiccup and lost work.
-						if (result.current?.workbook.sheets.length) {
+						if (result.current?.revision && result.current.workbook.sheets.length) {
 							await saveWorkbook(
 								doc.id,
 								activeRun.id,

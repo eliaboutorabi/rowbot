@@ -36,6 +36,12 @@ export interface StreamRunResult {
 	workbook: WorkbookModel;
 	usage: UsageTotals;
 	status: 'complete' | 'interrupted' | 'cancelled';
+	/**
+	 * How many times the workbook was written this turn. Zero means the turn
+	 * only talked, and saving a revision identical to the last one would put
+	 * noise in the document's history for nothing.
+	 */
+	revision: number;
 }
 
 /** `['tools:abc', 'sheet-auditor:1']` → `sheet-auditor` */
@@ -127,6 +133,20 @@ export async function* streamRun(
 	const pending = new Map<string, PendingCall>();
 	const openSubagents = new Set<string>();
 	let interrupted = false;
+
+	/**
+	 * Kept current as the run goes, not written once at the end.
+	 *
+	 * The caller saves `result.current` from its catch block precisely so that
+	 * a failed run does not throw away the sheets it had already built — but
+	 * this was only assigned after the loop, so the one case it existed for was
+	 * the one case it was empty. A reviewer watched three sheets appear and
+	 * then found the document with none.
+	 */
+	const publish = (status: StreamRunResult['status'] = 'complete') => {
+		result.current = { workbook, usage, status, revision: workbookVersion };
+	};
+	publish();
 
 	yield {
 		type: 'run',
@@ -250,6 +270,7 @@ export async function* streamRun(
 			if (Array.isArray(update.workbook)) {
 				workbook = applyOps(workbook, update.workbook as WorkbookOp[]);
 				workbookVersion++;
+				publish();
 				yield { type: 'workbook', workbook, version: workbookVersion };
 			}
 
@@ -273,6 +294,6 @@ export async function* streamRun(
 	for (const name of openSubagents) yield { type: 'subagent:end', name };
 
 	const status: StreamRunResult['status'] = interrupted ? 'interrupted' : 'complete';
-	result.current = { workbook, usage, status };
+	publish(status);
 	yield { type: 'done', status };
 }
