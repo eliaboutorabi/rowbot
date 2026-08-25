@@ -386,9 +386,23 @@
 		{/if}
 
 		<div class="flex shrink-0 items-center gap-1">
-			<Button variant="ghost" size="sm" onclick={() => (overlay = !overlay)}>
+			<!--
+				The label names what is on, not what a click would turn on. Toggles
+				that flip their own label to the opposite state are ambiguous in both
+				positions — "Page only" could as easily mean you are looking at the
+				page only as that clicking gets you there — and `aria-pressed` is
+				what settles it for anyone not reading the icon.
+			-->
+			<Button
+				variant="ghost"
+				size="sm"
+				class={overlay ? 'text-accent-ink hover:text-accent-ink' : 'text-muted-foreground'}
+				aria-pressed={overlay}
+				title={overlay ? 'Hide what the reader found' : 'Show what the reader found'}
+				onclick={() => (overlay = !overlay)}
+			>
 				<HugeiconsIcon icon={overlay ? ViewIcon : ViewOffSlashIcon} size={15} />
-				{overlay ? 'Segmentation' : 'Page only'}
+				Segmentation
 			</Button>
 			<Button
 				variant="ghost"

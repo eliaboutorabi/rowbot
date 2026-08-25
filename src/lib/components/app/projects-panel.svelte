@@ -8,6 +8,8 @@
 	 * that shows the same list larger. So the list is here, filtered as you
 	 * type, and one click away from any project.
 	 */
+	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { HugeiconsIcon } from '@hugeicons/svelte';
@@ -32,6 +34,12 @@
 	let { documents }: { documents: Entry[] } = $props();
 
 	let query = $state('');
+	let field = $state<HTMLInputElement>();
+
+	// The panel is opened to find something, so it opens ready to be typed
+	// into. Selecting rather than just focusing means reopening it and typing
+	// replaces the last search instead of appending to it.
+	onMount(() => field?.select());
 
 	const here = $derived(page.params.documentId);
 
@@ -51,11 +59,20 @@
 				class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted-foreground"
 			/>
 			<input
+				bind:this={field}
 				type="search"
 				bind:value={query}
 				placeholder="Search projects"
 				aria-label="Search projects"
 				class="h-8 w-full rounded-lg border bg-background pr-2.5 pl-8 text-[0.8125rem] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none"
+				onkeydown={(event) => {
+					// Type three letters and press Enter. Reaching for the mouse to
+					// click the one row you have just filtered down to is the slow
+					// half of every quick-open that does not do this.
+					if (event.key !== 'Enter' || !matches.length) return;
+					event.preventDefault();
+					goto(resolve('/(app)/d/[documentId]', { documentId: matches[0].id }));
+				}}
 			/>
 		</div>
 	</div>
