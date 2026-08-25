@@ -183,33 +183,65 @@
 			{ root: scroller, rootMargin: '600px 0px' }
 		);
 
-		const centred = new IntersectionObserver(
-			(entries) => {
-				for (const entry of entries) {
-					if (entry.isIntersecting) current = Number((entry.target as HTMLElement).dataset.page);
-				}
-			},
-			{ root: scroller, rootMargin: '-45% 0px -45% 0px' }
-		);
-
 		tick().then(() => {
 			for (const el of pageEls) {
 				if (!el) continue;
 				near.observe(el);
-				centred.observe(el);
 			}
 			// The first few thumbnails are on screen before any scrolling happens.
 			for (let i = 0; i < Math.min(pages.length, 6); i++) renderThumb(i);
+			trackCurrent();
 		});
 
-		return () => {
-			near.disconnect();
-			centred.disconnect();
-		};
+		return () => near.disconnect();
 	});
 
-	const goTo = (index: number) =>
-		pageEls[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+	/**
+	 * Which page you are looking at, from the scroll position rather than from
+	 * an observer.
+	 *
+	 * This started as a second IntersectionObserver watching a thin band across
+	 * the middle of the viewport, which has an edge case with real consequences:
+	 * on a wide window the pages shrink, and a page shorter than the band never
+	 * intersects it, so the indicator and the thumbnail rail freeze on page one
+	 * with no way to tell they have. Measuring which page owns the midpoint has
+	 * no such gap — every scroll position has exactly one answer — and it costs
+	 * one loop over a handful of elements.
+	 */
+	function trackCurrent() {
+		if (!scroller) return;
+		const box = scroller.getBoundingClientRect();
+		const middle = box.top + box.height / 2;
+		let best = 0;
+		let closest = Infinity;
+		for (let i = 0; i < pageEls.length; i++) {
+			const el = pageEls[i];
+			if (!el) continue;
+			const rect = el.getBoundingClientRect();
+			// Inside this page: it owns the midpoint outright.
+			if (rect.top <= middle && rect.bottom >= middle) {
+				best = i;
+				closest = 0;
+				break;
+			}
+			// Otherwise the nearest edge wins, which covers the gutters between
+			// pages and the run-off above the first and below the last.
+			const gap = rect.top > middle ? rect.top - middle : middle - rect.bottom;
+			if (gap < closest) {
+				closest = gap;
+				best = i;
+			}
+		}
+		current = best;
+	}
+
+	function goTo(index: number) {
+		// Smooth is the nice default and the wrong one for anyone who has asked
+		// the system for less motion — seven pages of animated travel is exactly
+		// the kind of movement that setting exists to stop.
+		const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+		pageEls[index]?.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
+	}
 
 	/* ── Overlay ─────────────────────────────────────────────────────── */
 
@@ -392,6 +424,7 @@
 		<div
 			bind:this={scroller}
 			class="scroll-slim scroll-quiet relative min-h-0 flex-1 overflow-auto bg-muted/30 p-4"
+			onscroll={trackCurrent}
 		>
 			{#if loading}
 				<div class="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
