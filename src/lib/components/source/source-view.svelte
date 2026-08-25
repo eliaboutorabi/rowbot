@@ -407,7 +407,7 @@
 		<!-- ── Thumbnail rail ──────────────────────────────────────── -->
 		{#if pages.length > 1 && !isImage}
 			<nav
-				class="scroll-slim scroll-quiet w-[7.5rem] shrink-0 overflow-y-auto border-r bg-muted/20 p-2"
+				class="scroll-slim w-[7.5rem] shrink-0 overflow-y-auto border-r bg-muted/20 p-2"
 				aria-label="Pages"
 			>
 				<ul class="space-y-2">
@@ -464,7 +464,7 @@
 		<!-- ── Pages ───────────────────────────────────────────────── -->
 		<div
 			bind:this={scroller}
-			class="scroll-slim scroll-quiet relative min-h-0 flex-1 overflow-auto bg-muted/30 p-4"
+			class="scroll-slim relative min-h-0 flex-1 overflow-auto bg-muted/30 p-4"
 			onscroll={trackCurrent}
 		>
 			{#if loading}

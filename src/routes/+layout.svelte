@@ -2,10 +2,14 @@
 	import './layout.css';
 	import favicon from '$lib/assets/favicon.svg';
 	import RouteProgress from '$lib/components/app/route-progress.svelte';
+	import { trackScrolling } from '$lib/scrolling';
 	import { Toaster } from '$lib/components/ui/sonner';
 	import { theme } from '$lib/theme.svelte';
 
 	let { children } = $props();
+
+	// Reveals a scroller's bar while it is moving; see `$lib/scrolling`.
+	$effect(trackScrolling);
 </script>
 
 <svelte:head>

@@ -197,14 +197,23 @@
 }
 
 /*
- * Scrollbars.
+ * Scrollbars, hidden until they are wanted.
+ *
+ * The thumb is transparent at rest and appears on three signals: the pointer
+ * is over the surface, something inside it has keyboard focus, or the surface
+ * is being scrolled right now. The last one is what a native overlay scrollbar
+ * does and what makes hiding it safe — you never lose your place, because the
+ * bar is there for as long as you are moving.
+ *
+ * The 12px track keeps its width throughout. Only the thumb fades, so nothing
+ * reflows when it appears and text never shifts under the pointer.
  *
  * Chrome 121+ gives the standard properties precedence over the WebKit
  * pseudo-elements, so declaring `scrollbar-width` alongside
  * `::-webkit-scrollbar` silently throws the pseudo-element rules away — the
  * first version of this file did exactly that and rendered Chrome's plain
- * `thin` bar. The two are now fenced apart with @supports so each browser
- * only ever sees the one it honours.
+ * `thin` bar. The two are fenced apart with @supports so each browser only
+ * ever sees the one it honours.
  *
  * Scoped to a class rather than `*`: a universal hover rule makes every
  * scrollable ancestor reveal its bar at once, and costs a style recalc on
@@ -226,8 +235,15 @@
 		min-height: 36px;
 		border: 3px solid transparent;
 		background-clip: content-box;
-		background-color: var(--scrollbar-thumb);
+		background-color: transparent;
 		border-radius: 9999px;
+		transition: background-color 200ms ease;
+	}
+
+	.scroll-slim:hover::-webkit-scrollbar-thumb,
+	.scroll-slim:focus-within::-webkit-scrollbar-thumb,
+	.scroll-slim[data-scrolling]::-webkit-scrollbar-thumb {
+		background-color: var(--scrollbar-thumb);
 	}
 
 	.scroll-slim::-webkit-scrollbar-thumb:hover {
@@ -237,35 +253,17 @@
 	.scroll-slim::-webkit-scrollbar-corner {
 		background: transparent;
 	}
-
-	/*
-	 * Reveal-on-hover, for reading surfaces where the bar is chrome. The sheet
-	 * deliberately opts out: there the scrollbar is a position indicator, and
-	 * hiding it costs you your bearings in a four-thousand-row ledger.
-	 */
-	.scroll-quiet::-webkit-scrollbar-thumb {
-		background-color: transparent;
-		transition: background-color 150ms ease;
-	}
-
-	.scroll-quiet:hover::-webkit-scrollbar-thumb,
-	.scroll-quiet:focus-within::-webkit-scrollbar-thumb {
-		background-color: var(--scrollbar-thumb);
-	}
 }
 
 @supports not selector(::-webkit-scrollbar) {
 	.scroll-slim {
 		scrollbar-width: thin;
-		scrollbar-color: var(--scrollbar-thumb) transparent;
-	}
-
-	.scroll-quiet {
 		scrollbar-color: transparent transparent;
 	}
 
-	.scroll-quiet:hover,
-	.scroll-quiet:focus-within {
+	.scroll-slim:hover,
+	.scroll-slim:focus-within,
+	.scroll-slim[data-scrolling] {
 		scrollbar-color: var(--scrollbar-thumb) transparent;
 	}
 }

@@ -181,9 +181,7 @@
 	     The workbook and the page it came from are two readings of the same
 	     document, so they are peers here rather than one being buried behind
 	     a button on the other. -->
-	<div
-		class="scroll-slim scroll-quiet flex h-11 shrink-0 items-center gap-2 overflow-x-auto border-b px-3"
-	>
+	<div class="scroll-slim flex h-11 shrink-0 items-center gap-2 overflow-x-auto border-b px-3">
 		<div class="flex shrink-0 items-center gap-0.5 rounded-lg bg-foreground/[0.045] p-0.5">
 			{#each [{ id: 'workbook', label: 'Workbook', icon: FileSpreadsheetIcon }, { id: 'source', label: 'Source', icon: File01Icon }] as const as tab (tab.id)}
 				<button
@@ -416,7 +414,7 @@
 		     floating above the edge while the other runs into it. -->
 		<div class="shrink-0 px-3 pt-2 pb-3">
 			<div
-				class="scroll-slim scroll-quiet flex h-10 items-center gap-1 overflow-x-auto rounded-xl border bg-card px-1.5 shadow-sm"
+				class="scroll-slim flex h-10 items-center gap-1 overflow-x-auto rounded-xl border bg-card px-1.5 shadow-sm"
 			>
 				{#each sheets as sheet (sheet.id)}
 					<button

@@ -66,11 +66,7 @@
 	});
 </script>
 
-<div
-	bind:this={viewport}
-	onscroll={onScroll}
-	class="scroll-slim scroll-quiet min-h-0 flex-1 overflow-y-auto"
->
+<div bind:this={viewport} onscroll={onScroll} class="scroll-slim min-h-0 flex-1 overflow-y-auto">
 	<!--
 		A reading measure. In the two-column layout the conversation is 22–32rem
 		wide and constrains itself; below `lg` it takes the whole window, and on a
