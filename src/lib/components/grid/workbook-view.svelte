@@ -15,7 +15,8 @@
 	import SourceView from '$lib/components/source/source-view.svelte';
 	import { cn } from '$lib/utils';
 	import type { WorkbookModel } from '$lib/types/workbook';
-	import { formatRef, type SheetRef } from '$lib/sheet-ref';
+	import { formatRef, parseRef, type SheetRef } from '$lib/sheet-ref';
+	import { renderMarkdown } from '$lib/markdown';
 
 	let {
 		workbook,
@@ -40,23 +41,49 @@
 
 	let range = $state<SheetRef | null>(null);
 
-	/** Following a reference out of the agent's prose into the sheet. */
-	$effect(() => {
-		const request = reveal;
-		if (!request) return;
-
-		const wanted = request.ref.sheet.trim().toLowerCase();
+	/** Select what a reference points at, wherever the reference was written. */
+	function focusRef(ref: SheetRef) {
+		const wanted = ref.sheet.trim().toLowerCase();
 		const match = sheets.find((sheet) => sheet.name.toLowerCase() === wanted);
 		if (!match) return;
 
 		view = 'workbook';
 		activeId = match.id;
-		range = request.ref;
-		selected = {
-			row: Math.max(request.ref.from.row, 0),
-			column: Math.max(request.ref.from.column, 0)
-		};
+		selected = { row: Math.max(ref.from.row, 0), column: Math.max(ref.from.column, 0) };
+
+		// A reference to one cell is a cursor, not a region. Highlighting it as a
+		// range put the inspector into its block mode — "1 × 1 block, sum 0.2" —
+		// in place of the value, type, source text and confidence, which is the
+		// entire reason for following the reference.
+		const single =
+			ref.kind === 'cell' || (ref.from.row === ref.to.row && ref.from.column === ref.to.column);
+		range = single ? null : ref;
+	}
+
+	/** Following a reference out of the agent's prose into the sheet. */
+	$effect(() => {
+		const request = reveal;
+		if (request) focusRef(request.ref);
 	});
+
+	/**
+	 * The same, for references inside the workbook notes.
+	 *
+	 * The notes are the agent's own prose and it writes `[[Sheet!D3]]` in them
+	 * exactly as it does in the conversation — they were rendering as literal
+	 * brackets here, which is worse than not offering the syntax at all. The
+	 * popover portals out of this subtree, so it carries its own handler rather
+	 * than relying on the one over the conversation column.
+	 */
+	function onNoteClick(event: MouseEvent) {
+		const target = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-ref]');
+		const raw = target?.dataset.ref;
+		if (!raw) return;
+		const ref = parseRef(raw);
+		if (!ref) return;
+		event.preventDefault();
+		focusRef(ref);
+	}
 
 	type View = 'workbook' | 'source';
 	let view = $state<View>('workbook');
@@ -197,7 +224,18 @@
 								Written by the agent while it built this workbook — the judgement calls it made and
 								anything it could not resolve from the page.
 							</p>
-							<p class="whitespace-pre-wrap text-muted-foreground">{workbook.notes}</p>
+							<!-- The chips inside are real buttons, so keyboard activation already
+							     works; this listener only catches their click as it bubbles. -->
+							<!-- svelte-ignore a11y_no_static_element_interactions -->
+							<!-- svelte-ignore a11y_click_events_have_key_events -->
+							<div class="text-muted-foreground" onclick={onNoteClick}>
+								<!--
+									Safe by construction: `renderMarkdown` escapes the model's output
+									before generating any markup. See markdown.spec.ts.
+								-->
+								<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+								{@html renderMarkdown(workbook.notes)}
+							</div>
 						</Popover.Content>
 					</Popover.Root>
 				{/if}
