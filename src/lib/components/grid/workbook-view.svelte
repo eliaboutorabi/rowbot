@@ -148,37 +148,6 @@
 		{/if}
 	</div>
 
-	<!--
-		The heat map was unexplained, so an amber cell read as decoration rather
-		than a warning. Turning it on now states what is being measured and what
-		each band means — the legend is the feature, the tint is just its index.
-	-->
-	{#if view === 'workbook' && heat && sheets.length}
-		<div
-			class="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1.5 border-b bg-muted/25 px-3 py-2 text-[11px]"
-		>
-			<span class="text-muted-foreground">
-				Tint shows the <strong class="font-medium text-foreground">lowest</strong> word-level OCR confidence
-				in each cell
-			</span>
-			<span class="flex items-center gap-1.5 text-muted-foreground">
-				<span class="size-2.5 rounded-[3px] bg-emerald-500/40"></span> 95%+ read cleanly
-			</span>
-			<span class="flex items-center gap-1.5 text-muted-foreground">
-				<span class="size-2.5 rounded-[3px] bg-amber-500/50"></span> 85–95% slightly unsure
-			</span>
-			<span class="flex items-center gap-1.5 text-muted-foreground">
-				<span class="size-2.5 rounded-[3px] bg-red-500/50"></span> under 85% worth checking
-			</span>
-			{#if lowConfidenceCount > 0}
-				<span class="ml-auto text-muted-foreground">
-					{lowConfidenceCount} cell{lowConfidenceCount === 1 ? '' : 's'} on this sheet fall in the last
-					band
-				</span>
-			{/if}
-		</div>
-	{/if}
-
 	{#if view === 'source'}
 		<div class="min-h-0 flex-1">
 			<SourceView {documentId} {mimeType} {linkedPaths} onopentable={openTable} />
@@ -200,17 +169,56 @@
 			</p>
 		</div>
 	{:else}
-		<div class="min-h-0 flex-1">
-			{#if active}
-				{#key active.id}
-					<SheetGrid sheet={active} {heat} bind:selected />
-				{/key}
-			{/if}
-		</div>
+		<!--
+			The sheet is a surface, not the background. Previously the grid bled to
+			every edge and the inspector ran the full width beneath it, so the pane
+			had no shape at all — and the inspector read as a stray strip rather
+			than part of the sheet. Both now live inside one rounded card that
+			shares the sheet tabs' inset, so the whole right column is a stack of
+			aligned surfaces.
+		-->
+		<div class="min-h-0 flex-1 px-3 pt-2">
+			<div
+				class="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-background shadow-sm"
+			>
+				{#if heat}
+					<div
+						class="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1.5 border-b bg-muted/30 px-3 py-2 text-[11px]"
+					>
+						<span class="text-muted-foreground">
+							Tint shows the <strong class="font-medium text-foreground">lowest</strong> word-level OCR
+							confidence in each cell
+						</span>
+						<span class="flex items-center gap-1.5 text-muted-foreground">
+							<span class="size-2.5 rounded-[3px] bg-emerald-500/40"></span> 95%+ read cleanly
+						</span>
+						<span class="flex items-center gap-1.5 text-muted-foreground">
+							<span class="size-2.5 rounded-[3px] bg-amber-500/50"></span> 85–95% slightly unsure
+						</span>
+						<span class="flex items-center gap-1.5 text-muted-foreground">
+							<span class="size-2.5 rounded-[3px] bg-red-500/50"></span> under 85% worth checking
+						</span>
+						{#if lowConfidenceCount > 0}
+							<span class="ml-auto text-muted-foreground">
+								{lowConfidenceCount} cell{lowConfidenceCount === 1 ? '' : 's'} in the last band
+							</span>
+						{/if}
+					</div>
+				{/if}
 
-		{#if active}
-			<CellInspector sheet={active} {selected} />
-		{/if}
+				<div class="min-h-0 flex-1">
+					{#if active}
+						{#key active.id}
+							<SheetGrid sheet={active} {heat} bind:selected />
+						{/key}
+					{/if}
+				</div>
+
+				{#if active}
+					<CellInspector sheet={active} {selected} />
+				{/if}
+			</div>
+		</div>
 
 		<!-- Sheet tabs, at the bottom where a spreadsheet puts them.
 		     The wrapper's padding is the composer's exactly, so the agent column

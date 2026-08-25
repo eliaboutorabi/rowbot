@@ -4,6 +4,7 @@
 	import {
 		Alert01Icon,
 		Key01Icon,
+		Loading03Icon,
 		PlayIcon,
 		RefreshIcon,
 		SidebarLeft01Icon
@@ -14,7 +15,8 @@
 	import WorkbookView from '$lib/components/grid/workbook-view.svelte';
 	import Logo from '$lib/components/brand/logo.svelte';
 	import { RunState, type TimelineItem } from '$lib/stores/run.svelte';
-	import { fileSize } from '$lib/format';
+	import { compactNumber, fileSize } from '$lib/format';
+	import { toolMeta } from '$lib/components/agent/tool-icon';
 	import { cn } from '$lib/utils';
 	import type { TodoItem } from '$lib/types/events';
 	import type { WorkbookModel } from '$lib/types/workbook';
@@ -79,6 +81,14 @@
 	 * disappearing, so the way back is always visible.
 	 */
 	let collapsed = $state(false);
+
+	const planTotal = $derived(run.todos.length);
+	const planDone = $derived(run.todos.filter((todo) => todo.status === 'completed').length);
+	const totalTokens = $derived(run.usage.input + run.usage.output);
+	const lastTool = $derived.by(() => {
+		const item = run.timeline.findLast((entry) => entry.kind === 'tool');
+		return item?.kind === 'tool' ? item.call : null;
+	});
 </script>
 
 <svelte:head><title>{data.document.name} · Rowbot</title></svelte:head>
@@ -90,9 +100,14 @@
 	)}
 >
 	{#if collapsed}
-		<!-- Collapsed rail -->
+		<!--
+			A rail, not a hidden panel. Collapsing the agent column should buy the
+			workbook width without losing the thread — so the rail keeps the three
+			things you would otherwise reopen the panel to check: whether it is
+			working, how far through the plan it is, and what it last did.
+		-->
 		<section
-			class="hidden min-h-0 flex-col items-center gap-3 border-r py-3 lg:flex"
+			class="hidden min-h-0 w-12 flex-col items-center gap-2 border-r py-2 lg:flex"
 			aria-label="Agent activity, collapsed"
 		>
 			<Button
@@ -104,15 +119,72 @@
 			>
 				<HugeiconsIcon icon={SidebarLeft01Icon} size={16} />
 			</Button>
-			{#if run.busy}
-				<span class="size-1.5 animate-pulse rounded-full bg-primary" title="Rowbot is working"
-				></span>
-			{/if}
+
+			<span class="h-px w-6 bg-border" aria-hidden="true"></span>
+
+			<!-- Working / idle -->
 			<span
-				class="mt-1 text-[11px] font-medium tracking-wide text-muted-foreground/70 [writing-mode:vertical-rl]"
+				class="flex size-8 items-center justify-center"
+				title={run.busy ? 'Rowbot is working' : 'Idle'}
 			>
-				Agent
+				{#if run.busy}
+					<HugeiconsIcon icon={Loading03Icon} size={15} class="animate-spin text-primary" />
+				{:else if run.error}
+					<HugeiconsIcon icon={Alert01Icon} size={15} class="text-destructive" />
+				{:else}
+					<span class="size-1.5 rounded-full bg-muted-foreground/40"></span>
+				{/if}
 			</span>
+
+			<!-- Plan progress -->
+			{#if planTotal > 0}
+				<div
+					class="flex flex-col items-center gap-1"
+					title={`${planDone} of ${planTotal} plan steps done`}
+				>
+					<span class="text-[10px] font-medium text-muted-foreground tabular-nums">
+						{planDone}/{planTotal}
+					</span>
+					<span class="h-10 w-1 overflow-hidden rounded-full bg-muted">
+						<span
+							class="block w-full rounded-full bg-primary transition-[height] duration-500"
+							style:height="{(planDone / planTotal) * 100}%"
+						></span>
+					</span>
+				</div>
+			{/if}
+
+			<!-- Last thing it did -->
+			{#if lastTool}
+				<span
+					class="flex size-8 items-center justify-center text-muted-foreground/70"
+					title={`Last step: ${lastTool.name}`}
+				>
+					<HugeiconsIcon icon={toolMeta(lastTool.name).icon} size={15} />
+				</span>
+			{/if}
+
+			<div class="mt-auto flex flex-col items-center gap-2">
+				{#if totalTokens > 0}
+					<span
+						class="text-[10px] text-muted-foreground/60 tabular-nums [writing-mode:vertical-rl]"
+						title="Tokens used on this run"
+					>
+						{compactNumber(totalTokens)}
+					</span>
+				{/if}
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					disabled={run.busy || !run.workbook?.sheets.length}
+					onclick={() =>
+						send('Re-check every sheet against the source pages and fix anything wrong.')}
+					aria-label="Re-check this workbook"
+					title="Re-check this workbook"
+				>
+					<HugeiconsIcon icon={RefreshIcon} size={15} />
+				</Button>
+			</div>
 		</section>
 	{/if}
 

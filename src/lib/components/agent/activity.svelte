@@ -78,8 +78,21 @@
 					</div>
 				{:else if item.kind === 'assistant'}
 					<div class="flex gap-2.5" in:fly={{ y: 6, duration: 150 }}>
-						<Logo class="mt-0.5 size-5 shrink-0 text-muted-foreground" />
-						<div class="min-w-0 flex-1 text-sm leading-relaxed text-foreground/90">
+						<!--
+							A 24px chip against a 24px first line. Both boxes start at the
+							same y and are the same height, so the mark centres on line one
+							by construction — the previous `mt-0.5` was a guess against a
+							1.625 line-height, and the mark's own visual mass sits low in
+							its box because of the antenna, so the guess read as unaligned.
+						-->
+						<span
+							class="mt-px flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground"
+						>
+							<Logo class="size-[15px]" />
+						</span>
+						<div
+							class="min-w-0 flex-1 pt-px text-sm leading-6 text-foreground/90 [&>*:first-child]:mt-0"
+						>
 							<!--
 							Safe by construction: `renderMarkdown` HTML-escapes the model's
 							output before generating any markup, so no tag in the text can
