@@ -221,7 +221,6 @@
 			// Inside this page: it owns the midpoint outright.
 			if (rect.top <= middle && rect.bottom >= middle) {
 				best = i;
-				closest = 0;
 				break;
 			}
 			// Otherwise the nearest edge wins, which covers the gutters between
