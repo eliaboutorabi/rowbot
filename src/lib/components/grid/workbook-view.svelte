@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { HugeiconsIcon } from '@hugeicons/svelte';
 	import {
+		Alert01Icon,
 		Download04Icon,
 		FileSpreadsheetIcon,
 		File01Icon,
@@ -79,6 +80,14 @@
 		sheets.map((sheet) => sheet.source?.tablePath).filter((path): path is string => Boolean(path))
 	);
 
+	/** Totals whose arithmetic did not agree with the page. */
+	const mismatches = $derived(
+		active?.rows.reduce(
+			(total, row) => total + row.filter((c) => c.check?.status === 'mismatch').length,
+			0
+		) ?? 0
+	);
+
 	const lowConfidenceCount = $derived(
 		active?.rows.reduce(
 			(total, row) => total + row.filter((c) => c.conf !== undefined && c.conf < 0.85).length,
@@ -137,6 +146,16 @@
 							<p class="whitespace-pre-wrap text-muted-foreground">{workbook.notes}</p>
 						</Popover.Content>
 					</Popover.Root>
+				{/if}
+
+				{#if mismatches > 0}
+					<span
+						class="flex items-center gap-1.5 rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive"
+						title="A total on this sheet does not match what its own column adds up to"
+					>
+						<HugeiconsIcon icon={Alert01Icon} size={13} />
+						{mismatches} total{mismatches === 1 ? '' : 's'} to check
+					</span>
 				{/if}
 
 				<Button

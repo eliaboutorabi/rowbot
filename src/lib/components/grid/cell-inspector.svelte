@@ -91,6 +91,26 @@
 			</p>
 		{/if}
 
+		{#if cell.check?.status === 'mismatch'}
+			<p
+				class="mt-1.5 flex items-start gap-1.5 rounded-md bg-destructive/10 px-2 py-1.5 text-xs leading-relaxed text-destructive"
+			>
+				<HugeiconsIcon icon={Alert01Icon} size={13} class="mt-0.5 shrink-0" />
+				<span class="min-w-0">
+					{cell.check.message}
+					{#if sheet.source?.tablePath && onshowsource}
+						<button type="button" class="ml-1 underline underline-offset-2" onclick={onshowsource}>
+							Check the page
+						</button>
+					{/if}
+				</span>
+			</p>
+		{:else if cell.check?.status === 'ok' && cell.f}
+			<p class="mt-1 text-xs text-muted-foreground">
+				<span class="font-mono text-foreground/80">={cell.f}</span> — {cell.check.message}
+			</p>
+		{/if}
+
 		{#if cell.note}
 			<p class="mt-1.5 flex items-start gap-1.5 text-xs leading-relaxed text-foreground">
 				<HugeiconsIcon icon={Note01Icon} size={13} class="mt-0.5 shrink-0 text-primary" />

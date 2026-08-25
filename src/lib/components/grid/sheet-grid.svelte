@@ -151,6 +151,10 @@
 									// negative tracking stops long currency strings sprawling.
 									isNumericCell(cell) && 'text-right tracking-[-0.01em] tabular-nums',
 									!isHeader && confidenceClass(cell),
+									// Correctness, not confidence — so it does not wait for the
+									// heat map to be switched on.
+									cell.check?.status === 'mismatch' &&
+										'bg-red-500/15 font-semibold text-red-700 ring-1 ring-red-500/40 ring-inset dark:text-red-300',
 									selected?.row === r && selected?.column === c && 'ring-2 ring-primary ring-inset'
 								)}
 								style:top={isHeader ? `${stickyTops[r] ?? 0}px` : undefined}
@@ -160,6 +164,12 @@
 								onclick={() => (selected = { row: r, column: c })}
 							>
 								{formatCell(cell, sheet.columns[c]?.fmt)}
+								{#if cell.check?.status === 'mismatch'}
+									<span
+										class="ml-1 align-super text-[9px] text-red-600 dark:text-red-400"
+										aria-label="This total does not reconcile">▲</span
+									>
+								{/if}
 								{#if cell.note}
 									<span class="ml-0.5 align-super text-[9px] text-primary" aria-label="Has a note"
 										>●</span

@@ -23,7 +23,7 @@ The user has uploaded **${ctx.filename}** (${ctx.mimeType}). Your job is to prod
 
 ## What to check on every sheet
 
-- **Totals that don't add up.** If a row or column is labelled Total, Sum or Subtotal, check the arithmetic. A mismatch usually means a digit was misread — find it and fix it, and say so in the notes.
+- **Totals that don't add up.** Do not add columns up in your head. Call \`check_totals\` with each total cell and the range it covers: it does the arithmetic, writes the cell as a real \`SUM()\` formula, and flags anything that fails to reconcile for the reviewer. A mismatch usually means a digit was misread somewhere in the column — go and find it, correct that cell, and run \`check_totals\` again. Only if you cannot find the misread cell should you leave the flag standing and explain it in the notes.
 - **Header rows.** OCR often mistakes the first data row for a header, or misses a second header row. \`read_sheet\` shows you where the header ends.
 - **Repeated headers** from a table that spans pages. Import the continuation with \`import_table\`'s \`appendTo\` — it drops the repeated header for you and appends the data rows to the sheet you name.
 - **Columns typed as text** that should be numbers, usually because of a stray footnote marker or currency symbol.

@@ -333,6 +333,10 @@ export const editCellsTool = tool(
 					...(edit.note ? { note: edit.note } : {}),
 					// Keep what the page actually said, even after a correction.
 					raw: previous.raw ?? (previous.v == null ? undefined : String(previous.v)),
+					// Formatting belongs to the column, not to the value. Correcting
+					// one figure in a money column used to leave it as bare General
+					// while every cell around it stayed formatted.
+					fmt: typed.fmt ?? previous.fmt,
 					merge: previous.merge,
 					covered: previous.covered
 				}

@@ -15,6 +15,7 @@ import { rowbotContextSchema, rowbotStateSchema, type RowbotContext } from './st
 import { systemPrompt } from './prompt';
 import { askUserTool } from './tools/ask';
 import { ocrDocumentTool } from './tools/ocr';
+import { checkTotalsTool } from './tools/totals';
 import { readSheetTool, workbookTools } from './tools/workbook';
 import { DEFAULT_EFFORT, DEFAULT_MODEL, type Effort, type ModelId } from './models';
 
@@ -81,7 +82,7 @@ export function createRowbotAgent(options: AgentOptions) {
 	return createDeepAgent({
 		name: 'rowbot',
 		model,
-		tools: [ocrDocumentTool, ...workbookTools, askUserTool],
+		tools: [ocrDocumentTool, ...workbookTools, checkTotalsTool, askUserTool],
 		systemPrompt: systemPrompt(options.context),
 		stateSchema: rowbotStateSchema,
 		contextSchema: rowbotContextSchema,

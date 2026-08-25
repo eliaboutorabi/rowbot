@@ -16,6 +16,8 @@ export const LOW_CONFIDENCE = 0.85;
 const HEADER_FILL = 'FFF4E9F0';
 const HEADER_FONT = 'FF4A1D38';
 const LOW_CONF_FILL = 'FFFFF4E5';
+const MISMATCH_FILL = 'FFFDE7E7';
+const MISMATCH_FONT = 'FF8B1D1D';
 const BORDER = 'FFE6DCE3';
 
 function columnWidth(sheet: Sheet, index: number): number {
@@ -33,6 +35,18 @@ function columnWidth(sheet: Sheet, index: number): number {
 }
 
 function applyValue(target: ExcelJS.Cell, cell: Cell, columnFormat?: string) {
+	// A cell can carry a formula *and* a numeric type — `check_totals` writes
+	// SUM() onto a currency total, which is still currency. The formula wins,
+	// and the computed value rides along as `result` so viewers that do not
+	// recalculate on open still show a number rather than a blank.
+	if (cell.f && cell.t !== 'formula') {
+		target.value = { formula: cell.f.replace(/^=/, ''), result: cell.v as number };
+		const declared = cell.fmt ?? columnFormat;
+		if (declared) target.numFmt = declared;
+		target.alignment = { horizontal: 'right', vertical: 'middle' };
+		return;
+	}
+
 	switch (cell.t) {
 		case 'blank':
 			target.value = null;
@@ -73,6 +87,9 @@ function applyValue(target: ExcelJS.Cell, cell: Cell, columnFormat?: string) {
 /** Comments carry provenance: what the page said, and why we flagged it. */
 function annotate(target: ExcelJS.Cell, cell: Cell) {
 	const notes: string[] = [];
+	const mismatch = cell.check?.status === 'mismatch';
+
+	if (mismatch && cell.check) notes.push(`CHECK THIS — ${cell.check.message}`);
 	if (cell.note) notes.push(cell.note);
 	if (cell.raw && String(cell.v) !== cell.raw) notes.push(`Source text: "${cell.raw}"`);
 	if (cell.conf !== undefined && cell.conf < LOW_CONFIDENCE) {
@@ -81,7 +98,14 @@ function annotate(target: ExcelJS.Cell, cell: Cell) {
 	if (!notes.length) return;
 
 	target.note = { texts: [{ text: notes.join('\n') }] };
-	if (cell.conf !== undefined && cell.conf < LOW_CONFIDENCE) {
+
+	// A total that does not reconcile outranks a low-confidence read: it is the
+	// one thing in the file a person must look at, so it must survive the trip
+	// into Excel rather than living only in Rowbot's UI.
+	if (mismatch) {
+		target.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: MISMATCH_FILL } };
+		target.font = { ...(target.font ?? {}), bold: true, color: { argb: MISMATCH_FONT } };
+	} else if (cell.conf !== undefined && cell.conf < LOW_CONFIDENCE) {
 		target.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: LOW_CONF_FILL } };
 	}
 }

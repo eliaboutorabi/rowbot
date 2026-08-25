@@ -27,6 +27,20 @@ export interface Cell {
 	merge?: { rs: number; cs: number };
 	/** True when this cell is covered by another cell's merge. */
 	covered?: boolean;
+	/**
+	 * The result of an arithmetic check run over this cell.
+	 *
+	 * Set by `check_totals`, which does the sum itself rather than trusting the
+	 * model's mental arithmetic. A `mismatch` is the most valuable thing Rowbot
+	 * can tell you: the page printed one number and its own column adds up to
+	 * another, so one of them was misread and a human should look.
+	 */
+	check?: {
+		status: 'ok' | 'mismatch';
+		message: string;
+		/** What the page printed, when it disagrees with the arithmetic. */
+		printed?: number;
+	};
 }
 
 export interface Column {
