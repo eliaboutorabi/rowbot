@@ -196,7 +196,12 @@
 			// the column slides rather than vanishing between frames. `0fr` or a
 			// dropped track would both be instant, and the conversation appearing
 			// out of nowhere is most of what made this feel abrupt.
-			collapsed ? 'lg:grid-cols-[0px_1fr]' : 'lg:grid-cols-[clamp(21rem,26vw,30rem)_1fr]'
+			//
+			// The clamp reaches its 32rem ceiling around 1350px, which is where
+			// `minmax(22rem, 32rem)` used to sit before this became an animation.
+			// Narrower than that and the agent's prose wraps into a column of
+			// four-word lines.
+			collapsed ? 'lg:grid-cols-[0px_1fr]' : 'lg:grid-cols-[clamp(21rem,38vw,32rem)_1fr]'
 		)}
 	>
 		<!-- Harness -->
