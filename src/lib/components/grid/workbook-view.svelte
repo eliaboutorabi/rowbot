@@ -2,6 +2,7 @@
 	import Icon from '$lib/components/ui/icon.svelte';
 	import {
 		Alert01Icon,
+		Clock01Icon,
 		Download04Icon,
 		FileSpreadsheetIcon,
 		File01Icon,
@@ -18,6 +19,7 @@
 	import { formatRef, parseRef, type SheetRef } from '$lib/sheet-ref';
 	import { originForRow } from '$lib/sheet-source';
 	import { renderMarkdown } from '$lib/markdown';
+	import { timeAgo } from '$lib/format';
 	import { toast } from 'svelte-sonner';
 
 	let {
@@ -218,6 +220,55 @@
 
 	const sheets = $derived(workbook?.sheets ?? []);
 
+	/* ── History ──────────────────────────────────────────────────────
+	   Loaded when the popover opens rather than with the page: it is a thing
+	   you go and look at occasionally, and a query on every workspace load to
+	   populate a list nobody opened is a query for nothing. */
+
+	interface Revision {
+		version: number;
+		summary: string | null;
+		at: string;
+	}
+
+	let revisions = $state<Revision[] | null>(null);
+	let historyError = $state<string | null>(null);
+	let restoring = $state<number | null>(null);
+
+	async function loadHistory() {
+		revisions = null;
+		historyError = null;
+		try {
+			const response = await fetch(`/api/workbook/${documentId}`);
+			if (!response.ok) throw new Error('Could not read this workbook’s history.');
+			revisions = (await response.json()).revisions ?? [];
+		} catch (cause) {
+			historyError = cause instanceof Error ? cause.message : 'Could not read the history.';
+		}
+	}
+
+	async function restore(version: number) {
+		if (restoring !== null) return;
+		restoring = version;
+		try {
+			const response = await fetch(`/api/workbook/${documentId}`, {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ version })
+			});
+			const payload = await response.json().catch(() => null);
+			if (!response.ok) {
+				toast.error(payload?.message ?? 'Could not go back to that version.');
+				return;
+			}
+			onedited?.(payload.workbook as WorkbookModel);
+			toast.success(`Back to version ${version}. It is saved as the newest one.`);
+			await loadHistory();
+		} finally {
+			restoring = null;
+		}
+	}
+
 	/**
 	 * Notes the agent left on individual sheets.
 	 *
@@ -379,6 +430,79 @@
 						</Popover.Content>
 					</Popover.Root>
 				{/if}
+
+				<!-- ── History ──────────────────────────────────────────────
+				     Every change to this workbook has been recorded with a sentence
+				     saying what it was, since the first version of the app, and none
+				     of it was ever shown. A tool whose promise is that you can see
+				     how it arrived at a figure should not keep its own history to
+				     itself. -->
+				<Popover.Root onOpenChange={(open) => open && loadHistory()}>
+					<Popover.Trigger>
+						{#snippet child({ props })}
+							<Button
+								{...props}
+								variant="ghost"
+								size="icon-sm"
+								title="Every version of this workbook"
+								aria-label="Every version of this workbook"
+							>
+								<Icon icon={Clock01Icon} size={15} />
+							</Button>
+						{/snippet}
+					</Popover.Trigger>
+					<Popover.Content class="w-96 text-sm" align="end">
+						<p class="font-medium">Every version of this workbook</p>
+						<p class="mt-0.5 mb-2.5 text-xs leading-relaxed text-muted-foreground">
+							Each turn, and each of your own corrections, kept its own copy. Going back to one adds
+							it as a new version rather than throwing the others away.
+						</p>
+
+						{#if historyError}
+							<p class="text-xs text-destructive">{historyError}</p>
+						{:else if !revisions}
+							<p class="text-xs text-muted-foreground">Looking…</p>
+						{:else if !revisions.length}
+							<p class="text-xs text-muted-foreground">Nothing has been saved yet.</p>
+						{:else}
+							<ol class="scroll-slim -mx-1 max-h-[50vh] space-y-px overflow-y-auto">
+								{#each revisions as revision (revision.version)}
+									{@const current = revision.version === revisions[0].version}
+									<li
+										class="group/rev flex items-start gap-2 rounded-md px-1.5 py-1.5 hover:bg-accent/50"
+									>
+										<span
+											class="mt-px w-8 shrink-0 text-right font-mono text-[11px] text-muted-foreground tabular-nums"
+										>
+											v{revision.version}
+										</span>
+										<span class="min-w-0 flex-1">
+											<!-- No `block` beside `line-clamp`: the clamp needs
+											     `display: -webkit-box` and `block` was overwriting it,
+											     which is why the older entries still ran to five lines. -->
+											<span class="line-clamp-2 text-[0.8125rem] leading-snug">
+												{revision.summary ?? 'A change with no note'}
+											</span>
+											<span class="mt-0.5 block text-[11px] text-muted-foreground">
+												{timeAgo(revision.at)}{current ? ' · current' : ''}
+											</span>
+										</span>
+										{#if !current}
+											<button
+												type="button"
+												class="mt-px shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium text-accent-ink opacity-0 transition-opacity group-hover/rev:opacity-100 focus-visible:opacity-100"
+												disabled={restoring !== null}
+												onclick={() => restore(revision.version)}
+											>
+												{restoring === revision.version ? 'Going back…' : 'Go back to this'}
+											</button>
+										{/if}
+									</li>
+								{/each}
+							</ol>
+						{/if}
+					</Popover.Content>
+				</Popover.Root>
 
 				{#if mismatches > 0}
 					<span

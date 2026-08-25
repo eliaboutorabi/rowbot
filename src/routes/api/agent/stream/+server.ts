@@ -31,6 +31,21 @@ interface Body {
 	effort?: string;
 }
 
+/**
+ * What a turn is called in the workbook's history.
+ *
+ * The request itself, because that is the handle you would recognise it by —
+ * but a sentence of it, not a paragraph. The whole prompt made every row of
+ * the history the same wall of text, which is the same as having no summaries
+ * at all.
+ */
+function turnSummary(message: string | undefined): string {
+	const text = message?.trim();
+	if (!text) return 'Picked the run back up';
+	const firstLine = text.split('\n').find((line) => line.trim()) ?? text;
+	return firstLine.length > 90 ? `${firstLine.slice(0, 87).trimEnd()}…` : firstLine;
+}
+
 export const POST: RequestHandler = async ({ request, locals }) => {
 	if (!locals.user) error(401, 'Sign in first.');
 
@@ -126,12 +141,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 						const final = result.current;
 						if (final) {
 							if (final.revision > 0 && final.workbook.sheets.length) {
-								await saveWorkbook(
-									doc.id,
-									activeRun.id,
-									final.workbook,
-									body.message ?? 'Resumed run'
-								);
+								await saveWorkbook(doc.id, activeRun.id, final.workbook, turnSummary(body.message));
 							}
 							await addUsage(activeRun.id, final.usage);
 							await setRunStatus(
