@@ -1,42 +1,103 @@
-# sv
+# Rowbot
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+Turns PDFs and images of tables into multi-sheet Excel workbooks — and shows its
+working, so you can check the output before you trust it.
 
-## Creating a project
+Rowbot is built around two ideas. First, reading a table is a _structural_
+problem, not a text problem: [Mistral Document AI](https://docs.mistral.ai)
+returns tables as HTML with `rowspan`/`colspan`, bounding boxes and per-block
+confidence, which is what makes merged headers and accounting negatives
+survivable. Second, deciding how a document _should_ become a workbook needs
+judgement, so that part runs as a real agent — it plans, reads, builds, audits
+its own output, and can be interrupted and corrected at any point.
 
-If you're seeing this, you've probably already done this step. Congrats!
+## How it works
 
-```sh
-# create a new project
-npx sv create my-app
+```
+PDF / image
+   │
+   ├─ Mistral Document AI (mistral-ocr-4-1)
+   │     tables as HTML · block bounding boxes · confidence scores
+   │
+   ├─ Deterministic parsing            src/lib/server/ocr, src/lib/coerce.ts
+   │     merge expansion · number/date/currency typing · provenance
+   │
+   ├─ Deep Agents harness (GPT-5.6)    src/lib/server/agent
+   │     planning · virtual filesystem · sheet-auditor subagent · interrupts
+   │
+   ├─ Workbook model                   src/lib/types/workbook.ts
+   │     one JSON shape shared by the agent, the grid and the exporter
+   │
+   └─ ExcelJS                          src/lib/server/xlsx/build.ts
+         real .xlsx: typed values, merges, freeze panes, cell comments
 ```
 
-To recreate this project with the same configuration:
+The split of labour is deliberate. Parsing HTML into a grid and typing values
+are deterministic, so they live in tested code rather than in prompts. The
+agent decides the things that actually need judgement: which tables belong
+together, what a sheet should be called, where the header really ends, which
+misread cells to correct, and what the reviewer needs warning about.
 
-```sh
-# recreate this project
-npx sv@0.17.0 create --template minimal --types ts --add prettier eslint vitest="usages:unit,component" playwright tailwindcss="plugins:none" sveltekit-adapter="adapter:vercel" drizzle="database:sqlite+sqlite:libsql" better-auth="demo:github,password" mdsvex ai-tools="ide:claude-code,other+delivery:plugin" --install npm .
-```
+### Design notes
 
-## Developing
+- **Runs are resumable.** A custom libSQL `BaseCheckpointSaver`
+  (`src/lib/server/agent/checkpointer.ts`) persists every superstep, so a run
+  survives the serverless request that started it. That is what lets you close
+  the tab, come back, and tell the agent to change something.
+- **Workbook edits are operations, not overwrites.** The model routinely calls
+  `import_table` several times in one step; a plain last-value channel would
+  keep one and drop the rest. `src/lib/server/agent/workbook-ops.ts` folds ops
+  through a reducer, which also gives the UI a revision history for free.
+- **Provenance is kept end to end.** Every cell remembers the text the page
+  actually showed and how confident the OCR was, surfaced in the grid, the cell
+  inspector and as comments in the exported file.
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+## Running it locally
 
-```sh
+Requires Node 22+.
+
+```bash
+npm install
+cp .env.example .env      # then fill in the keys below
+npm run db:push           # create the local SQLite schema
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
+`.env` needs, at minimum:
 
-To create a production version of your app:
+| Variable             | Where it comes from                                         |
+| -------------------- | ----------------------------------------------------------- |
+| `DATABASE_URL`       | `file:local.db` for development                             |
+| `ORIGIN`             | `http://localhost:5173` — must match exactly                |
+| `BETTER_AUTH_SECRET` | `openssl rand -base64 32`                                   |
+| `OPENAI_API_KEY`     | [platform.openai.com](https://platform.openai.com/api-keys) |
+| `MISTRAL_API_KEY`    | [console.mistral.ai](https://console.mistral.ai)            |
 
-```sh
-npm run build
+`BLOB_READ_WRITE_TOKEN` is optional locally — without it, uploads are written to
+a gitignored `.rowbot-uploads/` folder.
+
+## Tests
+
+```bash
+npm run test:unit -- --run     # fast, offline, no API keys needed
 ```
 
-You can preview the production build with `npm run preview`.
+The live end-to-end tests are opt-in because they spend real tokens:
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+```bash
+ROWBOT_LIVE=1 npx vitest run --project server src/lib/server/agent/__probe__
+```
+
+They run a real PDF through Mistral and GPT-5.6 and assert on the same event
+protocol the browser consumes, then check the exported `.xlsx` opens correctly.
+
+## Deploying to Vercel
+
+See [`docs/deploy.md`](docs/deploy.md) for the full walkthrough.
+
+## Models
+
+The picker exposes the GPT-5.6 family — Sol, Terra and Luna — and the full
+reasoning-effort range (`none` → `max`). Effort is the lever that matters: a
+clean digital PDF needs almost none, a skewed photo of a merged financial table
+rewards a lot of it.

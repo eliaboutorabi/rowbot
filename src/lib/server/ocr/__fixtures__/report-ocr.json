@@ -1,0 +1,192 @@
+{
+ "pages": [
+  {
+   "index": 0,
+   "markdown": "# Northwind Analytics \u2014 FY2025 Quarterly Report\n\nPrepared by the Finance Office. All figures in thousands of USD unless noted.\n\n**Table 1. Revenue by Region**\n\n[tbl-0.html](tbl-0.html)\n\n**Table 2. Headcount and Attrition**\n\n[tbl-1.html](tbl-1.html)",
+   "images": [],
+   "tables": [
+    {
+     "id": "tbl-0.html",
+     "content": "<table><thead><tr><th>Region</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Total</th></tr></thead><tr><td>North America</td><td>12,430</td><td>13,905</td><td>15,220</td><td>16,880</td><td>58,435</td></tr><tr><td>EMEA</td><td>8,120</td><td>8,640</td><td>9,310</td><td>10,050</td><td>36,120</td></tr><tr><td>APAC</td><td>5,600</td><td>6,215</td><td>7,040</td><td>7,995</td><td>26,850</td></tr><tr><td>LATAM</td><td>2,310</td><td>2,480</td><td>2,655</td><td>2,910</td><td>10,355</td></tr></table>",
+     "format": "html",
+     "word_confidence_scores": null
+    },
+    {
+     "id": "tbl-1.html",
+     "content": "<table><thead><tr><th>Department</th><th>Headcount</th><th>Hires</th><th>Exits</th><th>Attrition %</th></tr></thead><tr><td>Engineering</td><td>412</td><td>58</td><td>21</td><td>5.1%</td></tr><tr><td>Sales</td><td>236</td><td>44</td><td>39</td><td>16.5%</td></tr><tr><td>Support</td><td>158</td><td>22</td><td>18</td><td>11.4%</td></tr><tr><td>G&amp;A</td><td>74</td><td>9</td><td>6</td><td>8.1%</td></tr></table>",
+     "format": "html",
+     "word_confidence_scores": null
+    }
+   ],
+   "hyperlinks": [],
+   "header": null,
+   "footer": null,
+   "dimensions": {
+    "dpi": 93,
+    "height": 1023,
+    "width": 791
+   },
+   "confidence_scores": {
+    "word_confidence_scores": [],
+    "average_page_confidence_score": 0.9881183797141955,
+    "minimum_page_confidence_score": 0.2775585491593638
+   },
+   "blocks": [
+    {
+     "top_left_x": 79,
+     "top_left_y": 93,
+     "bottom_right_x": 572,
+     "bottom_right_y": 118,
+     "content": "# Northwind Analytics \u2014 FY2025 Quarterly Report",
+     "confidence_scores": {
+      "average_content_confidence_score": 0.9713133682768831,
+      "minimum_content_confidence_score": 0.8670325949258753,
+      "block_type_confidence_score": 0.9999718673999347
+     },
+     "type": "title"
+    },
+    {
+     "top_left_x": 79,
+     "top_left_y": 127,
+     "bottom_right_x": 481,
+     "bottom_right_y": 143,
+     "content": "Prepared by the Finance Office. All figures in thousands of USD unless noted.",
+     "confidence_scores": {
+      "average_content_confidence_score": 0.9999954935174267,
+      "minimum_content_confidence_score": 0.9999779467683537,
+      "block_type_confidence_score": 0.9999675761227764
+     },
+     "type": "text"
+    },
+    {
+     "top_left_x": 79,
+     "top_left_y": 165,
+     "bottom_right_x": 275,
+     "bottom_right_y": 183,
+     "content": "**Table 1. Revenue by Region**",
+     "confidence_scores": {
+      "average_content_confidence_score": 0.9984651396428712,
+      "minimum_content_confidence_score": 0.9924804917936116,
+      "block_type_confidence_score": 0.9993716852361525
+     },
+     "type": "caption"
+    },
+    {
+     "top_left_x": 79,
+     "top_left_y": 190,
+     "bottom_right_x": 705,
+     "bottom_right_y": 313,
+     "content": "<table><thead><tr><th>Region</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Total</th></tr></thead><tr><td>North America</td><td>12,430</td><td>13,905</td><td>15,220</td><td>16,880</td><td>58,435</td></tr><tr><td>EMEA</td><td>8,120</td><td>8,640</td><td>9,310</td><td>10,050</td><td>36,120</td></tr><tr><td>APAC</td><td>5,600</td><td>6,215</td><td>7,040</td><td>7,995</td><td>26,850</td></tr><tr><td>LATAM</td><td>2,310</td><td>2,480</td><td>2,655</td><td>2,910</td><td>10,355</td></tr></table>",
+     "confidence_scores": {
+      "average_content_confidence_score": 0.9999887152652307,
+      "minimum_content_confidence_score": 0.9999838427888571,
+      "block_type_confidence_score": 1.0
+     },
+     "type": "table",
+     "table_id": "tbl-0.html"
+    },
+    {
+     "top_left_x": 79,
+     "top_left_y": 336,
+     "bottom_right_x": 315,
+     "bottom_right_y": 354,
+     "content": "**Table 2. Headcount and Attrition**",
+     "confidence_scores": {
+      "average_content_confidence_score": 0.9999438547618201,
+      "minimum_content_confidence_score": 0.9998604190451211,
+      "block_type_confidence_score": 0.9999996423722521
+     },
+     "type": "caption"
+    },
+    {
+     "top_left_x": 79,
+     "top_left_y": 363,
+     "bottom_right_x": 705,
+     "bottom_right_y": 486,
+     "content": "<table><thead><tr><th>Department</th><th>Headcount</th><th>Hires</th><th>Exits</th><th>Attrition %</th></tr></thead><tr><td>Engineering</td><td>412</td><td>58</td><td>21</td><td>5.1%</td></tr><tr><td>Sales</td><td>236</td><td>44</td><td>39</td><td>16.5%</td></tr><tr><td>Support</td><td>158</td><td>22</td><td>18</td><td>11.4%</td></tr><tr><td>G&amp;A</td><td>74</td><td>9</td><td>6</td><td>8.1%</td></tr></table>",
+     "confidence_scores": {
+      "average_content_confidence_score": 0.99996274469355,
+      "minimum_content_confidence_score": 0.9999266980136879,
+      "block_type_confidence_score": 1.0
+     },
+     "type": "table",
+     "table_id": "tbl-1.html"
+    }
+   ]
+  },
+  {
+   "index": 1,
+   "markdown": "**Table 3. Product Line Margins (merged header)**\n\n[tbl-2.html](tbl-2.html)\n\nNote: Beacon Suite margin declined due to a one-time migration cost of $310k in Q3.",
+   "images": [],
+   "tables": [
+    {
+     "id": "tbl-2.html",
+     "content": "<table><thead><tr><th rowspan=\"2\">Product</th><th colspan=\"2\">2024</th><th colspan=\"2\">2025</th></tr><tr><th>Rev</th><th>Margin</th><th>Rev</th><th>Margin</th></tr></thead><tr><td>Atlas Core</td><td>9,200</td><td>41.2%</td><td>11,450</td><td>44.0%</td></tr><tr><td>Atlas Edge</td><td>3,150</td><td>28.7%</td><td>4,010</td><td>31.3%</td></tr><tr><td>Beacon Suite</td><td>6,780</td><td>52.5%</td><td>7,120</td><td>50.9%</td></tr></table>",
+     "format": "html",
+     "word_confidence_scores": null
+    }
+   ],
+   "hyperlinks": [],
+   "header": null,
+   "footer": null,
+   "dimensions": {
+    "dpi": 93,
+    "height": 1023,
+    "width": 791
+   },
+   "confidence_scores": {
+    "word_confidence_scores": [],
+    "average_page_confidence_score": 0.9876771632816421,
+    "minimum_page_confidence_score": 0.45788985347599354
+   },
+   "blocks": [
+    {
+     "top_left_x": 78,
+     "top_left_y": 59,
+     "bottom_right_x": 417,
+     "bottom_right_y": 79,
+     "content": "**Table 3. Product Line Margins (merged header)**",
+     "confidence_scores": {
+      "average_content_confidence_score": 0.9996475245534936,
+      "minimum_content_confidence_score": 0.9977074006186304,
+      "block_type_confidence_score": 0.9940880458511558
+     },
+     "type": "caption"
+    },
+    {
+     "top_left_x": 80,
+     "top_left_y": 86,
+     "bottom_right_x": 708,
+     "bottom_right_y": 209,
+     "content": "<table><thead><tr><th rowspan=\"2\">Product</th><th colspan=\"2\">2024</th><th colspan=\"2\">2025</th></tr><tr><th>Rev</th><th>Margin</th><th>Rev</th><th>Margin</th></tr></thead><tr><td>Atlas Core</td><td>9,200</td><td>41.2%</td><td>11,450</td><td>44.0%</td></tr><tr><td>Atlas Edge</td><td>3,150</td><td>28.7%</td><td>4,010</td><td>31.3%</td></tr><tr><td>Beacon Suite</td><td>6,780</td><td>52.5%</td><td>7,120</td><td>50.9%</td></tr></table>",
+     "confidence_scores": {
+      "average_content_confidence_score": 0.9998289160173968,
+      "minimum_content_confidence_score": 0.9988482009858234,
+      "block_type_confidence_score": 1.0
+     },
+     "type": "table",
+     "table_id": "tbl-2.html"
+    },
+    {
+     "top_left_x": 78,
+     "top_left_y": 221,
+     "bottom_right_x": 520,
+     "bottom_right_y": 238,
+     "content": "Note: Beacon Suite margin declined due to a one-time migration cost of $310k in Q3.",
+     "confidence_scores": {
+      "average_content_confidence_score": 0.9995136473709891,
+      "minimum_content_confidence_score": 0.9931649218721134,
+      "block_type_confidence_score": 0.9853471360854535
+     },
+     "type": "text"
+    }
+   ]
+  }
+ ],
+ "model": "mistral-ocr-4-1",
+ "document_annotation": null,
+ "usage_info": {
+  "pages_processed": 2,
+  "doc_size_bytes": 91357
+ }
+}

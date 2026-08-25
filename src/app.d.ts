@@ -1,12 +1,15 @@
-import type { User, Session } from 'better-auth';
+import type { auth } from '$lib/server/auth';
+
+type SessionUser = (typeof auth)['$Infer']['Session']['user'];
+type SessionData = (typeof auth)['$Infer']['Session']['session'];
 
 // See https://svelte.dev/docs/kit/types#app.d.ts
-// for information about these interfaces
 declare global {
 	namespace App {
 		interface Locals {
-			user?: User;
-			session?: Session;
+			/** Includes Rowbot's extra fields, e.g. the saved model preference. */
+			user?: SessionUser;
+			session?: SessionData;
 		}
 
 		// interface Error {}

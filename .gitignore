@@ -25,3 +25,4 @@ vite.config.ts.timestamp-*
 test-results
 # SQLite
 *.db
+.rowbot-uploads

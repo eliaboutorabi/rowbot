@@ -8,3 +8,10 @@ bun.lockb
 # Miscellaneous
 /static/
 /drizzle/
+
+# Vendored agent skills — not our code to format
+.agents/
+skills-lock.json
+
+# Recorded OCR output, kept byte-for-byte as the API returned it
+src/lib/server/ocr/__fixtures__/
