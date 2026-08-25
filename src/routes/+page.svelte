@@ -8,6 +8,7 @@
 		Sun03Icon,
 		Table01Icon
 	} from '@hugeicons/core-free-icons';
+	import ProductShot from '$lib/components/marketing/product-shot.svelte';
 	import Wordmark from '$lib/components/brand/wordmark.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { theme } from '$lib/theme.svelte';
@@ -89,6 +90,15 @@
 					{/if}
 				</div>
 			</div>
+		</section>
+
+		<!--
+			The product, before the pitch. The copy claims Rowbot shows its
+			working, and a page that says so without showing any is asking to be
+			taken on faith.
+		-->
+		<section class="mx-auto -mt-8 max-w-5xl px-6 pb-24">
+			<ProductShot />
 		</section>
 
 		<section class="mx-auto max-w-5xl px-6 pb-24">
