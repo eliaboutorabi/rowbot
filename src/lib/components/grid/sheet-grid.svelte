@@ -229,6 +229,26 @@
 
 	const cellId = (row: number, column: number) => `${sheet.id}-cell-${row}-${column}`;
 
+	/**
+	 * The tooltip a truncated cell needs, worked out on hover.
+	 *
+	 * Now that columns are fitted to the pane rather than to their widest cell,
+	 * a good deal more text is clipped — and clipped text with no way to read it
+	 * is worse than a scrollbar. Whether a particular cell is clipped is a
+	 * question only the laid-out DOM can answer, so it is asked at the moment
+	 * someone hovers, which costs nothing until then and is exact when it
+	 * happens.
+	 */
+	function explain(element: HTMLElement, cell: Cell, column: number) {
+		const shown = formatCell(cell, sheet.columns[column]?.fmt);
+		const clipped = element.scrollWidth > element.clientWidth + 1;
+		const source = cell.raw && cell.raw !== shown ? `The page said: ${cell.raw}` : '';
+
+		const title = [clipped ? shown : '', source].filter(Boolean).join('\n');
+		if (title) element.title = title;
+		else element.removeAttribute('title');
+	}
+
 	const rtl = $derived(isRightToLeft(sheet));
 
 	/* ── Column widths ────────────────────────────────────────────────
@@ -803,9 +823,7 @@
 								style:border-inline-end-width="var(--grid-hairline)"
 								style:scroll-margin-top="var(--sticky-top)"
 								style:scroll-margin-inline-start="2.75rem"
-								title={cell.raw && cell.raw !== formatCell(cell, sheet.columns[c]?.fmt)
-									? `Source text: ${cell.raw}`
-									: undefined}
+								onmouseenter={(event) => explain(event.currentTarget, cell, c)}
 								onclick={(event) => pick(r, c, event.shiftKey)}
 								ondblclick={() => beginEdit(r, c)}
 							>
