@@ -6,6 +6,7 @@
 		ArrowRight01Icon,
 		Logout01Icon,
 		Moon02Icon,
+		Message01Icon,
 		Settings01Icon,
 		Sun03Icon
 	} from '@hugeicons/core-free-icons';
@@ -13,6 +14,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { theme } from '$lib/theme.svelte';
+	import { chatPanel } from '$lib/stores/panel.svelte';
 	import { cn } from '$lib/utils';
 	import type { LayoutData } from './$types';
 
@@ -102,6 +104,26 @@
 		{/if}
 
 		<div class="flex shrink-0 items-center gap-0.5">
+			<!--
+				Showing and hiding a whole panel is chrome, so it belongs on the
+				chrome. Inside the panel it cost a row of its own at the top of the
+				conversation, and it could only ever hide — bringing the panel back
+				meant finding a second, different button in the rail it left behind.
+			-->
+			{#if isWorkspace}
+				<Button
+					variant={chatPanel.collapsed ? 'ghost' : 'secondary'}
+					size="icon"
+					class="hidden lg:inline-flex"
+					onclick={() => chatPanel.toggle()}
+					aria-pressed={!chatPanel.collapsed}
+					aria-label={chatPanel.collapsed ? 'Show the conversation' : 'Hide the conversation'}
+					title={chatPanel.collapsed ? 'Show the conversation' : 'Hide the conversation'}
+				>
+					<HugeiconsIcon icon={Message01Icon} size={18} />
+				</Button>
+			{/if}
+
 			<Button
 				variant="ghost"
 				size="icon"

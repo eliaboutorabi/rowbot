@@ -221,9 +221,24 @@
 					<Popover.Root>
 						<Popover.Trigger>
 							{#snippet child({ props })}
-								<Button {...props} variant="ghost" size="sm" class="gap-1.5 text-muted-foreground">
-									<HugeiconsIcon icon={Note01Icon} size={14} />
-									Notes
+								<!--
+									Icons, not labels. Between the two views, the notes, the
+									confidence map, the export and a mismatch count that only
+									appears when something is wrong, this row runs out of width
+									exactly when it has the most to say. The two controls whose
+									icons carry their meaning give up their words; the export,
+									which is the one thing a first-time reader is looking for,
+									keeps its own.
+								-->
+								<Button
+									{...props}
+									variant="ghost"
+									size="icon-sm"
+									class="text-muted-foreground"
+									title="What Rowbot wants you to check"
+									aria-label="What Rowbot wants you to check"
+								>
+									<HugeiconsIcon icon={Note01Icon} size={15} />
 								</Button>
 							{/snippet}
 						</Popover.Trigger>
@@ -275,23 +290,26 @@
 
 				{#if mismatches > 0}
 					<span
-						class="flex items-center gap-1.5 rounded-md bg-destructive/10 px-2 py-1 text-xs font-medium text-destructive"
-						title="A total on this sheet does not match what its own column adds up to"
+						class="flex items-center gap-1 rounded-md bg-destructive/10 px-1.5 py-1 text-xs font-medium text-destructive tabular-nums"
+						title="{mismatches} total{mismatches === 1
+							? ' does'
+							: 's do'} not match what the column adds up to"
 					>
 						<HugeiconsIcon icon={Alert01Icon} size={13} />
-						{mismatches} total{mismatches === 1 ? '' : 's'} to check
+						{mismatches}
 					</span>
 				{/if}
 
 				<Button
 					variant={heat ? 'secondary' : 'ghost'}
-					size="sm"
-					class="gap-1.5"
+					size={lowConfidenceCount > 0 ? 'sm' : 'icon-sm'}
+					class={lowConfidenceCount > 0 ? 'gap-1.5' : ''}
 					onclick={() => (heat = !heat)}
 					title="Tint cells by how confident the reader was, lowest word first"
+					aria-pressed={heat}
+					aria-label="Confidence"
 				>
-					<HugeiconsIcon icon={ThermometerIcon} size={14} />
-					Confidence
+					<HugeiconsIcon icon={ThermometerIcon} size={15} />
 					{#if lowConfidenceCount > 0}
 						<span class="rounded bg-destructive/15 px-1 text-[10px] font-medium text-destructive">
 							{lowConfidenceCount}
@@ -301,7 +319,7 @@
 
 				<Button size="sm" href="/api/export/{documentId}" download class="gap-1.5">
 					<HugeiconsIcon icon={Download04Icon} size={14} />
-					Export .xlsx
+					.xlsx
 				</Button>
 			</span>
 		{/if}

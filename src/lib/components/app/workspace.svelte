@@ -17,6 +17,7 @@
 	import WorkbookView from '$lib/components/grid/workbook-view.svelte';
 	import Logo from '$lib/components/brand/logo.svelte';
 	import { RunState, type TimelineItem } from '$lib/stores/run.svelte';
+	import { chatPanel } from '$lib/stores/panel.svelte';
 	import { compactNumber, fileSize } from '$lib/format';
 	import { parseRef, type SheetRef } from '$lib/sheet-ref';
 	import { toolMeta } from '$lib/components/agent/tool-icon';
@@ -81,9 +82,12 @@
 	/**
 	 * The agent column is the point of the app, but a wide workbook needs the
 	 * whole screen sometimes. Collapsed it becomes a rail rather than
-	 * disappearing, so the way back is always visible.
+	 * disappearing, so the way back is always visible — and the rail itself is
+	 * the way back. The other one is in the nav bar, which is where a control
+	 * that shows and hides a whole panel belongs; it was costing a 36px row
+	 * inside the panel it hides.
 	 */
-	let collapsed = $state(false);
+	const collapsed = $derived(chatPanel.collapsed);
 
 	/**
 	 * On a phone the two columns cannot both be on screen — stacked, each got
@@ -175,83 +179,102 @@
 			working, how far through the plan it is, and what it last did.
 		-->
 			<section
-				class="hidden min-h-0 w-12 flex-col items-center gap-2 border-r bg-rail py-2 lg:flex"
+				class="group relative hidden min-h-0 w-12 border-r bg-rail lg:block"
 				aria-label="Agent activity, collapsed"
 			>
-				<Button
-					variant="ghost"
-					size="icon-sm"
-					onclick={() => (collapsed = false)}
+				<!--
+					The rail is the button. A click anywhere on it brings the panel
+					back, which is what a strip of icons where a panel used to be
+					invites you to do. The indicators sit above it and take no
+					pointer events, so they never intercept the click; the one real
+					control down the bottom opts back in.
+				-->
+				<button
+					type="button"
+					class="absolute inset-0 transition-colors hover:bg-accent/40"
+					onclick={() => (chatPanel.collapsed = false)}
 					aria-label="Show the agent panel"
 					title="Show the agent panel"
+				></button>
+
+				<div
+					class="pointer-events-none relative flex h-full flex-col items-center gap-2 py-2"
+					aria-hidden="true"
 				>
-					<HugeiconsIcon icon={SidebarLeft01Icon} size={16} />
-				</Button>
-
-				<span class="h-px w-6 bg-border" aria-hidden="true"></span>
-
-				<!-- Working / idle -->
-				<span
-					class="flex size-8 items-center justify-center"
-					title={run.busy ? 'Rowbot is working' : 'Idle'}
-				>
-					{#if run.busy}
-						<HugeiconsIcon icon={Loading03Icon} size={15} class="animate-spin text-accent-ink" />
-					{:else if run.error}
-						<HugeiconsIcon icon={Alert01Icon} size={15} class="text-destructive" />
-					{:else}
-						<span class="size-1.5 rounded-full bg-muted-foreground/40"></span>
-					{/if}
-				</span>
-
-				<!-- Plan progress -->
-				{#if planTotal > 0}
-					<div
-						class="flex flex-col items-center gap-1"
-						title={`${planDone} of ${planTotal} plan steps done`}
-					>
-						<span class="text-[10px] font-medium text-muted-foreground tabular-nums">
-							{planDone}/{planTotal}
-						</span>
-						<span class="h-10 w-1 overflow-hidden rounded-full bg-muted">
-							<span
-								class="block w-full rounded-full bg-primary transition-[height] duration-500"
-								style:height="{(planDone / planTotal) * 100}%"
-							></span>
-						</span>
-					</div>
-				{/if}
-
-				<!-- Last thing it did -->
-				{#if lastTool}
 					<span
-						class="flex size-8 items-center justify-center text-muted-foreground"
-						title={`Last step: ${lastTool.name}`}
+						class="flex size-8 items-center justify-center text-muted-foreground transition-colors group-hover:text-foreground"
 					>
-						<HugeiconsIcon icon={toolMeta(lastTool.name).icon} size={15} />
+						<HugeiconsIcon icon={SidebarLeft01Icon} size={16} />
 					</span>
-				{/if}
 
-				<div class="mt-auto flex flex-col items-center gap-2">
-					{#if totalTokens > 0}
-						<span
-							class="text-[10px] text-muted-foreground tabular-nums [writing-mode:vertical-rl]"
-							title="Tokens used on this run"
+					<span class="h-px w-6 bg-border"></span>
+
+					<!-- Working / idle -->
+					<span
+						class="flex size-8 items-center justify-center"
+						title={run.busy ? 'Rowbot is working' : 'Idle'}
+					>
+						{#if run.busy}
+							<HugeiconsIcon icon={Loading03Icon} size={15} class="animate-spin text-accent-ink" />
+						{:else if run.error}
+							<HugeiconsIcon icon={Alert01Icon} size={15} class="text-destructive" />
+						{:else}
+							<span class="size-1.5 rounded-full bg-muted-foreground/40"></span>
+						{/if}
+					</span>
+
+					<!-- Plan progress -->
+					{#if planTotal > 0}
+						<div
+							class="flex flex-col items-center gap-1"
+							title={`${planDone} of ${planTotal} plan steps done`}
 						>
-							{compactNumber(totalTokens)}
+							<span class="text-[10px] font-medium text-muted-foreground tabular-nums">
+								{planDone}/{planTotal}
+							</span>
+							<span class="h-10 w-1 overflow-hidden rounded-full bg-muted">
+								<span
+									class="block w-full rounded-full bg-primary transition-[height] duration-500"
+									style:height="{(planDone / planTotal) * 100}%"
+								></span>
+							</span>
+						</div>
+					{/if}
+
+					<!-- Last thing it did -->
+					{#if lastTool}
+						<span
+							class="flex size-8 items-center justify-center text-muted-foreground"
+							title={`Last step: ${lastTool.name}`}
+						>
+							<HugeiconsIcon icon={toolMeta(lastTool.name).icon} size={15} />
 						</span>
 					{/if}
-					<Button
-						variant="ghost"
-						size="icon-sm"
-						disabled={run.busy || !run.workbook?.sheets.length}
-						onclick={() =>
-							send('Re-check every sheet against the source pages and fix anything wrong.')}
-						aria-label="Re-check this workbook"
-						title="Re-check this workbook"
+
+					<div
+						class="pointer-events-auto mt-auto flex flex-col items-center gap-2"
+						aria-hidden="false"
 					>
-						<HugeiconsIcon icon={RefreshIcon} size={15} />
-					</Button>
+						{#if totalTokens > 0}
+							<span
+								class="pointer-events-none text-[10px] text-muted-foreground tabular-nums [writing-mode:vertical-rl]"
+								title="Tokens used on this run"
+							>
+								{compactNumber(totalTokens)}
+							</span>
+						{/if}
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							disabled={run.busy || !run.workbook?.sheets.length}
+							onclick={() =>
+								send('Re-check every sheet against the source pages and fix anything wrong.')}
+							aria-label="Re-check this workbook"
+							title="Re-check this workbook"
+						>
+							<HugeiconsIcon icon={RefreshIcon} size={15} />
+						</Button>
+					</div>
 				</div>
 			</section>
 		{/if}
@@ -270,18 +293,6 @@
 			aria-label="Agent activity"
 			onclick={onFeedClick}
 		>
-			<div class="hidden h-9 shrink-0 items-center justify-end px-2 lg:flex">
-				<Button
-					variant="ghost"
-					size="icon-sm"
-					onclick={() => (collapsed = true)}
-					aria-label="Collapse the agent panel"
-					title="Collapse the agent panel"
-				>
-					<HugeiconsIcon icon={SidebarLeft01Icon} size={16} />
-				</Button>
-			</div>
-
 			<Activity {run}>
 				{#snippet empty()}
 					<div class="flex flex-col items-center gap-4 px-4 py-14 text-center">
