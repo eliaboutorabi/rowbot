@@ -31,7 +31,10 @@
 
 	interface Crumb {
 		label: string;
-		href?: string;
+		/** Only the library is ever linkable, so this is a flag rather than a URL —
+		 *  which also keeps `resolve()` a literal call at the anchor, where
+		 *  SvelteKit's typed-routing lint can see it. */
+		toLibrary?: boolean;
 	}
 
 	/**
@@ -43,10 +46,7 @@
 		const path = page.url.pathname;
 		if (path.startsWith('/d/')) {
 			const name = page.data.document?.name;
-			return [
-				{ label: 'Documents', href: resolve('/documents') },
-				...(name ? [{ label: name }] : [])
-			];
+			return [{ label: 'Documents', toLibrary: true }, ...(name ? [{ label: name }] : [])];
 		}
 		if (path.startsWith('/settings')) return [{ label: 'Settings' }];
 		if (path.startsWith('/documents')) return [{ label: 'Documents' }];
@@ -82,9 +82,9 @@
 							class="shrink-0 text-muted-foreground/50"
 						/>
 					{/if}
-					{#if crumb.href}
+					{#if crumb.toLibrary}
 						<a
-							href={crumb.href}
+							href={resolve('/documents')}
 							class="shrink-0 rounded-md px-1.5 py-1 text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
 						>
 							{crumb.label}
