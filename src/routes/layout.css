@@ -325,6 +325,14 @@
 		--grid-line-vertical: oklch(0.145 0.008 326 / 0.055);
 		--grid-row-hover: oklch(0.525 0.168 3.958 / 0.05);
 		--grid-range: oklch(0.525 0.168 3.958 / 0.11);
+		/* Opaque, because rows scroll underneath a frozen column. A shade off
+		   the page so the frozen edge reads as attached to the row numbers
+		   rather than as a stripe of its own. */
+		--grid-frozen-bg: oklch(0.993 0.001 326);
+		/* The only cue that a column is pinned: a soft edge where the content
+		   passes behind it. A border would draw a second vertical rule beside
+		   the one already there. */
+		--freeze-edge: 6px 0 8px -6px oklch(0.145 0.008 326 / 0.18);
 	}
 
 	.dark {
@@ -334,6 +342,19 @@
 		--grid-line-vertical: oklch(1 0 0 / 0.05);
 		--grid-row-hover: oklch(0.656 0.181 354.308 / 0.07);
 		--grid-range: oklch(0.656 0.181 354.308 / 0.15);
+		--grid-frozen-bg: oklch(0.163 0.009 324);
+		--freeze-edge: 6px 0 10px -6px oklch(0 0 0 / 0.5);
+	}
+
+	/* `box-shadow` has no logical form, and on a right-to-left sheet the
+	   frozen column is on the right with the content passing to its left. */
+	[dir='rtl'] {
+		--freeze-edge: -6px 0 8px -6px oklch(0.145 0.008 326 / 0.18);
+	}
+
+	.dark [dir='rtl'],
+	[dir='rtl'].dark {
+		--freeze-edge: -6px 0 10px -6px oklch(0 0 0 / 0.5);
 	}
 
 	@media (min-resolution: 192dpi), (-webkit-min-device-pixel-ratio: 2) {

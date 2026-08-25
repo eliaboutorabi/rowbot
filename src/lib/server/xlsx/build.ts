@@ -9,6 +9,7 @@
 import ExcelJS from 'exceljs';
 import type { Cell, Sheet, WorkbookModel } from '$lib/types/workbook';
 import { isRightToLeft } from '$lib/sheet-direction';
+import { representative } from '$lib/column-layout';
 import { normalizeSheet, safeSheetName } from '$lib/types/workbook';
 
 /** Cells read below this confidence get flagged for the reviewer. */
@@ -21,18 +22,26 @@ const MISMATCH_FILL = 'FFFDE7E7';
 const MISMATCH_FONT = 'FF8B1D1D';
 const BORDER = 'FFE6DCE3';
 
+/**
+ * Column width in Excel character units.
+ *
+ * One long cell should not set the column, here either: a footnote that ran
+ * on used to leave a sixty-character column with fifty-eight characters of
+ * whitespace in every other row. Same interquartile rule the grid uses, so
+ * the sheet on screen and the file you download are the same shape.
+ */
 function columnWidth(sheet: Sheet, index: number): number {
 	const declared = sheet.columns[index]?.width;
 	if (declared) return declared;
 
-	let widest = 8;
+	const lengths: number[] = [];
 	for (const row of sheet.rows) {
 		const cell = row[index];
-		if (!cell) continue;
-		const text = cell.v == null ? '' : String(cell.v);
-		widest = Math.max(widest, Math.min(text.length + 2, 60));
+		if (!cell || cell.v == null) continue;
+		lengths.push(Math.min(String(cell.v).length + 2, 60));
 	}
-	return widest;
+
+	return Math.max(8, representative(lengths));
 }
 
 function applyValue(target: ExcelJS.Cell, cell: Cell, columnFormat?: string) {

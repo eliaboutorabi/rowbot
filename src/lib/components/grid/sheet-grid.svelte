@@ -8,6 +8,8 @@
 	import { formatCell, isNumericCell } from '$lib/cell-format';
 	import { cn } from '$lib/utils';
 	import { isRightToLeft } from '$lib/sheet-direction';
+	import { allocateWidths } from '$lib/column-layout';
+	import { measureColumns } from '$lib/column-measure';
 
 	let {
 		sheet,
@@ -174,6 +176,16 @@
 	}
 
 	$effect(() => {
+		if (!scroller) return;
+		const observer = new ResizeObserver(([entry]) => {
+			paneWidth = entry.contentRect.width;
+		});
+		observer.observe(scroller);
+		paneWidth = scroller.clientWidth;
+		return () => observer.disconnect();
+	});
+
+	$effect(() => {
 		// Re-measure when the sheet changes shape, and whenever a row resizes.
 		void sheet.id;
 		void sheet.headerRows;
@@ -219,35 +231,124 @@
 
 	const rtl = $derived(isRightToLeft(sheet));
 
-	/**
-	 * Column widths, measured the way the exporter measures them.
-	 *
-	 * `table-fixed` divided the width evenly, which is fine on a ledger of
-	 * five similar columns and wrong on a transcript: a column of single
-	 * digits took as much room as the course titles beside it, and the titles
-	 * were the thing being truncated. The width the sheet declares is in Excel
-	 * character units, so the same figure that sizes the exported worksheet
-	 * sizes this one — the grid and the file people download agree.
-	 *
-	 * Clamped at both ends. A one-character column still needs to be clickable,
-	 * and a column of long prose must not push everything else off the screen.
-	 */
-	const columnWidths = $derived(
-		sheet.columns.map((column, index) => {
-			let units = column.width;
-			if (!units) {
-				units = 8;
-				for (const row of sheet.rows) {
-					const value = row[index]?.v;
-					const text = value == null ? '' : String(value);
-					units = Math.max(units, Math.min(text.length + 2, 60));
-				}
-			}
-			return Math.min(Math.max(Math.round(units * 7.2) + 26, 76), 420);
-		})
+	/* ── Column widths ────────────────────────────────────────────────
+	   Sizing every column to its widest cell is Excel's AutoFit, and it is
+	   what made a twelve-column transcript need a thousand pixels of sideways
+	   scrolling to read a page that had been printed on one sheet of A4.
+	   `column-measure` takes a demand from the body of each column's
+	   distribution rather than its tail, and `column-layout` allocates those
+	   demands across the pane like flex items. Scrolling is then what happens
+	   when the columns genuinely will not fit, rather than the default. */
+
+	/** Gutter width in px, matching the `w-*` class chosen above. */
+	const gutterWidth = $derived(
+		sheet.rows.length > 10000
+			? 48
+			: sheet.rows.length > 1000
+				? 44
+				: sheet.rows.length > 100
+					? 36
+					: 32
 	);
 
+	/** The pane's inner width, watched so the layout follows a resize. */
+	let paneWidth = $state(0);
+
+	/** Re-measured when the sheet changes; the font is read off the grid itself. */
+	const demands = $derived.by(() => {
+		void sheet.id;
+		void sheet.rows.length;
+		if (!scroller) return [];
+		const style = getComputedStyle(scroller);
+		const font = `${style.fontSize}/${style.lineHeight} ${style.fontFamily}`;
+		return measureColumns(sheet, { font, headerFont: `600 ${font}` });
+	});
+
+	/** A reviewer's own drag beats anything measured. Keyed by column index. */
+	let overrides = $state<Record<number, number>>({});
+
+	// Widths belong to the sheet they were drawn on, not to the grid.
+	$effect(() => {
+		void sheet.id;
+		overrides = {};
+	});
+
+	const columnWidths = $derived.by(() => {
+		if (!demands.length) return sheet.columns.map(() => 120);
+
+		const withOverrides = demands.map((demand, i) =>
+			overrides[i] === undefined
+				? demand
+				: { demand: overrides[i], min: overrides[i], max: overrides[i] }
+		);
+
+		const room = Math.max(paneWidth - gutterWidth, 240);
+		return allocateWidths(withOverrides, room);
+	});
+
 	const tableWidth = $derived(columnWidths.reduce((total, width) => total + width, 0));
+
+	/**
+	 * Whether the sheet is wider than the pane after all that.
+	 *
+	 * When it is, the first column is frozen beside the row numbers. In a
+	 * horizontal scroll the leftmost column is what tells you which row you
+	 * are looking at, and scrolling it away leaves a wall of figures attached
+	 * to nothing — the same reason the header row is frozen vertically.
+	 */
+	const overflowing = $derived(paneWidth > 0 && tableWidth > paneWidth - gutterWidth + 1);
+
+	/**
+	 * Which column rides along with the row numbers, or -1 for none.
+	 *
+	 * Only worth freezing when there is a sideways scroll to survive, and only
+	 * when the column is narrow enough to be a label rather than half the pane.
+	 */
+	const frozenColumn = $derived(
+		overflowing && sheet.columns.length > 2 && (columnWidths[0] ?? 0) <= 220 ? 0 : -1
+	);
+
+	/* ── Resizing ─────────────────────────────────────────────────────
+	   Drag the edge of a header to set a width, double-click it to fit the
+	   contents. An automatic layout that cannot be overruled is an argument
+	   with the reviewer, and they are the one looking at the document. */
+
+	let resizing = $state<{ column: number; startX: number; startWidth: number } | null>(null);
+
+	function startResize(event: PointerEvent, column: number) {
+		event.preventDefault();
+		event.stopPropagation();
+		const startWidth = columnWidths[column] ?? 120;
+		resizing = { column, startX: event.clientX, startWidth };
+
+		const surface = event.currentTarget as HTMLElement;
+		surface.setPointerCapture(event.pointerId);
+
+		const onMove = (move: PointerEvent) => {
+			const delta = (move.clientX - event.clientX) * (rtl ? -1 : 1);
+			overrides = { ...overrides, [column]: Math.max(48, Math.round(startWidth + delta)) };
+		};
+		const onUp = () => {
+			resizing = null;
+			surface.removeEventListener('pointermove', onMove);
+			surface.removeEventListener('pointerup', onUp);
+			surface.removeEventListener('pointercancel', onUp);
+		};
+
+		surface.addEventListener('pointermove', onMove);
+		surface.addEventListener('pointerup', onUp);
+		surface.addEventListener('pointercancel', onUp);
+	}
+
+	/** Double-click: give the column exactly what its widest cell asks for. */
+	function autoFit(column: number) {
+		const wanted = demands[column];
+		if (!wanted) return;
+		const { [column]: _dropped, ...rest } = overrides;
+		// A second double-click hands the column back to the automatic layout,
+		// so the gesture is a toggle rather than a one-way door.
+		overrides = overrides[column] === undefined ? { ...rest, [column]: wanted.demand } : rest;
+	}
 
 	/**
 	 * Bring a cell into view.
@@ -502,6 +603,7 @@
 	aria-colcount={sheet.columns.length}
 	aria-activedescendant={selected ? cellId(selected.row, selected.column) : undefined}
 	style:--sticky-top="{stickyHeight}px"
+	style:--gutter="{gutterWidth}px"
 	onkeydown={move}
 	onclick={onSurfaceClick}
 >
@@ -538,7 +640,16 @@
 				{#each sheet.columns as column, c (c)}
 					<th
 						class={cn(
-							'sticky top-0 z-20 border-b border-[var(--grid-line-strong)] p-0',
+							// No `relative` beside `sticky` for the resize grip to hang
+							// off: sticky is already a positioned ancestor, and setting
+							// both leaves which of them applies down to the order Tailwind
+							// happens to emit its utilities in.
+							'sticky top-0 border-b border-[var(--grid-line-strong)] p-0',
+							// The frozen column's header is sticky in both directions, so
+							// it has to sit above the rest of the header row as well as
+							// above the body.
+							frozenColumn === c ? 'start-(--gutter) z-28' : 'z-20',
+							frozenColumn === c && 'shadow-[var(--freeze-edge)]',
 							range?.kind === 'column' && inRange(0, c)
 								? 'bg-[var(--grid-range)]'
 								: 'bg-[var(--grid-header-bg)]'
@@ -547,6 +658,29 @@
 						style:width="{columnWidths[c]}px"
 						title={column.label ?? undefined}
 					>
+						<!--
+							Drag to resize, double-click to fit the contents — the two
+							gestures every spreadsheet has, and the pair that makes an
+							automatic layout something a reviewer can overrule rather than
+							argue with.
+						-->
+						<div
+							class="group/grip absolute inset-y-0 end-0 z-10 w-2 cursor-col-resize"
+							role="separator"
+							aria-orientation="vertical"
+							aria-label="Resize column {columnLetter(c)}"
+							title="Drag to resize · double-click to fit the contents"
+							onpointerdown={(event) => startResize(event, c)}
+							ondblclick={() => autoFit(c)}
+						>
+							<!-- Inside the cell, not straddling its edge: half of an
+							     8px grip hanging past the last column was four pixels of
+							     phantom horizontal scroll on a sheet that otherwise fit. -->
+							<div
+								class="ms-auto h-full w-px bg-primary opacity-0 transition-opacity group-hover/grip:opacity-100"
+								class:opacity-100={resizing?.column === c}
+							></div>
+						</div>
 						<!--
 							The column's own name, not just its letter. Letters make sense in
 							Excel because that is how you address a cell; here every column
@@ -638,6 +772,12 @@
 									isHeader
 										? 'sticky z-15 bg-[var(--grid-header-bg)] font-semibold text-foreground'
 										: 'bg-background group-hover:bg-[var(--grid-row-hover)]',
+									// Frozen beside the row numbers when the sheet is wider
+									// than the pane: in a sideways scroll the first column is
+									// what says which row this is, and a wall of figures
+									// attached to nothing is no better than no header row.
+									frozenColumn === c && 'sticky start-(--gutter) shadow-[var(--freeze-edge)]',
+									frozenColumn === c && (isHeader ? 'z-22' : 'z-12 bg-[var(--grid-frozen-bg)]'),
 									// Tabular figures keep digits on a shared grid; the slight
 									// negative tracking stops long currency strings sprawling.
 									// A header cell follows its column, not its own type.
