@@ -8,6 +8,7 @@
 	import ToolGroup from './tool-group.svelte';
 	import type { RunState, TimelineItem } from '$lib/stores/run.svelte';
 	import type { ToolCallView } from '$lib/types/events';
+	import { toolMeta } from './tool-icon';
 
 	let { run, empty }: { run: RunState; empty?: import('svelte').Snippet } = $props();
 
@@ -47,6 +48,14 @@
 		return out;
 	});
 
+	/** What the one status line says, from most specific to least. */
+	const status = $derived.by(() => {
+		if (run.activeSubagents.length) return `${run.activeSubagents.join(', ')} working…`;
+		const running = run.runningTools.at(-1);
+		if (running) return toolMeta(running.call.name).running;
+		return 'Thinking';
+	});
+
 	let viewport = $state<HTMLDivElement>();
 	let pinned = $state(true);
 
@@ -84,9 +93,10 @@
 					<PlanPanel todos={block.item.todos} revised={block.id !== firstPlanId} />
 				</div>
 			{:else if block.kind === 'tools'}
-				<div in:fly={{ y: 6, duration: 150 }}>
-					<ToolGroup calls={block.calls} />
-				</div>
+				<!-- No entrance transition: a tool group is created and then mutates
+				     as the run streams into it, so animating its arrival adds a shift
+				     to a block that is already moving. -->
+				<ToolGroup calls={block.calls} />
 			{:else}
 				{@const item = block.item}
 				{#if item.kind === 'user'}
@@ -142,24 +152,30 @@
 			{/if}
 		{/each}
 
-		{#if run.activeSubagents.length}
-			<p class="flex items-center gap-2 px-1 text-xs text-muted-foreground">
-				<HugeiconsIcon icon={AiBrain01Icon} size={14} class="animate-pulse text-chart-2" />
-				{run.activeSubagents.join(', ')} working…
-			</p>
-		{/if}
-
-		{#if run.busy && !run.runningTools.length}
-			<p class="flex items-center gap-2 px-1 text-xs text-muted-foreground">
-				<span class="flex gap-1" aria-hidden="true">
-					{#each [0, 1, 2] as i (i)}
-						<span
-							class="size-1.5 animate-bounce rounded-full bg-primary/60"
-							style="animation-delay: {i * 120}ms"
-						></span>
-					{/each}
-				</span>
-				Thinking
+		<!--
+			One status line for the whole run, not three that come and go.
+			Previously "Thinking" was mounted between tool calls and unmounted
+			whenever one started, and the subagent line appeared beside it — so
+			every tool call added and removed a row at the bottom of a feed that
+			is pinned to its bottom, and the whole column jumped. The row is here
+			for as long as the run is, at a fixed height, and only its words
+			change.
+		-->
+		{#if run.busy}
+			<p class="flex h-6 items-center gap-2 px-1 text-xs text-muted-foreground" aria-live="polite">
+				{#if run.activeSubagents.length}
+					<HugeiconsIcon icon={AiBrain01Icon} size={14} class="animate-pulse text-chart-2" />
+				{:else}
+					<span class="flex gap-1" aria-hidden="true">
+						{#each [0, 1, 2] as i (i)}
+							<span
+								class="size-1.5 animate-bounce rounded-full bg-primary/60"
+								style="animation-delay: {i * 120}ms"
+							></span>
+						{/each}
+					</span>
+				{/if}
+				<span class="truncate">{status}</span>
 			</p>
 		{/if}
 	</div>
