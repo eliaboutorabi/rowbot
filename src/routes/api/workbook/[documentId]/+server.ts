@@ -23,8 +23,21 @@ const body = z.object({
 	row: z.number().int().min(0),
 	column: z.number().int().min(0),
 	/** The text as typed. A leading `=` makes it a formula. Empty clears the cell. */
-	value: z.string()
+	value: z.string(),
+	/**
+	 * What the cell held when the editor opened, as the client saw it.
+	 *
+	 * A compare-and-swap on the one thing that matters. Between the page load
+	 * and this request an agent run in another tab may have rewritten the sheet
+	 * — and because rows shift, "row 3, column 2" can by then mean a different
+	 * figure entirely. Checking the value rather than a revision number needs
+	 * no version plumbing and catches exactly the case that would otherwise
+	 * write a correction onto the wrong cell in silence.
+	 */
+	expect: z.string().optional()
 });
+
+const asText = (value: unknown) => (value == null ? '' : String(value));
 
 export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 	if (!locals.user) error(401, 'Sign in first.');
@@ -43,6 +56,13 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 
 	const previous = sheet.rows[row]?.[column];
 	if (!previous) error(400, 'That cell is outside the sheet.');
+
+	if (parsed.data.expect !== undefined && asText(previous.v) !== parsed.data.expect) {
+		error(
+			409,
+			'That cell changed while you were editing it. Reload to see what it holds now, then try again.'
+		);
+	}
 
 	sheet.rows[row][column] = applyCellEdit(value, previous, model, sheet.name);
 

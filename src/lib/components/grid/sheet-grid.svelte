@@ -24,7 +24,13 @@
 		 * double-click does nothing rather than opening an editor that cannot
 		 * save.
 		 */
-		onedit?: (edit: { row: number; column: number; value: string }) => Promise<void> | void;
+		onedit?: (edit: {
+			row: number;
+			column: number;
+			value: string;
+			/** What the cell held when the editor opened, for the server to check. */
+			expect: string;
+		}) => Promise<void> | void;
 		/**
 		 * Why editing is unavailable at this moment, if it is. Editing while the
 		 * agent is mid-run would race its writes, and a silent refusal reads as a
@@ -328,6 +334,7 @@
 		if (!editing || !onedit) return;
 		const at = editing;
 		const value = draft;
+		const held = sheet.rows[at.row]?.[at.column]?.v;
 		editing = null;
 
 		// Move on before the save resolves. Correcting a column means typing,
@@ -341,7 +348,7 @@
 
 		saving = true;
 		try {
-			await onedit({ ...at, value });
+			await onedit({ ...at, value, expect: held == null ? '' : String(held) });
 		} finally {
 			saving = false;
 		}

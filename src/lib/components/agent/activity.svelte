@@ -82,7 +82,13 @@
 		tablet that put the agent's prose on 100-character lines. The cap only
 		bites where the column is wider than it should be.
 	-->
-	<div class="mx-auto max-w-2xl space-y-3 p-4">
+	<!--
+		Extra room at the foot. The composer casts a 24px fade up over the feed so
+		text does not collide with its edge — which means the last line, scrolled
+		fully into view, was still sitting half inside the fade. The padding is
+		what lets it clear.
+	-->
+	<div class="mx-auto max-w-2xl space-y-3 p-4 pb-9">
 		{#if run.timeline.length === 0 && !run.todos.length}
 			{#if empty}{@render empty()}{/if}
 		{/if}

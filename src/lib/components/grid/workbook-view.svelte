@@ -54,7 +54,7 @@
 	 * new model comes back rather than being patched locally, because the server
 	 * is the one that decides how a typed string becomes a cell.
 	 */
-	async function saveCell(edit: { row: number; column: number; value: string }) {
+	async function saveCell(edit: { row: number; column: number; value: string; expect: string }) {
 		if (!active) return;
 		try {
 			const response = await fetch(`/api/workbook/${documentId}`, {
