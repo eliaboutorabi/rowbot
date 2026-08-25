@@ -51,6 +51,46 @@ misread cells to correct, and what the reviewer needs warning about.
 - **Provenance is kept end to end.** Every cell remembers the text the page
   actually showed and how confident the OCR was, surfaced in the grid, the cell
   inspector and as comments in the exported file.
+- **Spend is bounded in two places.** A public demo that calls paid APIs on
+  every run needs both halves: `src/lib/server/invites.ts` bounds how many
+  accounts exist, and `src/lib/server/entitlements.ts` bounds what each one may
+  use. See [Access and limits](#access-and-limits).
+
+## Access and limits
+
+Rowbot calls OpenAI and Mistral on every run, so an open sign-up form is an
+open invoice. Two independent limits, either of which is enough on its own to
+make abuse pointless:
+
+**Sign-up is invite-only.** `ROWBOT_INVITE_CODES` holds a comma-separated list
+of codes; the sign-up form asks for one and the server checks it. Issue and
+revoke by editing the variable. If the variable is unset or empty, **sign-up is
+closed** — a missing config never opens the door.
+
+**Each account has an allowance.** Everything is in
+`src/lib/server/entitlements.ts`:
+
+| Tier        | Who                                  | Documents | Pages | Agent turns |
+| ----------- | ------------------------------------ | --------- | ----- | ----------- |
+| `free`      | the default                          | 1         | 10    | 6           |
+| `byok`      | saved their own keys in **Settings** | ∞         | 200   | ∞           |
+| `unlimited` | listed in `ROWBOT_UNLIMITED_EMAILS`  | ∞         | 200   | ∞           |
+
+The free tier is sized to show the whole product working — read a document,
+watch the harness, correct it, export the workbook — and no more. Turns are
+metered as well as documents, because one document with an unbounded
+conversation costs exactly as much as unbounded documents.
+
+An account that saves its own OpenAI and Mistral keys is spending its own
+credit, so nothing is metered. Those keys are encrypted with AES-256-GCM under
+a key derived from `BETTER_AUTH_SECRET` (`src/lib/server/secrets.ts`), are never
+returned to the browser, and are held for the life of one request in an
+`AsyncLocalStorage` (`src/lib/server/provider-keys.ts`) rather than the agent's
+runtime context — context can reach a checkpoint, and an API key must never be
+written to the database.
+
+Hitting a limit returns `402` with a sentence explaining it and a link to
+Settings, everywhere it can happen.
 
 ## Running it locally
 

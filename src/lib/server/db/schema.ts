@@ -86,6 +86,12 @@ export const run = sqliteTable(
 		/** idle | running | interrupted | done | failed | cancelled */
 		status: text('status').notNull().default('idle'),
 		errorMessage: text('error_message'),
+		/**
+		 * Agent turns taken on this run. The free allowance is metered in turns
+		 * rather than runs: one document with an unbounded conversation costs
+		 * exactly as much as unbounded documents.
+		 */
+		turns: integer('turns').notNull().default(0),
 		inputTokens: integer('input_tokens').notNull().default(0),
 		outputTokens: integer('output_tokens').notNull().default(0),
 		reasoningTokens: integer('reasoning_tokens').notNull().default(0),
@@ -120,6 +126,29 @@ export const workbook = sqliteTable(
 	},
 	(t) => [index('workbook_document_idx').on(t.documentId, t.version)]
 );
+
+/**
+ * A user's own provider API keys, encrypted at rest.
+ *
+ * Supplying both keys is what lifts the free allowance: from that point the
+ * account spends its own credit, so there is nothing left to ration. The
+ * columns hold ciphertext produced by `$lib/server/secrets`; the `*Hint`
+ * columns hold a masked fragment that is safe to render.
+ */
+export const userCredential = sqliteTable('user_credential', {
+	userId: text('user_id')
+		.primaryKey()
+		.references(() => user.id, { onDelete: 'cascade' }),
+	openaiKey: text('openai_key'),
+	openaiHint: text('openai_hint'),
+	mistralKey: text('mistral_key'),
+	mistralHint: text('mistral_hint'),
+	createdAt: integer('created_at', { mode: 'timestamp_ms' }).notNull().default(now),
+	updatedAt: integer('updated_at', { mode: 'timestamp_ms' })
+		.notNull()
+		.default(now)
+		.$onUpdate(() => new Date())
+});
 
 /* ------------------------------------------------------------------ */
 /* LangGraph persistence                                               */
@@ -196,6 +225,7 @@ export const workbookRelations = relations(workbook, ({ one }) => ({
 }));
 
 export type Document = typeof document.$inferSelect;
+export type UserCredential = typeof userCredential.$inferSelect;
 export type DocumentPage = typeof documentPage.$inferSelect;
 export type Run = typeof run.$inferSelect;
 export type Workbook = typeof workbook.$inferSelect;

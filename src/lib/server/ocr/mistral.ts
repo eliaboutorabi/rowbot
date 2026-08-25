@@ -5,7 +5,7 @@
  * we need is a single POST, and this keeps the serverless bundle small and the
  * exact request shape visible at the call site.
  */
-import { env } from '$env/dynamic/private';
+import { mistralKey } from '$lib/server/provider-keys';
 
 export const OCR_MODEL = 'mistral-ocr-4-1';
 const ENDPOINT = 'https://api.mistral.ai/v1/ocr';
@@ -91,7 +91,8 @@ export class MistralOcrError extends Error {
 }
 
 function apiKey(): string {
-	const key = env.MISTRAL_API_KEY;
+	// Resolved per request: an account with its own key is billed to it.
+	const key = mistralKey();
 	if (!key) throw new MistralOcrError('MISTRAL_API_KEY is not set');
 	return key;
 }

@@ -2,7 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
 	import { HugeiconsIcon } from '@hugeicons/svelte';
-	import { Logout01Icon, Moon02Icon, Sun03Icon } from '@hugeicons/core-free-icons';
+	import { Logout01Icon, Moon02Icon, Settings01Icon, Sun03Icon } from '@hugeicons/core-free-icons';
 	import Wordmark from '$lib/components/brand/wordmark.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
@@ -63,6 +63,15 @@
 					<div class="truncate text-sm font-medium">{data.user.name}</div>
 					<div class="truncate text-xs text-muted-foreground">{data.user.email}</div>
 				</DropdownMenu.Label>
+				<DropdownMenu.Separator />
+				<DropdownMenu.Item class="cursor-pointer">
+					{#snippet child({ props })}
+						<a {...props} href={resolve('/settings')}>
+							<HugeiconsIcon icon={Settings01Icon} size={16} />
+							Settings
+						</a>
+					{/snippet}
+				</DropdownMenu.Item>
 				<DropdownMenu.Separator />
 				<form method="post" action="/documents?/signOut" class="contents">
 					<button type="submit" class="w-full">

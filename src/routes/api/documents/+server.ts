@@ -11,6 +11,8 @@ import {
 	putDocument
 } from '$lib/server/storage';
 import { ownedDocument } from '$lib/server/runs';
+import { assertCanUpload } from '$lib/server/entitlements';
+import { pdfPageCount } from '$lib/server/ocr/mistral';
 
 const prettySize = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 
@@ -32,8 +34,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		error(415, `Rowbot reads PDFs and images. Accepted types: ${ACCEPTED_MIME_TYPES.join(', ')}.`);
 	}
 
-	const documentId = crypto.randomUUID();
 	const bytes = new Uint8Array(await file.arrayBuffer());
+
+	// Page count first: the allowance is measured in pages, and a document that
+	// blows the limit should be refused before anything is stored or billed.
+	const pageCount = pdfPageCount(bytes, file.type) ?? 1;
+	await assertCanUpload(locals.user, pageCount);
+
+	const documentId = crypto.randomUUID();
 	const stored = await putDocument(locals.user.id, documentId, file.name, bytes, file.type);
 
 	try {
@@ -46,6 +54,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 				originalFilename: file.name,
 				mimeType: file.type,
 				sizeBytes: file.size,
+				pageCount,
 				blobUrl: stored.url,
 				blobPathname: stored.pathname,
 				status: 'pending'

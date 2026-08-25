@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	import { HugeiconsIcon } from '@hugeicons/svelte';
-	import { PlayIcon, RefreshIcon } from '@hugeicons/core-free-icons';
+	import { Alert01Icon, Key01Icon, PlayIcon, RefreshIcon } from '@hugeicons/core-free-icons';
 	import { Button } from '$lib/components/ui/button';
 	import Activity from '$lib/components/agent/activity.svelte';
 	import Composer from '$lib/components/agent/composer.svelte';
@@ -97,6 +98,29 @@
 					<HugeiconsIcon icon={RefreshIcon} size={14} />
 					Re-check this workbook
 				</Button>
+			</div>
+		{/if}
+
+		{#if run.error}
+			<div class="shrink-0 border-t px-3 py-2.5">
+				<div
+					class="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/8 px-3 py-2.5 text-sm"
+					role="alert"
+				>
+					<HugeiconsIcon
+						icon={run.outOfAllowance ? Key01Icon : Alert01Icon}
+						size={16}
+						class="mt-0.5 shrink-0 text-destructive"
+					/>
+					<div class="min-w-0 flex-1 space-y-2">
+						<p class="text-destructive">{run.error}</p>
+						{#if run.outOfAllowance}
+							<Button href={resolve('/settings')} variant="outline" size="sm">
+								Add your API keys
+							</Button>
+						{/if}
+					</div>
+				</div>
 			</div>
 		{/if}
 

@@ -12,6 +12,8 @@ import {
 	setRunStatus
 } from '$lib/server/runs';
 import type { WorkbookModel } from '$lib/types/workbook';
+import { assertCanRun, countTurn, resolveKeys } from '$lib/server/entitlements';
+import { withProviderKeys } from '$lib/server/provider-keys';
 
 /**
  * Hobby functions cap out at 300s. The harness is checkpointed, so hitting the
@@ -39,9 +41,17 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	}
 
 	const doc = await ownedDocument(body.documentId, locals.user.id);
+
+	// Two separate questions, in order: is this account allowed another turn,
+	// and whose credit does the turn spend? A `byok` account passes the first
+	// trivially, because it is paying for itself.
+	await assertCanRun(locals.user);
+	const keys = await resolveKeys(locals.user);
+
 	const model = asModelId(body.model ?? locals.user.defaultModel);
 	const effort = asEffort(body.effort ?? locals.user.defaultEffort);
 	const activeRun = await ensureRun(doc.id, locals.user.id, model, effort);
+	await countTurn(activeRun.id);
 
 	const previous = await latestWorkbook(doc.id);
 	const initialWorkbook = (previous?.dataJson as WorkbookModel | undefined) ?? undefined;
@@ -54,78 +64,93 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const encoder = new TextEncoder();
 	const result: { current?: StreamRunResult } = {};
 
-	const stream = new ReadableStream<Uint8Array>({
-		async start(streamController) {
-			const send = (event: AgentEvent) => {
-				streamController.enqueue(encoder.encode(encodeEvent(event)));
-			};
+	// `start` runs synchronously inside the constructor, so building the stream
+	// inside this scope is what puts the keys in scope for the whole run.
+	const stream = withProviderKeys(
+		keys,
+		() =>
+			new ReadableStream<Uint8Array>({
+				async start(streamController) {
+					const send = (event: AgentEvent) => {
+						streamController.enqueue(encoder.encode(encodeEvent(event)));
+					};
 
-			await setRunStatus(activeRun.id, 'running');
+					await setRunStatus(activeRun.id, 'running');
 
-			try {
-				for await (const event of streamRun(
-					{
-						context: {
-							documentId: doc.id,
-							runId: activeRun.id,
-							userId: locals.user!.id,
-							filename: doc.originalFilename,
-							mimeType: doc.mimeType
-						},
-						model,
-						effort,
-						threadId: activeRun.threadId,
-						input:
-							body.resume !== undefined
-								? { resume: body.resume }
-								: { messages: [{ role: 'user', content: body.message ?? '' }] },
-						signal: controller.signal,
-						initialWorkbook
-					},
-					result
-				)) {
-					send(event);
-				}
+					try {
+						for await (const event of streamRun(
+							{
+								context: {
+									documentId: doc.id,
+									runId: activeRun.id,
+									userId: locals.user!.id,
+									filename: doc.originalFilename,
+									mimeType: doc.mimeType
+								},
+								model,
+								effort,
+								threadId: activeRun.threadId,
+								input:
+									body.resume !== undefined
+										? { resume: body.resume }
+										: { messages: [{ role: 'user', content: body.message ?? '' }] },
+								signal: controller.signal,
+								initialWorkbook
+							},
+							result
+						)) {
+							send(event);
+						}
 
-				const final = result.current;
-				if (final) {
-					if (final.workbook.sheets.length) {
-						await saveWorkbook(doc.id, activeRun.id, final.workbook, body.message ?? 'Resumed run');
+						const final = result.current;
+						if (final) {
+							if (final.workbook.sheets.length) {
+								await saveWorkbook(
+									doc.id,
+									activeRun.id,
+									final.workbook,
+									body.message ?? 'Resumed run'
+								);
+							}
+							await addUsage(activeRun.id, final.usage);
+							await setRunStatus(
+								activeRun.id,
+								final.status === 'interrupted' ? 'interrupted' : 'done'
+							);
+						} else {
+							await setRunStatus(activeRun.id, 'done');
+						}
+					} catch (cause) {
+						const aborted = controller.signal.aborted || (cause as Error)?.name === 'AbortError';
+
+						// Whatever the agent finished before the failure is still worth
+						// keeping — this is the difference between a hiccup and lost work.
+						if (result.current?.workbook.sheets.length) {
+							await saveWorkbook(
+								doc.id,
+								activeRun.id,
+								result.current.workbook,
+								aborted ? 'Stopped by the user' : 'Partial result before an error'
+							);
+						}
+
+						if (aborted) {
+							await setRunStatus(activeRun.id, 'cancelled');
+							send({ type: 'done', status: 'cancelled' });
+						} else {
+							const message =
+								cause instanceof Error ? cause.message : 'The run failed unexpectedly.';
+							console.error('[rowbot] run failed', cause);
+							await setRunStatus(activeRun.id, 'failed', { errorMessage: message });
+							send({ type: 'error', message, recoverable: true });
+							send({ type: 'done', status: 'complete' });
+						}
+					} finally {
+						streamController.close();
 					}
-					await addUsage(activeRun.id, final.usage);
-					await setRunStatus(activeRun.id, final.status === 'interrupted' ? 'interrupted' : 'done');
-				} else {
-					await setRunStatus(activeRun.id, 'done');
 				}
-			} catch (cause) {
-				const aborted = controller.signal.aborted || (cause as Error)?.name === 'AbortError';
-
-				// Whatever the agent finished before the failure is still worth
-				// keeping — this is the difference between a hiccup and lost work.
-				if (result.current?.workbook.sheets.length) {
-					await saveWorkbook(
-						doc.id,
-						activeRun.id,
-						result.current.workbook,
-						aborted ? 'Stopped by the user' : 'Partial result before an error'
-					);
-				}
-
-				if (aborted) {
-					await setRunStatus(activeRun.id, 'cancelled');
-					send({ type: 'done', status: 'cancelled' });
-				} else {
-					const message = cause instanceof Error ? cause.message : 'The run failed unexpectedly.';
-					console.error('[rowbot] run failed', cause);
-					await setRunStatus(activeRun.id, 'failed', { errorMessage: message });
-					send({ type: 'error', message, recoverable: true });
-					send({ type: 'done', status: 'complete' });
-				}
-			} finally {
-				streamController.close();
-			}
-		}
-	});
+			})
+	);
 
 	return new Response(stream, {
 		headers: {

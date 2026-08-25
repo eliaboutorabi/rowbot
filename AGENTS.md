@@ -13,15 +13,18 @@ Deep Agents on GPT-5.6 · Mistral Document AI · ExcelJS · Vercel.
 
 ## Where things live
 
-| Path                           | Purpose                                                                                   |
-| ------------------------------ | ----------------------------------------------------------------------------------------- |
-| `src/lib/types/workbook.ts`    | The workbook model. Shared by agent, grid and exporter — change it here and nowhere else. |
-| `src/lib/coerce.ts`            | OCR text → typed values. Runs on both server and client.                                  |
-| `src/lib/server/ocr/`          | Mistral client and the HTML-table → grid parser.                                          |
-| `src/lib/server/agent/`        | Harness: tools, state, prompt, checkpointer, stream mapper.                               |
-| `src/lib/server/xlsx/build.ts` | Workbook model → `.xlsx`.                                                                 |
-| `src/lib/types/events.ts`      | The SSE protocol. Both ends import this.                                                  |
-| `src/lib/stores/run.svelte.ts` | Client-side run state machine.                                                            |
+| Path                              | Purpose                                                                                   |
+| --------------------------------- | ----------------------------------------------------------------------------------------- |
+| `src/lib/types/workbook.ts`       | The workbook model. Shared by agent, grid and exporter — change it here and nowhere else. |
+| `src/lib/coerce.ts`               | OCR text → typed values. Runs on both server and client.                                  |
+| `src/lib/server/ocr/`             | Mistral client and the HTML-table → grid parser.                                          |
+| `src/lib/server/agent/`           | Harness: tools, state, prompt, checkpointer, stream mapper.                               |
+| `src/lib/server/xlsx/build.ts`    | Workbook model → `.xlsx`.                                                                 |
+| `src/lib/types/events.ts`         | The SSE protocol. Both ends import this.                                                  |
+| `src/lib/server/entitlements.ts`  | Every spending limit. One file on purpose — change policy here, not at call sites.        |
+| `src/lib/server/invites.ts`       | The sign-up gate. Fails closed when unconfigured.                                         |
+| `src/lib/server/provider-keys.ts` | Request-scoped API keys. Never put a key in the agent's runtime context.                  |
+| `src/lib/stores/run.svelte.ts`    | Client-side run state machine.                                                            |
 
 ## Conventions
 

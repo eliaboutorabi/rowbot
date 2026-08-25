@@ -51,6 +51,17 @@ uploads so the source view still works when you reopen a document weeks later.
 | `OPENAI_API_KEY`     | Your OpenAI key                                                           |
 | `MISTRAL_API_KEY`    | Your Mistral key                                                          |
 
+And, because the deployment is public and every run spends those two keys:
+
+| Name                      | Value                                                                       |
+| ------------------------- | --------------------------------------------------------------------------- |
+| `ROWBOT_INVITE_CODES`     | Comma-separated sign-up codes. **Unset or empty closes sign-up entirely.**  |
+| `ROWBOT_UNLIMITED_EMAILS` | Comma-separated addresses that bypass the free allowance. Your own address. |
+
+Everyone else gets one document of at most ten pages and six agent turns until
+they save their own provider keys in Settings — see
+[Access and limits](../README.md#access-and-limits).
+
 `ORIGIN` has to match the deployed URL exactly, including the scheme. Sessions
 fail silently if it doesn't — that's the single most common setup mistake here.
 
@@ -64,7 +75,7 @@ additive, so redeploys are safe.
 
 ## 6. Check it
 
-1. Open the deployment and create an account.
+1. Open the deployment and create an account, using one of your invite codes.
 2. Upload a PDF with a table.
 3. Watch the activity feed — plan, then OCR progress, then sheets appearing.
 4. Export the `.xlsx` and open it.

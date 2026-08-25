@@ -9,7 +9,7 @@
 import { createDeepAgent, StateBackend } from 'deepagents';
 import { createAgent, todoListMiddleware } from 'langchain';
 import { ChatOpenAI } from '@langchain/openai';
-import { env } from '$env/dynamic/private';
+import { openaiKey } from '$lib/server/provider-keys';
 import { checkpointer } from './checkpointer';
 import { rowbotContextSchema, rowbotStateSchema, type RowbotContext } from './state';
 import { systemPrompt } from './prompt';
@@ -26,7 +26,7 @@ export interface AgentOptions {
 export function chatModel(model: ModelId, effort: Effort): ChatOpenAI {
 	return new ChatOpenAI({
 		model,
-		apiKey: env.OPENAI_API_KEY,
+		apiKey: openaiKey(),
 		useResponsesApi: true,
 		// `xhigh` and `max` are newer than the bundled SDK's union type.
 		reasoning: { effort: effort as 'low' | 'medium' | 'high' },

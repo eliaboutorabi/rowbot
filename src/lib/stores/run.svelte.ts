@@ -52,6 +52,21 @@ async function* readEvents(body: ReadableStream<Uint8Array>): AsyncGenerator<Age
 let sequence = 0;
 const nextId = () => `t${++sequence}`;
 
+/**
+ * SvelteKit's `error()` replies with `{ message }`. Reading it as text and
+ * slicing showed the reader raw JSON; this hands back the sentence inside.
+ */
+async function failureMessage(response: Response): Promise<string> {
+	const body = await response.text().catch(() => '');
+	try {
+		const parsed = JSON.parse(body);
+		if (typeof parsed?.message === 'string' && parsed.message) return parsed.message;
+	} catch {
+		// Not JSON — fall through to the raw body.
+	}
+	return body.slice(0, 300) || `The run could not start (${response.status}).`;
+}
+
 export class RunState {
 	status = $state<RunStatus>('idle');
 	timeline = $state<TimelineItem[]>([]);
@@ -62,6 +77,8 @@ export class RunState {
 	interrupt = $state<InterruptState | null>(null);
 	activeSubagents = $state<string[]>([]);
 	error = $state<string | null>(null);
+	/** Set when the last failure was a spent allowance rather than a fault. */
+	outOfAllowance = $state(false);
 	startedAt = $state<number | null>(null);
 
 	#controller: AbortController | null = null;
@@ -110,6 +127,7 @@ export class RunState {
 		if (this.busy) return;
 
 		this.error = null;
+		this.outOfAllowance = false;
 		this.status = 'streaming';
 		this.startedAt = Date.now();
 
@@ -134,8 +152,10 @@ export class RunState {
 			});
 
 			if (!response.ok || !response.body) {
-				const detail = await response.text().catch(() => '');
-				throw new Error(detail.slice(0, 300) || `The run could not start (${response.status}).`);
+				// 402 means the account is out of allowance — a state to act on,
+				// not a fault to retry, so the composer offers Settings instead.
+				this.outOfAllowance = response.status === 402;
+				throw new Error(await failureMessage(response));
 			}
 
 			for await (const event of readEvents(response.body)) this.#apply(event);
