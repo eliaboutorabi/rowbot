@@ -116,6 +116,7 @@ export const ocrDocumentTool = tool(
 		const pagesWithoutTables: number[] = [];
 		const confidences: number[] = [];
 		const dbRows: (typeof documentPage.$inferInsert)[] = [];
+		const failedRanges: { range: string | undefined; reason: string }[] = [];
 		let processed = 0;
 
 		for (const [i, range] of chunks.entries()) {
@@ -127,10 +128,25 @@ export const ocrDocumentTool = tool(
 				total: chunks.length
 			});
 
-			const result = await runOcr(bytes, doc.mimeType, doc.originalFilename, {
-				pages: range,
-				signal: runtime.config?.signal
-			});
+			// A chunk that will not read must not take the ones that did. Mistral
+			// has already been retried through its transient failures by this
+			// point, so arriving here means the range genuinely did not come
+			// back — and the useful thing is to keep the rest of the document,
+			// tell the model which pages are missing, and let it decide whether
+			// to try them again or work without them. Throwing instead ends the
+			// run, which is how a 503 on page 4 of 6 used to lose all six.
+			let result;
+			try {
+				result = await runOcr(bytes, doc.mimeType, doc.originalFilename, {
+					pages: range,
+					signal: runtime.config?.signal
+				});
+			} catch (cause) {
+				if ((cause as Error)?.name === 'AbortError') throw cause;
+				failedRanges.push({ range, reason: (cause as Error).message });
+				emit({ kind: 'note', text: `Pages ${range ?? 'all'} could not be read` });
+				continue;
+			}
 			processed += result.usage_info.pages_processed;
 
 			for (const page of result.pages) {
@@ -165,6 +181,20 @@ export const ocrDocumentTool = tool(
 			}
 		}
 
+		// Nothing came back at all. Leave the previous read — and the document's
+		// status — exactly as they were, and hand the model a result it can act
+		// on rather than an exception that ends the run.
+		if (!dbRows.length && failedRanges.length) {
+			return [
+				`OCR did not return anything for this document after retrying.`,
+				...failedRanges.map((f) => `- pages ${f.range ?? 'all'}: ${f.reason}`),
+				'',
+				'This is the reader failing, not the document. Try `ocr_document` again with a',
+				'smaller page range; if it keeps failing, say so plainly and stop rather than',
+				'building a workbook out of nothing.'
+			].join('\n');
+		}
+
 		// Re-running OCR over a page replaces the previous read for that page.
 		await db.delete(documentPage).where(eq(documentPage.documentId, doc.id));
 		if (dbRows.length) await db.insert(documentPage).values(dbRows);
@@ -194,6 +224,14 @@ export const ocrDocumentTool = tool(
 
 		const lines = [
 			`Read ${processed} page${processed === 1 ? '' : 's'} with ${OCR_MODEL}.`,
+			...(failedRanges.length
+				? [
+						`${failedRanges.length} page range${failedRanges.length === 1 ? '' : 's'} did not come back: ` +
+							failedRanges.map((f) => f.range ?? 'all').join(', ') +
+							'. Everything below is what did read. Call `ocr_document` again on those ' +
+							'pages before you finish, and tell the reviewer if they still will not read.'
+					]
+				: []),
 			`Found ${tables.length} table${tables.length === 1 ? '' : 's'}.`,
 			index.averageConfidence !== null
 				? `Average OCR confidence ${(index.averageConfidence * 100).toFixed(1)}%.`

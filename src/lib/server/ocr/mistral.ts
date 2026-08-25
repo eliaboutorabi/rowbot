@@ -141,13 +141,49 @@ export async function runOcr(
 		...(options.pages !== undefined ? { pages: options.pages } : {})
 	};
 
+	// Mistral answers a rate limit or a bad minute with a 429 or a 5xx, and a
+	// single one of those used to end the run — the reviewer got "Service
+	// unavailable" and lost a document they had waited two minutes for. These
+	// are the failures that go away on their own, so they are waited out here
+	// rather than handed to the agent as though the document were at fault.
+	let last: MistralOcrError | null = null;
+
+	for (let attempt = 0; attempt < RETRIES.length + 1; attempt++) {
+		if (attempt > 0) await pause(RETRIES[attempt - 1], options.signal);
+
+		try {
+			return await attemptOcr(body, options.signal);
+		} catch (cause) {
+			if (!(cause instanceof MistralOcrError) || !cause.retryable) throw cause;
+			last = cause;
+		}
+	}
+
+	throw last ?? new MistralOcrError('Mistral OCR failed');
+}
+
+/** Backoff between attempts, in ms. Short: a whole run is capped at 300s. */
+const RETRIES = [1_000, 4_000, 10_000];
+
+function pause(ms: number, signal?: AbortSignal): Promise<void> {
+	return new Promise((resolve, reject) => {
+		if (signal?.aborted) return reject(signal.reason);
+		const timer = setTimeout(resolve, ms);
+		signal?.addEventListener('abort', () => {
+			clearTimeout(timer);
+			reject(signal.reason);
+		});
+	});
+}
+
+async function attemptOcr(body: unknown, signal?: AbortSignal): Promise<OcrResponse> {
 	let response: Response;
 	try {
 		response = await fetch(ENDPOINT, {
 			method: 'POST',
 			headers: { Authorization: `Bearer ${apiKey()}`, 'Content-Type': 'application/json' },
 			body: JSON.stringify(body),
-			signal: options.signal
+			signal
 		});
 	} catch (cause) {
 		if ((cause as Error)?.name === 'AbortError') throw cause;

@@ -55,6 +55,17 @@ export function describeRunFailure(raw: string): RunFailure {
 		};
 	}
 
+	// The reader, not the document. Worth saying, because "Mistral OCR failed"
+	// reads like the file was the problem.
+	if (lower.includes('mistral') || lower.includes('could not reach')) {
+		return {
+			title: 'The document reader is having a bad minute.',
+			hint: 'Rowbot already waited and tried again. Give it a moment and send your message again — the file is fine.',
+			detail: text,
+			retryable: true
+		};
+	}
+
 	if (lower.includes('rate limit') || lower.includes('429')) {
 		return {
 			title: 'The model provider is rate limiting this account.',

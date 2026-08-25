@@ -31,6 +31,15 @@ describe('describeRunFailure', () => {
 		expect(describeRunFailure('GRAPH_RECURSION_LIMIT reached').retryable).toBe(false);
 	});
 
+	it('blames the reader, not the file, for an OCR outage', () => {
+		const failure = describeRunFailure(
+			'Mistral OCR failed (503): {"object":"error","message":"Service unavailable."}'
+		);
+
+		expect(failure.title).toMatch(/reader/i);
+		expect(failure.hint).toMatch(/file is fine/i);
+	});
+
 	it('names a rate limit as one', () => {
 		expect(describeRunFailure('Request failed with status 429').title).toMatch(/rate limit/i);
 	});
