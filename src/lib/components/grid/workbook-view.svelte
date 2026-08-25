@@ -340,11 +340,20 @@
 		}
 	}
 
-	// Follow the agent to whatever sheet it just created.
+	/**
+	 * Which sheet to show when nothing is showing.
+	 *
+	 * The first one — the main table the document is about. This used to take
+	 * `sheets.at(-1)`, reading as "follow the agent to the sheet it just made",
+	 * but the condition only fires when the selected sheet is *absent*, which on
+	 * a reopened project means no sheet has been selected at all. So coming back
+	 * to a ledger of four hundred rows opened on the seven-row summary sitting
+	 * behind it, every time.
+	 */
 	$effect(() => {
-		const latest = sheets.at(-1);
-		if (latest && !sheets.some((s) => s.id === activeId)) {
-			activeId = latest.id;
+		const first = sheets[0];
+		if (first && !sheets.some((s) => s.id === activeId)) {
+			activeId = first.id;
 			selected = null;
 		}
 	});
