@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { columnLetter, type Cell, type Sheet } from '$lib/types/workbook';
 	import { contains, formatRef, type SheetRef } from '$lib/sheet-ref';
+	import { nextCell, spanBetween } from '$lib/grid-keys';
 	import { formatCell, isNumericCell } from '$lib/cell-format';
 	import { cn } from '$lib/utils';
 
@@ -62,6 +63,7 @@
 			})
 		};
 		selected = { row, column: 0 };
+		anchor = { row, column: 0 };
 	}
 
 	function takeColumn(column: number) {
@@ -77,6 +79,7 @@
 			})
 		};
 		selected = { row: sheet.headerRows, column };
+		anchor = { row: sheet.headerRows, column };
 	}
 
 	/** Beyond this the DOM cost stops being worth it; the export has everything. */
@@ -106,6 +109,10 @@
 	const headerRowEls: HTMLTableRowElement[] = [];
 	let stickyTops = $state<number[]>([]);
 
+	/** Everything pinned at the top, together — what a cell must clear when
+	 *  it is scrolled into view. */
+	let stickyHeight = $state(0);
+
 	function measureHeader() {
 		if (!headEl) return;
 		let offset = headEl.getBoundingClientRect().height;
@@ -115,6 +122,7 @@
 			offset += headerRowEls[i]?.getBoundingClientRect().height ?? 0;
 		}
 		stickyTops = next;
+		stickyHeight = offset;
 	}
 
 	$effect(() => {
@@ -138,31 +146,87 @@
 		return 'bg-red-500/14';
 	}
 
+	/* ── Keyboard ─────────────────────────────────────────────────────
+	   A spreadsheet is a keyboard instrument, and the reviewer's job here is
+	   to walk a column of figures and hand the odd one to the agent. So the
+	   arrows walk, shift-arrow grows a selection, and the growing selection
+	   is a real range — the same object a click on a gutter number produces,
+	   and the same one the composer attaches to a message. */
+
+	let scroller = $state<HTMLElement>();
+
+	/** Where a shift-extended selection is anchored. */
+	let anchor: { row: number; column: number } | null = null;
+
+	const lastRow = $derived(Math.max(visibleRows.length - 1, 0));
+	const lastColumn = $derived(Math.max(sheet.columns.length - 1, 0));
+
+	const cellId = (row: number, column: number) => `${sheet.id}-cell-${row}-${column}`;
+
+	function reveal(row: number, column: number) {
+		// After the state change lands, so the cell exists and is laid out.
+		requestAnimationFrame(() => {
+			document
+				.getElementById(cellId(row, column))
+				?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+		});
+	}
+
+	/** How many rows one PageUp/PageDown covers, from the viewport itself. */
+	function pageRows(): number {
+		const height = (scroller?.clientHeight ?? ROW_HEIGHT * 10) - stickyHeight;
+		return Math.max(1, Math.floor(height / ROW_HEIGHT) - 1);
+	}
+
 	function move(event: KeyboardEvent) {
-		if (!selected) return;
-		const keys: Record<string, [number, number]> = {
-			ArrowUp: [-1, 0],
-			ArrowDown: [1, 0],
-			ArrowLeft: [0, -1],
-			ArrowRight: [0, 1]
-		};
-		const delta = keys[event.key];
-		if (!delta) return;
+		const here = selected ?? { row: sheet.headerRows, column: 0 };
+
+		if (event.key === 'Escape') {
+			event.preventDefault();
+			range = null;
+			anchor = selected;
+			return;
+		}
+
+		const to = nextCell(
+			{ key: event.key, jump: event.metaKey || event.ctrlKey },
+			here,
+			{ lastRow, lastColumn },
+			pageRows()
+		);
+		if (!to) return;
 		event.preventDefault();
-		selected = {
-			row: Math.min(Math.max(selected.row + delta[0], 0), visibleRows.length - 1),
-			column: Math.min(Math.max(selected.column + delta[1], 0), sheet.columns.length - 1)
-		};
+
+		// Shift keeps the anchor and grows the block; a plain move re-anchors.
+		if (event.shiftKey) {
+			anchor ??= here;
+			range = spanBetween(anchor, to, sheet.name);
+		} else {
+			anchor = to;
+			range = null;
+		}
+
+		selected = to;
+		reveal(to.row, to.column);
+	}
+
+	function pick(row: number, column: number) {
+		selected = { row, column };
+		anchor = { row, column };
+		range = null;
 	}
 </script>
 
 <div
+	bind:this={scroller}
 	class="scroll-slim h-full overflow-auto"
 	role="grid"
 	tabindex="0"
 	aria-label="Sheet {sheet.name}"
 	aria-rowcount={sheet.rows.length}
 	aria-colcount={sheet.columns.length}
+	aria-activedescendant={selected ? cellId(selected.row, selected.column) : undefined}
+	style:--sticky-top="{stickyHeight}px"
 	onkeydown={move}
 >
 	<!--
@@ -296,13 +360,17 @@
 										selected?.column === c &&
 										'outline-1 -outline-offset-1 outline-primary'
 								)}
+								id={cellId(r, c)}
+								aria-selected={selected?.row === r && selected?.column === c}
 								style:top={isHeader ? `${stickyTops[r] ?? 0}px` : undefined}
 								style:border-bottom-width="var(--grid-hairline)"
 								style:border-right-width="var(--grid-hairline)"
+								style:scroll-margin-top="var(--sticky-top)"
+								style:scroll-margin-left="2.75rem"
 								title={cell.raw && cell.raw !== formatCell(cell, sheet.columns[c]?.fmt)
 									? `Source text: ${cell.raw}`
 									: undefined}
-								onclick={() => (selected = { row: r, column: c })}
+								onclick={() => pick(r, c)}
 							>
 								{formatCell(cell, sheet.columns[c]?.fmt)}
 								{#if cell.check?.status === 'mismatch'}

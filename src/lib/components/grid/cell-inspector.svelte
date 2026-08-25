@@ -12,7 +12,7 @@
 	import { cellRef, type Sheet } from '$lib/types/workbook';
 	import { TYPE_LABEL, formatCell } from '$lib/cell-format';
 	import { cn } from '$lib/utils';
-	import { refLabel, type SheetRef } from '$lib/sheet-ref';
+	import { contains, refLabel, type SheetRef } from '$lib/sheet-ref';
 
 	let {
 		sheet,
@@ -39,6 +39,44 @@
 	/** Only worth showing when coercion changed what the page said. */
 	const sourceText = $derived(cell?.raw && cell.raw !== shown ? cell.raw : null);
 
+	/**
+	 * What a spreadsheet's status bar tells you about a selection, because it
+	 * is the fastest way to check a printed total: select the column above it
+	 * and read the sum. Header rows are left out — a year in a header is not
+	 * part of the column's arithmetic.
+	 */
+	const tally = $derived.by(() => {
+		if (!range) return null;
+		let cells = 0;
+		let numeric = 0;
+		let sum = 0;
+		for (let r = sheet.headerRows; r < sheet.rows.length; r++) {
+			const row = sheet.rows[r];
+			if (!row) continue;
+			for (let c = 0; c < row.length; c++) {
+				if (!contains(range, r, c)) continue;
+				const value = row[c];
+				if (!value || value.covered) continue;
+				cells++;
+				if (typeof value.v === 'number' && Number.isFinite(value.v)) {
+					numeric++;
+					sum += value.v;
+				}
+			}
+		}
+		return { cells, numeric, sum: Number(sum.toFixed(10)) };
+	});
+
+	const number = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
+
+	const shape = $derived(
+		range?.kind === 'row'
+			? 'Whole row'
+			: range?.kind === 'column'
+				? 'Whole column'
+				: `${(range?.to.row ?? 0) - (range?.from.row ?? 0) + 1} × ${(range?.to.column ?? 0) - (range?.from.column ?? 0) + 1} block`
+	);
+
 	const confidence = $derived(cell?.conf);
 	const band = $derived(
 		confidence === undefined
@@ -55,9 +93,20 @@
 	{#if range}
 		<div class="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs">
 			<span class="font-mono text-[13px] font-semibold">{refLabel(range)}</span>
-			<span class="min-w-0 flex-1 truncate text-muted-foreground">
-				{range.kind === 'row' ? 'Whole row selected' : 'Whole column selected'}
-			</span>
+			<span class="shrink-0 text-muted-foreground">{shape}</span>
+
+			{#if tally}
+				<span class="min-w-0 flex-1 truncate text-muted-foreground tabular-nums">
+					{tally.cells}
+					{tally.cells === 1 ? 'cell' : 'cells'}
+					{#if tally.numeric > 0}
+						· sum <span class="text-foreground">{number.format(tally.sum)}</span>
+						· avg {number.format(tally.sum / tally.numeric)}
+					{/if}
+				</span>
+			{:else}
+				<span class="min-w-0 flex-1"></span>
+			{/if}
 			{#if onattach}
 				<button
 					type="button"
@@ -158,6 +207,9 @@
 	{:else}
 		<p class="text-xs text-muted-foreground">
 			Select a cell to see what the page said, how it was typed, and how sure the reader was.
+			<span class="text-muted-foreground">
+				Arrow keys move; hold shift to take a block and read its sum.
+			</span>
 		</p>
 	{/if}
 </div>
