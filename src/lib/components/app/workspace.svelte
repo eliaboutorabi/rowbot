@@ -19,6 +19,8 @@
 	import { RunState, type TimelineItem } from '$lib/stores/run.svelte';
 	import { sidebar } from '$lib/stores/sidebar.svelte';
 	import { activity } from '$lib/stores/activity.svelte';
+	import { widths } from '$lib/stores/layout.svelte';
+	import ResizeEdge from '$lib/components/app/resize-edge.svelte';
 	import { fileSize } from '$lib/format';
 	import { describeRunFailure } from '$lib/run-error';
 	import { parseRef, type SheetRef } from '$lib/sheet-ref';
@@ -106,6 +108,9 @@
 	 */
 	const collapsed = $derived(sidebar.open !== 'chat');
 
+	/** True while the conversation's edge is being dragged. */
+	let dragging = $state(false);
+
 	/**
 	 * Keep the rail's conversation button informed. It shows what the collapsed
 	 * panel used to show on a rail of its own, which the app rail has made
@@ -192,17 +197,18 @@
 	<div
 		class={cn(
 			'grid min-h-0 flex-1 grid-cols-1 lg:transition-[grid-template-columns] lg:duration-200 lg:ease-out',
+			collapsed ? 'lg:grid-cols-[0px_1fr]' : 'lg:grid-cols-[var(--chat-width)_1fr]',
 			// Two length tracks, so the browser can interpolate between them and
 			// the column slides rather than vanishing between frames. `0fr` or a
 			// dropped track would both be instant, and the conversation appearing
 			// out of nowhere is most of what made this feel abrupt.
 			//
-			// The clamp reaches its 32rem ceiling around 1350px, which is where
-			// `minmax(22rem, 32rem)` used to sit before this became an animation.
-			// Narrower than that and the agent's prose wraps into a column of
-			// four-word lines.
-			collapsed ? 'lg:grid-cols-[0px_1fr]' : 'lg:grid-cols-[clamp(21rem,38vw,32rem)_1fr]'
+			// While the edge is being dragged the transition is off: two hundred
+			// milliseconds of easing behind every pointer move is a column that
+			// lags the cursor.
+			dragging && 'lg:transition-none'
 		)}
+		style:--chat-width="{widths.chat}px"
 	>
 		<!-- Harness -->
 		<!-- The chips inside are real buttons, so keyboard activation already works;
@@ -211,7 +217,7 @@
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<section
 			class={cn(
-				'min-h-0 min-w-0 flex-col overflow-hidden bg-rail lg:flex',
+				'relative min-h-0 min-w-0 flex-col overflow-hidden bg-rail lg:flex',
 				// The rule goes with the column: at zero width a border is a stray
 				// vertical line beside the rail.
 				collapsed ? 'lg:border-r-0' : 'border-r',
@@ -221,6 +227,12 @@
 			aria-label="Agent activity"
 			onclick={onFeedClick}
 		>
+			{#if !collapsed}
+				<div class="hidden lg:block">
+					<ResizeEdge column="chat" ondragging={(active) => (dragging = active)} />
+				</div>
+			{/if}
+
 			<Activity {run}>
 				{#snippet empty()}
 					<div class="flex flex-col items-center gap-4 px-4 py-14 text-center">

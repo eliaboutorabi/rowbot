@@ -8,16 +8,19 @@
 	 * a session. All of it is in the rail now, and the sheet starts at the top
 	 * of the window.
 	 */
+	import { onMount } from 'svelte';
 	import { page } from '$app/state';
 	import { slide } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import { HugeiconsIcon } from '@hugeicons/svelte';
 	import { Cancel01Icon, Logout01Icon } from '@hugeicons/core-free-icons';
 	import Rail from '$lib/components/app/rail.svelte';
+	import ResizeEdge from '$lib/components/app/resize-edge.svelte';
 	import ProjectsPanel from '$lib/components/app/projects-panel.svelte';
 	import SettingsPanel from '$lib/components/app/settings-panel.svelte';
 	import { Button } from '$lib/components/ui/button';
 	import { sidebar } from '$lib/stores/sidebar.svelte';
+	import { widths } from '$lib/stores/layout.svelte';
 	import type { LayoutData } from './$types';
 
 	let { children, data }: { children: import('svelte').Snippet; data: LayoutData } = $props();
@@ -43,6 +46,11 @@
 
 	const TITLES = { projects: 'Projects', settings: 'Settings', account: 'Account' } as const;
 
+	// Widths are a preference, so they are remembered — but only read once the
+	// browser is here, or the server's HTML and the first paint would disagree
+	// and the column would visibly jump on load.
+	onMount(() => widths.hydrate());
+
 	// Arriving at the library with the project list open would show the same
 	// thing twice, in two sizes, side by side.
 	$effect(() => {
@@ -63,11 +71,12 @@
 			its own fixed width so the contents do not reflow on the way.
 		-->
 		<aside
-			class="flex shrink-0 flex-col overflow-hidden border-r bg-rail"
+			class="relative flex shrink-0 flex-col overflow-hidden border-r bg-rail"
 			aria-label={TITLES[showing]}
 			transition:slide={{ axis: 'x', duration: 200, easing: cubicOut }}
 		>
-			<div class="flex min-h-0 w-80 flex-1 flex-col">
+			<ResizeEdge column="panel" />
+			<div class="flex min-h-0 flex-1 flex-col" style:width="{widths.panel}px">
 				<header class="flex h-11 shrink-0 items-center justify-between gap-2 border-b px-3">
 					<h1 class="truncate text-[0.8125rem] font-medium">{TITLES[showing]}</h1>
 					<button

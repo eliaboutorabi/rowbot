@@ -68,18 +68,6 @@
 		<Logo class="size-[23px]" />
 	</a>
 
-	<!--
-		Not in the library, where the same list is already the page. The panel
-		exists to hop between projects while you are working on one; offering it
-		here would be the third door to the room you are standing in.
-	-->
-	{#if !onLibrary}
-		{@render railButton('projects', DashboardSquare01Icon, {
-			on: 'Close the project list',
-			off: 'Your projects'
-		})}
-	{/if}
-
 	{#if isWorkspace}
 		<!--
 			Desktop only. Below `lg` the workspace shows one pane at a time through
@@ -125,6 +113,17 @@
 		</div>
 	{/if}
 
+	<!--
+		Not in the library, where the same list is already the page. The panel
+		exists to hop between projects while you are working on one; offering it
+		here would be the third door to the room you are standing in.
+	-->
+	{#if !onLibrary}
+		{@render railButton('projects', DashboardSquare01Icon, {
+			on: 'Close the project list',
+			off: 'Your projects'
+		})}
+	{/if}
 	<div class="flex-1"></div>
 
 	<button
