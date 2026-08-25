@@ -138,6 +138,20 @@ export function renderMarkdown(source: string): string {
 }
 
 /**
+ * References, and nothing else.
+ *
+ * For text a person typed. Their prose is not markdown and should not be read
+ * as any — someone who types an asterisk means an asterisk — but the `[[…]]`
+ * syntax is the app's own, put there by the composer when they attached a
+ * row or a column, and showing it to them raw is showing them the wire
+ * format. So: escape everything, then turn the references into the same chips
+ * the agent's replies get.
+ */
+export function renderReferences(source: string): string {
+	return references(escapeHtml(source));
+}
+
+/**
  * Inline-only rendering, for places that already have their own block element
  * — an interrupt's question, an option's consequence. `renderMarkdown` wraps
  * everything in `<p>`, which nests badly inside a `<p>` and brings margins

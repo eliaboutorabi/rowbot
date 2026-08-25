@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderInline, renderMarkdown } from './markdown';
+import { renderInline, renderMarkdown, renderReferences } from './markdown';
 
 describe('renderMarkdown', () => {
 	it('renders the subset the agent actually writes', () => {
@@ -67,6 +67,34 @@ describe('workbook references', () => {
 	it('still escapes hostile input inside a reference', () => {
 		const html = renderMarkdown('[[<img src=x onerror=alert(1)>!A1]]');
 		expect(html).not.toContain('<img');
+	});
+});
+
+describe('renderReferences', () => {
+	it('turns an attached reference into the chip the agent’s replies get', () => {
+		const html = renderReferences(
+			"Regarding [['Course Transcript'!A:A]]: take the row column out."
+		);
+
+		expect(html).toContain('data-ref');
+		expect(html).not.toContain('[[');
+	});
+
+	it('leaves a person’s prose alone', () => {
+		// Their message is not markdown. Someone who types an asterisk means an
+		// asterisk, and a stray underscore should not silently italicise a name.
+		const html = renderReferences('call the sheet *final* and rename total_units');
+
+		expect(html).toBe('call the sheet *final* and rename total_units');
+	});
+
+	it('escapes anything that looks like markup', () => {
+		expect(renderReferences('<img src=x onerror=alert(1)>')).not.toContain('<img');
+	});
+
+	it('leaves a malformed reference as the text it was', () => {
+		// A chip that goes nowhere is worse than no chip.
+		expect(renderReferences('[[not a reference]]')).toContain('[[not a reference]]');
 	});
 });
 

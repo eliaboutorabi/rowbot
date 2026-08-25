@@ -3,7 +3,7 @@
 	import { Alert01Icon, AiBrain01Icon } from '@hugeicons/core-free-icons';
 	import { fly } from 'svelte/transition';
 	import Logo from '$lib/components/brand/logo.svelte';
-	import { renderMarkdown } from '$lib/markdown';
+	import { renderMarkdown, renderReferences } from '$lib/markdown';
 	import PlanPanel from './plan-panel.svelte';
 	import ToolGroup from './tool-group.svelte';
 	import type { RunState, TimelineItem } from '$lib/stores/run.svelte';
@@ -117,7 +117,18 @@
 						<p
 							class="max-w-[85%] rounded-xl rounded-br-sm bg-primary/[0.09] px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap text-foreground ring-1 ring-primary/15 dark:bg-primary/20 dark:ring-primary/25"
 						>
-							{item.text}
+							<!--
+								A reference the composer attached is shown as the chip it is,
+								not as the `[['Sheet'!A:A]]` that goes over the wire. It reads
+								as a rendering fault otherwise, and it is the one piece of
+								markup in the message the app put there itself.
+
+								Safe by construction: `renderReferences` escapes the text
+								before it turns any of it into markup, and applies nothing
+								except the reference chips. See markdown.spec.ts.
+							-->
+							<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+							{@html renderReferences(item.text)}
 						</p>
 					</div>
 				{:else if item.kind === 'assistant'}
