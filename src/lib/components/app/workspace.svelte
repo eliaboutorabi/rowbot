@@ -353,6 +353,7 @@
 				documentId={data.document.id}
 				mimeType={data.document.mimeType}
 				busy={run.busy}
+				finished={!run.busy && run.timeline.some((item) => item.kind === 'assistant')}
 				{reveal}
 				onattach={attach}
 			/>

@@ -6,6 +6,7 @@
 	import { CloudUploadIcon, Key01Icon, Loading03Icon } from '@hugeicons/core-free-icons';
 	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
+	import { ACCEPTED_MIME_TYPES, prettySize, rejectionReason, MAX_UPLOAD_BYTES } from '$lib/uploads';
 	import { cn } from '$lib/utils';
 
 	let { class: className }: { class?: string } = $props();
@@ -22,8 +23,26 @@
 	let outOfAllowance = $state(false);
 	let input = $state<HTMLInputElement | null>(null);
 
-	const ACCEPT =
-		'application/pdf,image/png,image/jpeg,image/webp,image/gif,image/tiff,image/bmp,image/avif';
+	const ACCEPT = ACCEPTED_MIME_TYPES.join(',');
+
+	/**
+	 * Turn away what the server would turn away, before spending the upload on
+	 * it. A 40 MB file used to travel the whole way before being refused.
+	 */
+	function offer(file: File | undefined, extras = 0) {
+		if (!file) return;
+		const reason = rejectionReason(file);
+		if (reason) {
+			toast.error('Rowbot cannot read that file', { description: reason });
+			return;
+		}
+		if (extras > 0) {
+			toast.info(`Taking “${file.name}”`, {
+				description: `One document at a time — the other ${extras === 1 ? 'file was' : `${extras} files were`} left alone.`
+			});
+		}
+		upload(file);
+	}
 
 	async function upload(file: File) {
 		uploading = true;
@@ -61,8 +80,8 @@
 	function handleDrop(event: DragEvent) {
 		event.preventDefault();
 		dragging = false;
-		const file = event.dataTransfer?.files?.[0];
-		if (file) upload(file);
+		const files = event.dataTransfer?.files;
+		offer(files?.[0], Math.max((files?.length ?? 0) - 1, 0));
 	}
 </script>
 
@@ -131,8 +150,7 @@
 			tabindex="-1"
 			aria-hidden="true"
 			onchange={(e) => {
-				const file = e.currentTarget.files?.[0];
-				if (file) upload(file);
+				offer(e.currentTarget.files?.[0]);
 				e.currentTarget.value = '';
 			}}
 		/>
@@ -161,7 +179,7 @@
 				{/if}
 			</p>
 			<p class="text-sm text-muted-foreground">
-				PDF, PNG, JPEG, WebP or TIFF · up to 25 MB{#if pageLimit}
+				PDF, PNG, JPEG, WebP or TIFF · up to {prettySize(MAX_UPLOAD_BYTES)}{#if pageLimit}
 					· {pageLimit} pages{/if}
 			</p>
 		</div>

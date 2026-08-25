@@ -22,6 +22,7 @@
 		documentId,
 		mimeType,
 		busy = false,
+		finished = false,
 		reveal = null,
 		onattach
 	}: {
@@ -29,6 +30,8 @@
 		documentId: string;
 		mimeType: string;
 		busy?: boolean;
+		/** A run has been through this document and stopped. */
+		finished?: boolean;
 		/** A reference the agent wrote, to select and scroll to. */
 		reveal?: { ref: SheetRef; nonce: number } | null;
 		/** Send the current selection to the composer. */
@@ -228,20 +231,37 @@
 			<SourceView {documentId} {mimeType} {linkedPaths} {focus} onopentable={openTable} />
 		</div>
 	{:else if !sheets.length}
+		<!--
+			Three states, not two. A run that has finished and produced nothing is
+			a different fact from one that has not started, and saying "sheets will
+			appear once Rowbot reads the document" after it has read the document
+			reads as though the app lost the result.
+		-->
 		<div class="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
 			<span
 				class="flex size-12 items-center justify-center rounded-xl border bg-card text-muted-foreground"
 			>
-				<HugeiconsIcon icon={FileSpreadsheetIcon} size={22} />
+				<HugeiconsIcon icon={busy ? FileSpreadsheetIcon : Alert01Icon} size={22} />
 			</span>
 			<p class="text-sm font-medium">
-				{busy ? 'Building your workbook…' : 'No sheets yet'}
+				{busy ? 'Building your workbook…' : finished ? 'No table here' : 'No sheets yet'}
 			</p>
-			<p class="max-w-xs text-sm text-muted-foreground">
-				{busy
-					? 'Sheets appear here the moment Rowbot creates them.'
-					: 'Sheets will appear here once Rowbot reads the document.'}
+			<p class="max-w-xs text-sm leading-relaxed text-muted-foreground">
+				{#if busy}
+					Sheets appear here the moment Rowbot creates them.
+				{:else if finished}
+					Rowbot read the document and did not find a table it could import. Look at what it read on
+					the page, or tell it where the table is.
+				{:else}
+					Sheets will appear here once Rowbot reads the document.
+				{/if}
 			</p>
+			{#if finished}
+				<Button variant="outline" size="sm" class="mt-1 gap-2" onclick={() => (view = 'source')}>
+					<HugeiconsIcon icon={File01Icon} size={15} />
+					See what it read
+				</Button>
+			{/if}
 		</div>
 	{:else}
 		<!--

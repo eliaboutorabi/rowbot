@@ -18,22 +18,9 @@ import { dirname, join, resolve } from 'node:path';
 const LOCAL_ROOT = resolve('.rowbot-uploads');
 const LOCAL_PREFIX = 'local:';
 
-export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
-
-export const ACCEPTED_MIME_TYPES = [
-	'application/pdf',
-	'image/png',
-	'image/jpeg',
-	'image/webp',
-	'image/gif',
-	'image/tiff',
-	'image/bmp',
-	'image/avif'
-] as const;
-
-export function isAcceptedMimeType(mime: string): boolean {
-	return (ACCEPTED_MIME_TYPES as readonly string[]).includes(mime);
-}
+// The drop zone enforces the same two limits before it uploads anything, so
+// they live somewhere the browser can also read.
+export { ACCEPTED_MIME_TYPES, MAX_UPLOAD_BYTES, isAcceptedMimeType } from '$lib/uploads';
 
 export function blobConfigured(): boolean {
 	return Boolean(env.BLOB_READ_WRITE_TOKEN);
