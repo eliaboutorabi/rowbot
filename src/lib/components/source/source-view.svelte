@@ -435,6 +435,7 @@
 									current === info.index ? 'bg-primary/10' : 'hover:bg-accent/60'
 								)}
 								aria-current={current === info.index ? 'page' : undefined}
+								aria-label={`Page ${info.index + 1}`}
 								onclick={() => goTo(info.index)}
 							>
 								<!--
