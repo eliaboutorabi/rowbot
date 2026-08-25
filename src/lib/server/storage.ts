@@ -1,11 +1,16 @@
 /**
  * Where uploaded source documents live.
  *
- * Production uses Vercel Blob. Local development falls back to a gitignored
- * folder so the app runs with nothing but a `DATABASE_URL`, and reopening an
- * old document still shows its source page.
+ * Production uses Vercel Blob with **private** access: these are people's
+ * invoices and financial statements, and a public blob is readable by anyone
+ * who has the URL. Reads therefore go through the SDK with the store token,
+ * and the app serves them on through its own authenticated route.
+ *
+ * Local development falls back to a gitignored folder so the app runs with
+ * nothing but a `DATABASE_URL`, and reopening an old document still shows its
+ * source page.
  */
-import { del, head, put } from '@vercel/blob';
+import { del, get, head, put } from '@vercel/blob';
 import { env } from '$env/dynamic/private';
 import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
@@ -62,7 +67,7 @@ export async function putDocument(
 	}
 
 	const result = await put(pathname, Buffer.from(bytes), {
-		access: 'public',
+		access: 'private',
 		contentType,
 		token: env.BLOB_READ_WRITE_TOKEN,
 		// The id already makes the path unique; a random suffix would break
@@ -79,11 +84,15 @@ export async function readDocument(blobUrl: string): Promise<Uint8Array> {
 		return new Uint8Array(await readFile(target));
 	}
 
-	const response = await fetch(blobUrl);
-	if (!response.ok) {
-		throw new Error(`Could not read the stored document (${response.status}).`);
-	}
-	return new Uint8Array(await response.arrayBuffer());
+	// A private blob is not readable by a bare fetch — the token has to travel
+	// with the request, which is the whole point of storing them privately.
+	const result = await get(blobUrl, {
+		access: 'private',
+		token: env.BLOB_READ_WRITE_TOKEN
+	});
+	if (!result) throw new Error('That document is no longer in storage.');
+
+	return new Uint8Array(await new Response(result.stream).arrayBuffer());
 }
 
 export async function deleteDocument(blobUrl: string | null): Promise<void> {
