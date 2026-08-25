@@ -14,7 +14,8 @@
 	 */
 	import { onMount } from 'svelte';
 	import { HugeiconsIcon } from '@hugeicons/svelte';
-	import { Image01Icon } from '@hugeicons/core-free-icons';
+	import { Pdf01Icon } from '@hugeicons/core-free-icons';
+	import { openDocument, renderPage } from '$lib/pdf';
 
 	let {
 		documentId,
@@ -39,6 +40,8 @@
 	const CARD_H = 200;
 
 	let root = $state<HTMLElement>();
+	/** True once a render has failed, so the card shows a mark instead of blank paper. */
+	let failed = $state(false);
 	const canvases: HTMLCanvasElement[] = [];
 	let drawn = false;
 
@@ -47,10 +50,7 @@
 		drawn = true;
 
 		try {
-			const pdfjs = await import('pdfjs-dist');
-			const worker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
-			pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
-			const pdf = await pdfjs.getDocument({ url: `/api/source/${documentId}` }).promise;
+			const pdf = await openDocument(`/api/source/${documentId}`);
 
 			const ratio = Math.min(window.devicePixelRatio || 1, 2);
 			const width = CARD_W * ratio;
@@ -74,7 +74,7 @@
 				if (!offContext) continue;
 				offContext.fillStyle = '#ffffff';
 				offContext.fillRect(0, 0, offscreen.width, offscreen.height);
-				await page.render({ canvas: offscreen, canvasContext: offContext, viewport }).promise;
+				await renderPage(page, offscreen, offContext, viewport);
 
 				canvas.width = width;
 				canvas.height = height;
@@ -94,9 +94,12 @@
 					Math.min(height, offscreen.height)
 				);
 			}
-		} catch {
-			// A thumbnail is decoration; a failed one must not break the library.
-			drawn = false;
+		} catch (cause) {
+			// A thumbnail is decoration and must never break the library — but a
+			// silent failure here is a blank white card, which reads as an empty
+			// document rather than a broken preview. Say so, and leave a trail.
+			console.error(`Could not draw a preview of “${name}”`, cause);
+			failed = true;
 		}
 	}
 
@@ -140,8 +143,13 @@
 		{/each}
 	{/if}
 
-	{#if !pageCount && isImage}
-		<span class="sr-only"><HugeiconsIcon icon={Image01Icon} size={12} /></span>
+	{#if failed}
+		<span
+			class="pointer-events-none absolute inset-0 flex items-center justify-center text-neutral-400"
+			title="This preview could not be drawn"
+		>
+			<HugeiconsIcon icon={Pdf01Icon} size={26} />
+		</span>
 	{/if}
 </div>
 

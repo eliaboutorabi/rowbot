@@ -22,6 +22,7 @@
 		ViewOffSlashIcon
 	} from '@hugeicons/core-free-icons';
 	import { Button } from '$lib/components/ui/button';
+	import { openDocument, renderPage as drawPage } from '$lib/pdf';
 	import { cn } from '$lib/utils';
 
 	let {
@@ -119,13 +120,10 @@
 
 	function ensurePdf(): Promise<void> {
 		// pdf.js ships a worker and has no business in the server bundle, so it
-		// is imported lazily and only once.
-		pdfLoading ??= (async () => {
-			const pdfjs = await import('pdfjs-dist');
-			const worker = await import('pdfjs-dist/build/pdf.worker.min.mjs?url');
-			pdfjs.GlobalWorkerOptions.workerSrc = worker.default;
-			pdf = await pdfjs.getDocument({ url: `/api/source/${documentId}` }).promise;
-		})();
+		// is opened lazily and only once.
+		pdfLoading ??= openDocument(`/api/source/${documentId}`).then((doc) => {
+			pdf = doc;
+		});
 		return pdfLoading;
 	}
 
@@ -142,7 +140,7 @@
 		canvas.style.height = `${unscaled.height * scale}px`;
 
 		const context = canvas.getContext('2d');
-		if (context) await pdfPage.render({ canvas, canvasContext: context, viewport }).promise;
+		if (context) await drawPage(pdfPage, canvas, context, viewport);
 	}
 
 	async function renderPage(index: number) {

@@ -20,7 +20,8 @@
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
 		"auth:schema": "auth generate --config src/lib/server/auth.ts --output src/lib/server/db/auth.schema.ts --yes",
-		"postinstall": "node scripts/fix-vendored-esm.mjs"
+		"postinstall": "node scripts/fix-vendored-esm.mjs",
+		"sync:pdfjs": "node scripts/sync-pdfjs-assets.mjs"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
