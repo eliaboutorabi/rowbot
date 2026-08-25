@@ -7,9 +7,16 @@ import { sveltekit } from '@sveltejs/kit/vite';
 
 export default defineConfig({
 	ssr: {
-		// Ships raw .svelte files; Vite must compile it rather than hand it to
-		// Node's ESM loader, which has no idea what a .svelte file is.
-		noExternal: ['svelte-sonner']
+		noExternal: [
+			// Ships raw .svelte files; Vite must compile it rather than hand it to
+			// Node's ESM loader, which has no idea what a .svelte file is.
+			'svelte-sonner',
+			// Vendors ESM copies of p-retry/p-queue under dist/node_modules/.pnpm/
+			// with no package.json of their own. Left external, Vercel's Node
+			// runtime loads them as CJS and dies on the first `import` statement.
+			// Bundling inlines them and the module system stops mattering.
+			'@langchain/langgraph-sdk'
+		]
 	},
 	plugins: [
 		tailwindcss(),

@@ -1,5 +1,5 @@
 {
 	"$schema": "https://openapi.vercel.sh/vercel.json",
 	"framework": "sveltekit",
-	"buildCommand": "npm run db:migrate && npm run build"
+	"buildCommand": "node scripts/fix-vendored-esm.mjs && npm run db:migrate && npm run build"
 }
