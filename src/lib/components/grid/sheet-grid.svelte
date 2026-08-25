@@ -122,7 +122,13 @@
 	 * header is a normal thing for OCR to produce.
 	 */
 	let headEl = $state<HTMLTableSectionElement>();
-	const headerRowEls: HTMLTableRowElement[] = [];
+	/**
+	 * Reactive, because the effect below measures through it. `bind:this` into a
+	 * plain array is a write Svelte cannot see, so the effect ran once against
+	 * an empty array and the sticky offsets were measured before the rows it
+	 * needed to measure existed.
+	 */
+	const headerRowEls = $state<HTMLTableRowElement[]>([]);
 	let stickyTops = $state<number[]>([]);
 
 	/** Everything pinned at the top, together — what a cell must clear when

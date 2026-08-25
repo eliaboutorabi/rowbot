@@ -77,9 +77,11 @@
 
 <div class="relative shrink-0 px-3 pt-2 pb-3">
 	<!-- Feed content scrolls under the composer; this fades it out rather than
-	     letting text collide with the surface edge. -->
+	     letting text collide with the surface edge. It has to fade to the
+	     conversation's own ground — `background` is the sheet's, one step up
+	     the ramp, and against the rail it painted a visible lighter band. -->
 	<div
-		class="pointer-events-none absolute inset-x-0 -top-6 h-6 bg-gradient-to-t from-background to-transparent"
+		class="pointer-events-none absolute inset-x-0 -top-6 h-6 bg-gradient-to-t from-rail to-transparent"
 		aria-hidden="true"
 	></div>
 

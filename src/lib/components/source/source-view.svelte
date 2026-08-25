@@ -88,10 +88,14 @@
 	let hovered = $state<{ block: Block; x: number; y: number; above: boolean } | null>(null);
 
 	let scroller = $state<HTMLDivElement>();
-	const pageEls: HTMLElement[] = [];
-	const thumbEls: HTMLElement[] = [];
-	const pageCanvases: HTMLCanvasElement[] = [];
-	const thumbCanvases: HTMLCanvasElement[] = [];
+	// Reactive: effects read through these to observe pages and to keep the
+	// rail's active thumbnail in view, and `bind:this` into a plain array is a
+	// write Svelte cannot see — so those effects would run once, against
+	// nothing, and never again.
+	const pageEls = $state<HTMLElement[]>([]);
+	const thumbEls = $state<HTMLElement[]>([]);
+	const pageCanvases = $state<HTMLCanvasElement[]>([]);
+	const thumbCanvases = $state<HTMLCanvasElement[]>([]);
 	// Plain Sets, not SvelteSets: these are render bookkeeping that no template
 	// reads, and making them reactive would re-run the page list on every draw.
 	// eslint-disable-next-line svelte/prefer-svelte-reactivity

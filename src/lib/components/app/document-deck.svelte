@@ -42,7 +42,7 @@
 	let root = $state<HTMLElement>();
 	/** True once a render has failed, so the card shows a mark instead of blank paper. */
 	let failed = $state(false);
-	const canvases: HTMLCanvasElement[] = [];
+	const canvases = $state<HTMLCanvasElement[]>([]);
 	let drawn = false;
 
 	async function render() {
