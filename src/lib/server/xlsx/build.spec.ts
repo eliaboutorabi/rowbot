@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import ExcelJS from 'exceljs';
-import { buildWorkbook, workbookFilename } from './build';
+import { buildWorkbook, contentDisposition, workbookFilename } from './build';
 import { sheetFromHtml } from '../ocr/html-table';
 import { tablePath } from '$lib/server/agent/tools/ocr';
 import type { OcrResponse } from '../ocr/mistral';
@@ -146,5 +146,54 @@ describe('buildWorkbook', () => {
 describe('workbookFilename', () => {
 	it('swaps the source extension for .xlsx', () => {
 		expect(workbookFilename('Q4 report.pdf')).toBe('Q4 report.xlsx');
+	});
+
+	it('keeps punctuation a filesystem has no objection to', () => {
+		expect(workbookFilename('Meridian Group — Global Sales Ledger, FY2025')).toBe(
+			'Meridian Group — Global Sales Ledger, FY2025.xlsx'
+		);
+	});
+
+	it('leaves no double space where an illegal character was', () => {
+		expect(workbookFilename('Ledger / Summary')).toBe('Ledger Summary.xlsx');
+		expect(workbookFilename('Q1: revenue')).toBe('Q1 revenue.xlsx');
+	});
+
+	it('keeps a title that is not written in Latin script', () => {
+		expect(workbookFilename('کارنامه')).toBe('کارنامه.xlsx');
+	});
+
+	it('does not hand back a hidden file', () => {
+		expect(workbookFilename('...')).toBe('rowbot.xlsx');
+	});
+});
+
+describe('contentDisposition', () => {
+	it('sends a Latin-1 filename as it stands', () => {
+		expect(contentDisposition('Q4 report.xlsx')).toBe(
+			'attachment; filename="Q4 report.xlsx"; filename*=UTF-8\'\'Q4%20report.xlsx'
+		);
+	});
+
+	it('holds every byte of the header inside Latin-1', () => {
+		const value = contentDisposition('کارنامه.xlsx');
+		expect(value).toMatch(/^[\x20-\xff]*$/);
+		expect(value).toContain("filename*=UTF-8''");
+	});
+
+	it('falls back to a named file rather than a bare extension', () => {
+		expect(contentDisposition('کارنامه.xlsx')).toContain('filename="workbook.xlsx"');
+	});
+
+	it('escapes the characters RFC 5987 does not admit', () => {
+		expect(contentDisposition("O'Brien (final).xlsx")).toContain(
+			"filename*=UTF-8''O%27Brien%20%28final%29.xlsx"
+		);
+	});
+
+	it('cannot be broken out of with a quote in the title', () => {
+		expect(contentDisposition('say "hi".xlsx')).toBe(
+			'attachment; filename="say hi .xlsx"; filename*=UTF-8\'\'say%20%22hi%22.xlsx'
+		);
 	});
 });

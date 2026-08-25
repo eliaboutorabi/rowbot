@@ -1,7 +1,7 @@
 import { error } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { latestWorkbook, ownedDocument } from '$lib/server/runs';
-import { buildWorkbook, workbookFilename } from '$lib/server/xlsx/build';
+import { buildWorkbook, contentDisposition, workbookFilename } from '$lib/server/xlsx/build';
 import type { WorkbookModel } from '$lib/types/workbook';
 
 const XLSX_MIME = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -20,8 +20,7 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	return new Response(bytes as unknown as BodyInit, {
 		headers: {
 			'content-type': XLSX_MIME,
-			// The quoted form keeps spaces in the filename intact.
-			'content-disposition': `attachment; filename="${filename}"`,
+			'content-disposition': contentDisposition(filename),
 			'content-length': String(bytes.byteLength),
 			'cache-control': 'no-store'
 		}

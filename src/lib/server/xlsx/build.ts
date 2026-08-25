@@ -229,11 +229,58 @@ export async function buildWorkbook(model: WorkbookModel): Promise<Uint8Array> {
 }
 
 /** Filename for the download, derived from the document name. */
+/**
+ * Characters a filesystem genuinely objects to, plus the control range.
+ * Windows is the strict one; everything here is illegal there.
+ */
+const ILLEGAL = /[\u0000-\u001f\u007f<>:"/\\|?*]+/g;
+
+/**
+ * A filename for the downloaded workbook.
+ *
+ * Only what a filesystem actually refuses is taken out. The old allow-list of
+ * `[\w\s.-]` deleted everything else, which cost two things worth having: an
+ * em dash in an English title left the double space behind it, and a Persian
+ * title — this application reads Persian documents — lost every character it
+ * had and came out as `rowbot.xlsx`.
+ */
 export function workbookFilename(title: string): string {
 	const base =
 		title
 			.replace(/\.[a-z0-9]+$/i, '')
-			.replace(/[^\w\s.-]/g, '')
+			.replace(ILLEGAL, ' ')
+			.replace(/\s+/g, ' ')
+			// A name starting with a dot is hidden on Unix, which is a poor thing
+			// to do to somebody's download.
+			.replace(/^[.\s]+/, '')
 			.trim() || 'rowbot';
-	return `${base.slice(0, 80)}.xlsx`;
+	return `${base.slice(0, 80).trim()}.xlsx`;
+}
+
+/**
+ * A `content-disposition` value that survives a non-Latin filename.
+ *
+ * Header values are Latin-1, so a Persian name cannot go in the plain
+ * `filename=` parameter at all — the runtime rejects the header rather than
+ * send it. RFC 6266 is written for exactly this: an ASCII fallback for
+ * anything that predates the rule, and a percent-encoded UTF-8 `filename*`
+ * that every current browser prefers when both are present.
+ */
+export function contentDisposition(filename: string): string {
+	const stripped = filename
+		.replace(/[^\x20-\x7e]/g, '')
+		.replace(/["\s]+/g, ' ')
+		.trim();
+	// A wholly Persian name leaves nothing but the extension, and `.xlsx` alone
+	// is a hidden file rather than a fallback.
+	const named = /[A-Za-z0-9]/.test(stripped.replace(/\.[a-z0-9]+$/i, ''));
+	const ascii = named ? stripped : 'workbook.xlsx';
+
+	// `encodeURIComponent` leaves ' ( ) * alone and RFC 5987 does not allow them.
+	const encoded = encodeURIComponent(filename).replace(
+		/['()*]/g,
+		(c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`
+	);
+
+	return `attachment; filename="${ascii}"; filename*=UTF-8''${encoded}`;
 }
