@@ -14,6 +14,7 @@
 	import { cn } from '$lib/utils';
 	import { contains, refLabel, type SheetRef } from '$lib/sheet-ref';
 	import { renderInline } from '$lib/markdown';
+	import { originForRow } from '$lib/sheet-source';
 
 	let {
 		sheet,
@@ -31,6 +32,12 @@
 		/** Hand the current selection to the composer. */
 		onattach?: () => void;
 	} = $props();
+
+	/**
+	 * The page this row came from — the same answer the button acts on, so a
+	 * label reading "Show on page 2" cannot sit on a button that goes to 14.
+	 */
+	const origin = $derived(originForRow(sheet, selected?.row ?? range?.from.row));
 
 	const cell = $derived(selected ? sheet.rows[selected.row]?.[selected.column] : undefined);
 	const columnFormat = $derived(selected ? sheet.columns[selected.column]?.fmt : undefined);
@@ -99,7 +106,7 @@
 	);
 </script>
 
-<div class="shrink-0 border-t bg-muted/25 px-3 py-2">
+<div class="@container shrink-0 border-t bg-muted/25 px-3 py-2">
 	{#if range}
 		<div class="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs">
 			<span class="font-mono text-[13px] font-semibold">{refLabel(range)}</span>
@@ -153,14 +160,14 @@
 				</button>
 			{/if}
 
-			{#if onshowsource && sheet.source?.tablePath}
+			{#if onshowsource && origin}
 				<button
 					type="button"
 					class="flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-accent-ink transition-colors hover:bg-primary/10"
 					onclick={onshowsource}
 				>
 					<HugeiconsIcon icon={ViewIcon} size={13} />
-					Show on page{sheet.source.pageIndex !== undefined ? ` ${sheet.source.pageIndex + 1}` : ''}
+					Show on page{origin.pageIndex !== undefined ? ` ${origin.pageIndex + 1}` : ''}
 				</button>
 			{/if}
 
@@ -229,12 +236,21 @@
 			the sheet and its tabs, and a second line of placeholder text pushes
 			the tabs down every time nothing is selected — which is most of the
 			time. The keyboard hint is the half that goes when there is no room.
+
+			Measured against this strip, not the window. On a wide screen the
+			workbook still only gets half of it, so a viewport breakpoint kept both
+			halves and truncated the sentence instead — "…and how sure the reader
+			…", which reads as a rendering fault rather than as a hint.
+
+			50rem because the two together measure 782px at this size and weight,
+			and a threshold below that buys back the truncation it was meant to
+			prevent.
 		-->
 		<p class="flex items-baseline gap-x-4 text-xs text-muted-foreground">
 			<span class="min-w-0 truncate">
 				Select a cell to see what the page said, how it was typed, and how sure the reader was.
 			</span>
-			<span class="hidden shrink-0 lg:inline">
+			<span class="hidden shrink-0 @min-[50rem]:inline">
 				Arrows move · shift takes a block · {copyKey} copies it
 			</span>
 		</p>

@@ -16,6 +16,7 @@
 	import { cn } from '$lib/utils';
 	import type { WorkbookModel } from '$lib/types/workbook';
 	import { formatRef, parseRef, type SheetRef } from '$lib/sheet-ref';
+	import { originForRow } from '$lib/sheet-source';
 	import { renderMarkdown } from '$lib/markdown';
 	import { toast } from 'svelte-sonner';
 
@@ -179,18 +180,11 @@
 	 * reviewer stop trusting the link.
 	 */
 	function showOnPage() {
-		if (!active?.source?.tablePath) return;
-		let path = active.source.tablePath;
+		if (!active) return;
+		const origin = originForRow(active, selected?.row ?? range?.from.row);
+		if (!origin) return;
 
-		const starts = active.continuedAt ?? [];
-		const row = selected?.row ?? range?.from.row;
-		if (row !== undefined) {
-			for (let i = 0; i < starts.length; i++) {
-				if (row >= starts[i] && active.continuedFrom?.[i]) path = active.continuedFrom[i];
-			}
-		}
-
-		focus = { tablePath: path, nonce: ++nonce };
+		focus = { tablePath: origin.tablePath, nonce: ++nonce };
 		view = 'source';
 	}
 
