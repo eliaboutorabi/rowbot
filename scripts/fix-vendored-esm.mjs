@@ -16,8 +16,21 @@
  *
  * Idempotent, and a no-op once the SDK ships its own markers.
  */
-import { existsSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+
+/** Whether a directory holds a `.js` file at any depth. */
+function hasJs(dir) {
+	for (const entry of readdirSync(dir)) {
+		const full = join(dir, entry);
+		if (statSync(full).isDirectory()) {
+			if (hasJs(full)) return true;
+		} else if (entry.endsWith('.js')) {
+			return true;
+		}
+	}
+	return false;
+}
 
 const ROOT = 'node_modules/@langchain/langgraph-sdk/dist/node_modules/.pnpm';
 
@@ -37,8 +50,9 @@ for (const pkgAtVersion of readdirSync(ROOT)) {
 		const manifest = join(dir, 'package.json');
 		if (existsSync(manifest)) continue;
 		// The vendored copies are ESM; their CJS siblings are separate `.cjs`
-		// files, which this does not affect.
-		if (!existsSync(join(dir, 'index.js'))) continue;
+		// files, which this does not affect. Some packages keep their entry in
+		// `dist/` rather than at the root, so look at any depth.
+		if (!hasJs(dir)) continue;
 
 		writeFileSync(manifest, JSON.stringify({ name, type: 'module' }, null, '\t') + '\n');
 		patched++;
