@@ -58,9 +58,11 @@
 
 	function confidenceClass(cell: Cell): string {
 		if (!heat || cell.conf === undefined) return '';
-		if (cell.conf >= 0.95) return 'bg-chart-2/8';
-		if (cell.conf >= 0.85) return 'bg-amber-400/12';
-		return 'bg-destructive/12';
+		// Semantic, and deliberately separate from the brand accent: a confidence
+		// warning must not be mistaken for a highlight.
+		if (cell.conf >= 0.95) return 'bg-emerald-500/8';
+		if (cell.conf >= 0.85) return 'bg-amber-500/14';
+		return 'bg-red-500/14';
 	}
 
 	function move(event: KeyboardEvent) {
@@ -90,16 +92,21 @@
 	aria-colcount={sheet.columns.length}
 	onkeydown={move}
 >
-	<table class="border-separate border-spacing-0 font-mono text-[13px]">
+	<!--
+		Sans, not mono. A monospaced grid reads as a terminal dump; a spreadsheet
+		wants proportional text with tabular figures, so numbers still line up
+		in their columns while labels stay legible.
+	-->
+	<table class="border-separate border-spacing-0 text-[13px] leading-5">
 		<thead bind:this={headEl}>
 			<tr>
 				<th
-					class="sticky top-0 left-0 z-30 w-11 border-r border-b bg-muted/95 backdrop-blur-sm"
+					class="sticky top-0 left-0 z-30 w-12 border-r border-b border-border/70 bg-muted backdrop-blur-sm"
 					aria-label="Row numbers"
 				></th>
 				{#each sheet.columns as column, c (c)}
 					<th
-						class="sticky top-0 z-20 min-w-[7rem] border-r border-b bg-muted/95 px-2.5 py-1 text-left text-[11px] font-medium tracking-wide text-muted-foreground backdrop-blur-sm"
+						class="sticky top-0 z-20 min-w-[7.5rem] border-r border-b border-border/70 bg-muted px-3 py-1 text-center text-[10px] font-medium tracking-[0.08em] text-muted-foreground/70 uppercase backdrop-blur-sm"
 						title={column.label ?? undefined}
 					>
 						{columnLetter(c)}
@@ -112,7 +119,7 @@
 			{#each visibleRows as row, r (r)}
 				{@const isHeader = r < sheet.headerRows}
 				<tr
-					class="group"
+					class={cn('group', !isHeader && r % 2 === 1 && '[&>td]:bg-muted/25')}
 					bind:this={headerRowEls[r]}
 					style={isHeader
 						? undefined
@@ -120,9 +127,9 @@
 				>
 					<th
 						class={cn(
-							'sticky left-0 w-11 border-r border-b bg-muted/95 px-1 text-right align-middle text-[11px] font-normal text-muted-foreground backdrop-blur-sm',
+							'sticky left-0 w-12 border-r border-b border-border/70 bg-muted px-1.5 text-right align-middle text-[11px] font-normal text-muted-foreground/70 tabular-nums backdrop-blur-sm',
 							isHeader ? 'z-25' : 'z-10',
-							selected?.row === r && 'bg-primary/15 text-primary'
+							selected?.row === r && 'bg-primary/12 font-medium text-primary'
 						)}
 						style:top={isHeader ? `${stickyTops[r] ?? 0}px` : undefined}
 						scope="row"
@@ -136,11 +143,13 @@
 								rowspan={cell.merge?.rs ?? 1}
 								colspan={cell.merge?.cs ?? 1}
 								class={cn(
-									'max-w-[24rem] truncate border-r border-b px-2.5 py-1 align-middle transition-colors',
+									'max-w-[24rem] truncate border-r border-b border-border/45 px-3 py-1.5 align-middle transition-colors',
 									isHeader
-										? 'sticky z-15 bg-secondary font-semibold text-foreground'
-										: 'bg-background hover:bg-accent/50',
-									isNumericCell(cell) && 'text-right tabular-nums',
+										? 'sticky z-15 bg-muted font-medium text-foreground'
+										: 'bg-background group-hover:bg-accent/40',
+									// Tabular figures keep digits on a shared grid; the slight
+									// negative tracking stops long currency strings sprawling.
+									isNumericCell(cell) && 'text-right tracking-[-0.01em] tabular-nums',
 									!isHeader && confidenceClass(cell),
 									selected?.row === r && selected?.column === c && 'ring-2 ring-primary ring-inset'
 								)}
