@@ -71,7 +71,13 @@
 	onscroll={onScroll}
 	class="scroll-slim scroll-quiet min-h-0 flex-1 overflow-y-auto"
 >
-	<div class="space-y-3 p-4">
+	<!--
+		A reading measure. In the two-column layout the conversation is 22–32rem
+		wide and constrains itself; below `lg` it takes the whole window, and on a
+		tablet that put the agent's prose on 100-character lines. The cap only
+		bites where the column is wider than it should be.
+	-->
+	<div class="mx-auto max-w-2xl space-y-3 p-4">
 		{#if run.timeline.length === 0 && !run.todos.length}
 			{#if empty}{@render empty()}{/if}
 		{/if}

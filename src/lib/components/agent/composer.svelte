@@ -75,7 +75,7 @@
 	const canSend = $derived(Boolean(value.trim()) && !run.busy);
 </script>
 
-<div class="relative shrink-0 px-3 pt-2 pb-3">
+<div class="relative mx-auto w-full max-w-2xl shrink-0 px-3 pt-2 pb-3">
 	<!-- Feed content scrolls under the composer; this fades it out rather than
 	     letting text collide with the surface edge. It has to fade to the
 	     conversation's own ground — `background` is the sheet's, one step up
