@@ -139,6 +139,11 @@ export class RunState {
 		});
 	}
 
+	/** Appends a line to the feed that did not come from the stream. */
+	note(text: string, tone: 'info' | 'error' = 'error') {
+		this.timeline.push({ kind: 'notice', id: nextId(), text, tone, at: Date.now() });
+	}
+
 	reset() {
 		this.timeline = [];
 		this.todos = [];

@@ -42,7 +42,13 @@
 		};
 		workbook: WorkbookModel | null;
 		/** The previous run, rebuilt from its checkpoint. */
-		transcript: { items: TimelineItem[]; todos: TodoItem[] } | null;
+		transcript: {
+			items: TimelineItem[];
+			todos: TodoItem[];
+			interrupt: { id: string; question: string; payload: unknown } | null;
+		} | null;
+		runStatus: string | null;
+		runError: string | null;
 		autoStart: boolean;
 		preferences: { model: string; effort: string };
 	}
@@ -55,7 +61,29 @@
 	/* svelte-ignore state_referenced_locally */
 	const run = new RunState(data.workbook);
 	/* svelte-ignore state_referenced_locally */
-	if (data.transcript) run.restore(data.transcript.items, data.transcript.todos);
+	if (data.transcript) {
+		run.restore(data.transcript.items, data.transcript.todos);
+		// A run parked on a question comes back still parked on it. Without this
+		// the feed returned, the question did not, and the only thing the
+		// composer would send was a new message the graph could not accept.
+		if (data.transcript.interrupt) run.interrupt = data.transcript.interrupt;
+	}
+
+	/*
+	 * A run that died leaves a note saying so.
+	 *
+	 * Not the red panel: that is for something that just happened in front of
+	 * you and might still be retried in the same breath. This is a line in the
+	 * feed, where the rest of the run's story is, saying the story stops here —
+	 * and it matters because the workbook below may be half-built and nothing
+	 * else on the page would say so.
+	 */
+	/* svelte-ignore state_referenced_locally */
+	if (data.runStatus === 'failed' && !data.transcript?.interrupt) {
+		run.note(
+			`The last run stopped before it finished${data.runError ? `: ${describeRunFailure(data.runError).title}` : '.'} Anything it had built by then is saved below.`
+		);
+	}
 	/* svelte-ignore state_referenced_locally */
 	let model = $state(data.preferences.model);
 	/* svelte-ignore state_referenced_locally */

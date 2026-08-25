@@ -25,7 +25,16 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		workbook: (saved?.dataJson as WorkbookModel | null) ?? null,
 		workbookVersion: saved?.version ?? 0,
 		transcript,
+		/**
+		 * How the last run ended, and why if it went wrong.
+		 *
+		 * Both were being recorded and neither had ever been read back, so a
+		 * document whose run died came back looking like a document whose run had
+		 * simply produced very little — with no way to tell which, and a workbook
+		 * that might be half of one.
+		 */
 		runStatus: run?.status ?? null,
+		runError: run?.status === 'failed' ? (run.errorMessage ?? null) : null,
 		/**
 		 * Start on arrival only for a document nothing has touched yet. Once a run
 		 * exists this stays false, so a reload never re-runs the agent — and the

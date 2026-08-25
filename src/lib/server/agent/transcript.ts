@@ -20,12 +20,53 @@ export type TranscriptItem =
 	| { kind: 'tool'; id: string; call: ToolCallView }
 	| { kind: 'notice'; id: string; text: string; tone: 'error' | 'info'; at: number };
 
+/** The same shape the live `interrupt` event carries, so one UI path serves both. */
+export interface PendingQuestion {
+	id: string;
+	question: string;
+	payload: unknown;
+}
+
 export interface Transcript {
 	items: TranscriptItem[];
 	todos: TodoItem[];
+	/** A question the run is still parked on, if there is one. */
+	interrupt: PendingQuestion | null;
 }
 
-const EMPTY: Transcript = { items: [], todos: [] };
+const EMPTY: Transcript = { items: [], todos: [], interrupt: null };
+
+/**
+ * The question a suspended run is waiting on.
+ *
+ * LangGraph parks it in the checkpoint's pending writes under the
+ * `__interrupt__` channel rather than in a state channel, which is why
+ * reading `channel_values` alone never found it — and why closing the tab on
+ * a question used to strand the run for good. The feed came back on reload,
+ * the question did not, and the composer offered to send a new message that
+ * the graph, waiting for a resume, was in no position to accept.
+ */
+function pendingQuestion(
+	writes: readonly (readonly [string, string, unknown])[] | undefined
+): PendingQuestion | null {
+	for (const write of writes ?? []) {
+		const [, channel, value] = write;
+		if (channel !== '__interrupt__') continue;
+
+		const entry = value as { id?: string; value?: unknown };
+		const asked = entry?.value;
+		return {
+			id: entry?.id ?? 'interrupt',
+			question:
+				typeof asked === 'string'
+					? asked
+					: ((asked as { question?: string })?.question ??
+						'The agent is waiting for your decision.'),
+			payload: asked
+		};
+	}
+	return null;
+}
 
 /* ------------------------------------------------------------------ */
 /* Reading LangChain messages without depending on their class shape   */
@@ -98,8 +139,12 @@ export async function readTranscript(threadId: string): Promise<Transcript> {
 		return EMPTY;
 	}
 
+	const asked = pendingQuestion(
+		tuple?.pendingWrites as readonly (readonly [string, string, unknown])[] | undefined
+	);
+
 	const values = tuple?.checkpoint?.channel_values as Record<string, unknown> | undefined;
-	if (!values) return EMPTY;
+	if (!values) return { ...EMPTY, interrupt: asked };
 
 	const messages = Array.isArray(values.messages) ? (values.messages as RawMessage[]) : [];
 	const todos = Array.isArray(values.todos) ? (values.todos as TodoItem[]) : [];
@@ -161,5 +206,5 @@ export async function readTranscript(threadId: string): Promise<Transcript> {
 		}
 	}
 
-	return { items, todos };
+	return { items, todos, interrupt: asked };
 }
