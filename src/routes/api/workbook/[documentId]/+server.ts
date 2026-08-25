@@ -19,6 +19,7 @@ import { latestWorkbook, ownedDocument, saveWorkbook, workbookHistory } from '$l
 import { db } from '$lib/server/db';
 import { workbook } from '$lib/server/db/schema';
 import { applyCellEdit } from '$lib/cell-edit';
+import { recalculate } from '$lib/recalculate';
 import { cellRef, type WorkbookModel } from '$lib/types/workbook';
 
 const body = z.object({
@@ -69,10 +70,26 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 
 	sheet.rows[row][column] = applyCellEdit(value, previous, model, sheet.name);
 
-	const ref = `${sheet.name}!${cellRef(row, column)}`;
-	await saveWorkbook(doc.id, saved.runId, model, `You edited ${ref}`);
+	/*
+	 * Every total that was reading the cell you just changed has to move with
+	 * it. A formula keeps the number it last worked out to, so without this a
+	 * hand-corrected figure leaves the column total contradicting its own
+	 * column — which is the exact thing this application exists to catch, and
+	 * a rotten way to repay somebody for fixing a misread digit.
+	 */
+	const { workbook: recalculated, changed } = recalculate(model);
 
-	return json({ workbook: model, ref });
+	const ref = `${sheet.name}!${cellRef(row, column)}`;
+	await saveWorkbook(
+		doc.id,
+		saved.runId,
+		recalculated,
+		changed
+			? `You edited ${ref}, and ${changed} total${changed === 1 ? '' : 's'} moved with it`
+			: `You edited ${ref}`
+	);
+
+	return json({ workbook: recalculated, ref, recalculated: changed });
 };
 
 /**
