@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { mode } from 'mode-watcher';
+	// The app owns the theme (see `$lib/theme.svelte.ts`); mode-watcher came
+	// with the scaffold, is never mounted, and so reports light forever.
+	import { theme } from '$lib/theme.svelte';
 	import { Toaster as Sonner, type ToasterProps as SonnerProps } from 'svelte-sonner';
 	import Icon from '$lib/components/ui/icon.svelte';
 	import { Loading03Icon } from '@hugeicons/core-free-icons';
@@ -12,7 +14,7 @@
 </script>
 
 <Sonner
-	theme={mode.current}
+	theme={theme.current}
 	class="toaster group"
 	style="--normal-bg: var(--color-popover); --normal-text: var(--color-popover-foreground); --normal-border: var(--color-border);"
 	{...restProps}

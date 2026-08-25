@@ -53,6 +53,25 @@
 	/* See the notes above `--color-rail` and `--color-accent-ink`. */
 	--rail: oklch(0.977 0.003 326);
 	--accent-ink: oklch(0.525 0.168 3.958);
+
+	/*
+	 * Ink for what is drawn on top of a page image.
+	 *
+	 * A scanned page is white in either theme, so anything laid over it has to
+	 * be coloured for paper rather than for the app. The segmentation boxes
+	 * used `foreground` and `muted-foreground`, which in dark mode are white
+	 * and light grey — so on a white scan the seventy-odd text blocks, the
+	 * title, the signature and the footer all drew in invisible ink and only
+	 * the crimson table boxes survived.
+	 *
+	 * Deliberately declared once and never restated under `.dark`: the paper
+	 * does not change when the interface does.
+	 */
+	--seg-ink: oklch(0.32 0.02 326);
+	--seg-ink-soft: oklch(0.52 0.035 322.5);
+	--seg-table: oklch(0.525 0.168 3.958);
+	--seg-title: oklch(0.592 0.187 0.584);
+	--seg-figure: oklch(0.63 0.13 346);
 }
 
 .dark {

@@ -269,15 +269,22 @@
 		};
 	}
 
+	/*
+	 * Paper colours, not interface colours — see `--seg-ink` in layout.css.
+	 * These boxes sit on a white scan whichever theme the app is wearing.
+	 */
 	const TONES: Record<string, string> = {
-		table: 'border-primary/70 bg-primary/10 hover:bg-primary/20',
-		title: 'border-chart-2/70 bg-chart-2/10 hover:bg-chart-2/18',
-		caption: 'border-chart-1/70 bg-chart-1/10 hover:bg-chart-1/18',
-		image: 'border-chart-1/70 bg-chart-1/10 hover:bg-chart-1/18',
-		header: 'border-muted-foreground/40 bg-muted-foreground/8',
-		footer: 'border-muted-foreground/40 bg-muted-foreground/8'
+		table: 'border-[var(--seg-table)]/75 bg-[var(--seg-table)]/10 hover:bg-[var(--seg-table)]/20',
+		title: 'border-[var(--seg-title)]/75 bg-[var(--seg-title)]/10 hover:bg-[var(--seg-title)]/18',
+		caption:
+			'border-[var(--seg-figure)]/75 bg-[var(--seg-figure)]/10 hover:bg-[var(--seg-figure)]/18',
+		image:
+			'border-[var(--seg-figure)]/75 bg-[var(--seg-figure)]/10 hover:bg-[var(--seg-figure)]/18',
+		header: 'border-[var(--seg-ink-soft)]/45 bg-[var(--seg-ink-soft)]/8',
+		footer: 'border-[var(--seg-ink-soft)]/45 bg-[var(--seg-ink-soft)]/8'
 	};
-	const DEFAULT_TONE = 'border-foreground/25 bg-foreground/[0.05] hover:bg-foreground/10';
+	const DEFAULT_TONE =
+		'border-[var(--seg-ink)]/40 bg-[var(--seg-ink)]/[0.06] hover:bg-[var(--seg-ink)]/12';
 	const tone = (type: string) => TONES[type] ?? DEFAULT_TONE;
 
 	const legend = $derived.by(() => {
@@ -375,7 +382,11 @@
 			<div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-2.5 gap-y-1 overflow-hidden">
 				{#each legend as [type, count] (type)}
 					<span class="flex items-center gap-1 text-[11px] whitespace-nowrap text-muted-foreground">
-						<span class={cn('size-2.5 rounded-[3px] border', tone(type))}></span>
+						<!-- A white backing, because the swatch is a miniature of a box
+						     drawn on paper and the tones are mixed for paper. -->
+						<span class="size-2.5 shrink-0 rounded-[3px] bg-white">
+							<span class={cn('block size-full rounded-[3px] border', tone(type))}></span>
+						</span>
 						{type.replace(/_/g, ' ')}
 						<span class="text-muted-foreground tabular-nums">{count}</span>
 					</span>
