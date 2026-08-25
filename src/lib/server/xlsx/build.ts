@@ -8,6 +8,7 @@
  */
 import ExcelJS from 'exceljs';
 import type { Cell, Sheet, WorkbookModel } from '$lib/types/workbook';
+import { isRightToLeft } from '$lib/sheet-direction';
 import { normalizeSheet, safeSheetName } from '$lib/types/workbook';
 
 /** Cells read below this confidence get flagged for the reviewer. */
@@ -127,7 +128,10 @@ function writeSheet(wb: ExcelJS.Workbook, input: Sheet, taken: string[]) {
 			{
 				state: 'frozen',
 				xSplit: sheet.freeze?.cols ?? 0,
-				ySplit: sheet.freeze?.rows ?? sheet.headerRows
+				ySplit: sheet.freeze?.rows ?? sheet.headerRows,
+				// Excel has the same setting the grid does, and a Persian sheet that
+				// opens mirrored is not a faithful transcription of the page.
+				rightToLeft: isRightToLeft(sheet)
 			}
 		]
 	});

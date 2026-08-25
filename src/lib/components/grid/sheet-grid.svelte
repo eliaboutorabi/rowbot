@@ -7,6 +7,7 @@
 	import { toast } from 'svelte-sonner';
 	import { formatCell, isNumericCell } from '$lib/cell-format';
 	import { cn } from '$lib/utils';
+	import { isRightToLeft } from '$lib/sheet-direction';
 
 	let {
 		sheet,
@@ -215,6 +216,8 @@
 	const lastColumn = $derived(Math.max(sheet.columns.length - 1, 0));
 
 	const cellId = (row: number, column: number) => `${sheet.id}-cell-${row}-${column}`;
+
+	const rtl = $derived(isRightToLeft(sheet));
 
 	/**
 	 * Bring a cell into view.
@@ -474,12 +477,19 @@
 		entire purpose is to avoid measuring what is offscreen — and makes the
 		columns jump as data streams in.
 	-->
-	<table class="w-full table-fixed border-separate border-spacing-0 text-[13px] leading-5">
+	<!-- The sheet's own direction, so a Persian table's first column is its
+	     rightmost one, as it is on the page. Logical properties below (`start`,
+	     `border-e`) then put the frozen row gutter and every vertical rule on
+	     the correct side without a second set of rules. -->
+	<table
+		dir={rtl ? 'rtl' : 'ltr'}
+		class="w-full table-fixed border-separate border-spacing-0 text-[13px] leading-5"
+	>
 		<thead bind:this={headEl}>
 			<tr>
 				<th
 					class={cn(
-						'sticky top-0 left-0 z-30 border-r border-b border-[var(--grid-line-strong)] bg-[var(--grid-header-bg)]',
+						'sticky start-0 top-0 z-30 border-e border-b border-[var(--grid-line-strong)] bg-[var(--grid-header-bg)]',
 						gutter
 					)}
 					style="border-bottom-width: var(--grid-hairline); border-right-width: var(--grid-hairline)"
@@ -543,7 +553,7 @@
 				>
 					<th
 						class={cn(
-							'sticky left-0 border-r border-b border-[var(--grid-line)] bg-[var(--grid-header-bg)] px-1.5 text-right align-middle text-[11px] font-normal text-muted-foreground tabular-nums',
+							'sticky start-0 border-e border-b border-[var(--grid-line)] bg-[var(--grid-header-bg)] px-1.5 text-end align-middle text-[11px] font-normal text-muted-foreground tabular-nums',
 							gutter,
 							isHeader ? 'z-25' : 'z-10',
 							range?.kind === 'row' && inRange(r, 0) && 'bg-[var(--grid-range)] text-accent-ink',
@@ -583,7 +593,7 @@
 									// horizontal. A lattice of equal lines is what makes a grid
 									// look like a spreadsheet from 1997; dropping the verticals
 									// entirely loses column separation that a wide sheet needs.
-									'truncate border-r border-b border-r-[var(--grid-line-vertical)] border-b-[var(--grid-line)] px-3 py-1.5 align-middle transition-colors',
+									'truncate border-e border-b border-e-[var(--grid-line-vertical)] border-b-[var(--grid-line)] px-3 py-1.5 align-middle transition-colors',
 									isHeader
 										? 'sticky z-15 bg-[var(--grid-header-bg)] font-semibold text-foreground'
 										: 'bg-background group-hover:bg-[var(--grid-row-hover)]',
@@ -591,7 +601,7 @@
 									// negative tracking stops long currency strings sprawling.
 									// A header cell follows its column, not its own type.
 									(isHeader ? numericColumn(c) : isNumericCell(cell)) &&
-										'text-right tracking-[-0.01em] tabular-nums',
+										'text-end tracking-[-0.01em] tabular-nums',
 									!isHeader && confidenceClass(cell),
 									// Correctness, not confidence — so it does not wait for the
 									// heat map to be switched on.
@@ -611,7 +621,7 @@
 								style:border-bottom-width="var(--grid-hairline)"
 								style:border-right-width="var(--grid-hairline)"
 								style:scroll-margin-top="var(--sticky-top)"
-								style:scroll-margin-left="2.75rem"
+								style:scroll-margin-inline-start="2.75rem"
 								title={cell.raw && cell.raw !== formatCell(cell, sheet.columns[c]?.fmt)
 									? `Source text: ${cell.raw}`
 									: undefined}

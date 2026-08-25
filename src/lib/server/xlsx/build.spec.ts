@@ -30,6 +30,36 @@ async function reopen(bytes: Uint8Array): Promise<ExcelJS.Workbook> {
 }
 
 describe('buildWorkbook', () => {
+	it('opens a right-to-left sheet right to left, and leaves the others alone', async () => {
+		const cells = (row: (string | number)[]) =>
+			row.map((v) => ({ v, t: typeof v === 'number' ? ('number' as const) : ('text' as const) }));
+
+		const wb = await reopen(
+			await buildWorkbook({
+				title: 'Transcript',
+				sheets: [
+					{
+						id: 'fa',
+						name: 'Persian Course Record',
+						headerRows: 1,
+						columns: [{}, {}],
+						rows: [cells(['نام درس', 'نمره']), cells(['اقتصاد خرد', 14])]
+					},
+					{
+						id: 'en',
+						name: 'English Course Record',
+						headerRows: 1,
+						columns: [{}, {}],
+						rows: [cells(['Course Title', 'Grade']), cells(['Economics I', 14])]
+					}
+				]
+			})
+		);
+
+		expect(wb.getWorksheet('Persian Course Record')?.views[0].rightToLeft).toBe(true);
+		expect(wb.getWorksheet('English Course Record')?.views[0].rightToLeft).toBe(false);
+	});
+
 	it('turns every OCR table into its own sheet', async () => {
 		const model = workbookFromFixture();
 		expect(model.sheets).toHaveLength(3);
