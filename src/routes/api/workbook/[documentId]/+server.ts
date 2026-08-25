@@ -115,6 +115,50 @@ export const GET: RequestHandler = async ({ params, locals }) => {
 	});
 };
 
+const reshape = z.object({
+	sheetId: z.string(),
+	/** Which way the sheet reads. `null` hands it back to the automatic guess. */
+	direction: z.enum(['ltr', 'rtl']).nullable()
+});
+
+/**
+ * Which way a sheet reads, when the reviewer overrules the guess.
+ *
+ * The reader returns the columns of a right-to-left table in logical order for
+ * some documents and in visual left-to-right order for others, and nothing in
+ * the sheet says which happened — so the inference is right most of the time
+ * and cannot be right always. Rather than pretend otherwise, this is one
+ * click, and it is recorded as a revision like any other change.
+ */
+export const PUT: RequestHandler = async ({ params, request, locals }) => {
+	if (!locals.user) error(401, 'Sign in first.');
+
+	const parsed = reshape.safeParse(await request.json().catch(() => null));
+	if (!parsed.success) error(400, 'That is not a direction.');
+
+	const doc = await ownedDocument(params.documentId, locals.user.id);
+	const saved = await latestWorkbook(doc.id);
+	if (!saved) error(404, 'There is no workbook yet.');
+
+	const model = structuredClone(saved.dataJson) as WorkbookModel;
+	const sheet = model.sheets.find((candidate) => candidate.id === parsed.data.sheetId);
+	if (!sheet) error(404, 'That sheet is not in this workbook.');
+
+	if (parsed.data.direction) sheet.direction = parsed.data.direction;
+	else delete sheet.direction;
+
+	await saveWorkbook(
+		doc.id,
+		saved.runId,
+		model,
+		parsed.data.direction
+			? `You set “${sheet.name}” to read ${parsed.data.direction === 'rtl' ? 'right to left' : 'left to right'}`
+			: `You let “${sheet.name}” pick its own reading direction again`
+	);
+
+	return json({ workbook: model });
+};
+
 const restore = z.object({ version: z.number().int().min(1) });
 
 /**

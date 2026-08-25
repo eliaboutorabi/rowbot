@@ -2,6 +2,7 @@
 	import Icon from '$lib/components/ui/icon.svelte';
 	import {
 		Alert01Icon,
+		ArrowLeftRightIcon,
 		Clock01Icon,
 		Download04Icon,
 		FileSpreadsheetIcon,
@@ -18,6 +19,7 @@
 	import type { WorkbookModel } from '$lib/types/workbook';
 	import { formatRef, parseRef, type SheetRef } from '$lib/sheet-ref';
 	import { originForRow } from '$lib/sheet-source';
+	import { isRightToLeft } from '$lib/sheet-direction';
 	import { renderMarkdown } from '$lib/markdown';
 	import { timeAgo } from '$lib/format';
 	import { toast } from 'svelte-sonner';
@@ -301,6 +303,43 @@
 	const hasNotes = $derived(Boolean(workbook?.notes?.trim()) || sheetNotes.length > 0);
 	const active = $derived(sheets.find((s) => s.id === activeId) ?? sheets[0]);
 
+	/* ── Reading direction ────────────────────────────────────────────
+	   Offered only where it could plausibly be wrong: a sheet with no
+	   right-to-left characters in it has nothing to decide. */
+
+	const rtlNow = $derived(active ? isRightToLeft(active) : false);
+	const looksBidi = $derived(
+		active ? rtlNow || isRightToLeft({ rows: active.rows }) || active.direction === 'ltr' : false
+	);
+
+	let flipping = $state(false);
+
+	async function flipDirection() {
+		if (!active || flipping) return;
+		flipping = true;
+		const next = rtlNow ? 'ltr' : 'rtl';
+		try {
+			const response = await fetch(`/api/workbook/${documentId}`, {
+				method: 'PUT',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ sheetId: active.id, direction: next })
+			});
+			const payload = await response.json().catch(() => null);
+			if (!response.ok) {
+				toast.error(payload?.message ?? 'Could not change the reading direction.');
+				return;
+			}
+			onedited?.(payload.workbook as WorkbookModel);
+			toast.success(
+				next === 'rtl'
+					? 'Reading right to left. The exported file will open that way too.'
+					: 'Reading left to right. The exported file will open that way too.'
+			);
+		} finally {
+			flipping = false;
+		}
+	}
+
 	// Follow the agent to whatever sheet it just created.
 	$effect(() => {
 		const latest = sheets.at(-1);
@@ -449,6 +488,29 @@
 							</div>
 						</Popover.Content>
 					</Popover.Root>
+				{/if}
+
+				<!-- ── Reading direction ────────────────────────────────────
+				     Only for a sheet that has anything right-to-left in it, because
+				     for everything else there is nothing to decide. The reader
+				     returns the columns of an RTL table in logical order for some
+				     documents and in visual order for others, so the guess is right
+				     most of the time and cannot be right always — and a mirrored
+				     table is worse than an unflipped one. One click either way. -->
+				{#if active && looksBidi}
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						class={active.direction ? 'text-accent-ink hover:text-accent-ink' : ''}
+						disabled={flipping}
+						title={rtlNow
+							? 'This sheet reads right to left — click if its columns are the wrong way round'
+							: 'This sheet reads left to right — click if its columns are the wrong way round'}
+						aria-label="Change which way this sheet reads"
+						onclick={flipDirection}
+					>
+						<Icon icon={ArrowLeftRightIcon} size={15} />
+					</Button>
 				{/if}
 
 				<!-- ── History ──────────────────────────────────────────────

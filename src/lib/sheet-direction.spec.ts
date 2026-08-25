@@ -37,6 +37,19 @@ describe('isRightToLeft', () => {
 		expect(isRightToLeft(sheet([['نام درس'], [1234567], [8901234], [5678901]]))).toBe(true);
 	});
 
+	it('does as the reviewer says, whatever the characters suggest', () => {
+		// The reader returns an RTL table's columns in logical order for some
+		// documents and visual order for others, so the guess cannot always be
+		// right — and a mirrored table is worse than an unflipped one.
+		const persian = sheet([['نام درس'], ['اقتصاد خرد']]);
+
+		expect(isRightToLeft(persian)).toBe(true);
+		expect(isRightToLeft({ ...persian, direction: 'ltr' })).toBe(false);
+
+		const english = sheet([['Course'], ['Economics']]);
+		expect(isRightToLeft({ ...english, direction: 'rtl' })).toBe(true);
+	});
+
 	it('calls a sheet with nothing to go on left to right', () => {
 		expect(
 			isRightToLeft(

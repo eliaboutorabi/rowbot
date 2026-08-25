@@ -86,6 +86,18 @@ export interface Sheet {
 	freeze?: { rows: number; cols: number };
 	source?: SheetSource;
 	/**
+	 * Which way this sheet reads, when the reviewer has said.
+	 *
+	 * Left unset, direction is inferred from the characters in the sheet — see
+	 * `sheet-direction.ts`. That is right most of the time and cannot be right
+	 * always: the reader returns the columns of a right-to-left table in
+	 * logical order for some documents and in visual left-to-right order for
+	 * others, and nothing in the sheet says which happened. Guess wrong and the
+	 * table is displayed mirrored. So the guess is overrulable, and the
+	 * override travels with the workbook into the exported file.
+	 */
+	direction?: 'ltr' | 'rtl';
+	/**
 	 * Extra OCR table paths appended into this sheet, when one table continued
 	 * across page breaks. `source` stays the first page; this is the rest, in
 	 * order, so provenance survives stitching.

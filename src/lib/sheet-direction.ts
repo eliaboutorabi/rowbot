@@ -29,7 +29,10 @@ const LTR = /[A-Za-z\u00C0-\u024F\u0370-\u03FF\u0400-\u04FF]/g;
 /** How many cells to look at. Enough to be sure, cheap enough to run on render. */
 const SAMPLE = 400;
 
-export function isRightToLeft(sheet: Pick<Sheet, 'rows'>): boolean {
+export function isRightToLeft(sheet: Pick<Sheet, 'rows' | 'direction'>): boolean {
+	// A reviewer who has said which way the sheet reads is not asked twice.
+	if (sheet.direction) return sheet.direction === 'rtl';
+
 	let rtl = 0;
 	let ltr = 0;
 	let seen = 0;
