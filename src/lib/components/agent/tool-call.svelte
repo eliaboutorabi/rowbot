@@ -1,11 +1,16 @@
 <script lang="ts">
+	/**
+	 * One tool call in the activity feed.
+	 *
+	 * Deliberately a row, not a card. A run makes twenty of these, and twenty
+	 * bordered two-line boxes stacked up read as a wall rather than a sequence.
+	 * At rest a call is a single quiet line — icon, what it did, what it did it
+	 * to, how long it took — and only earns a border when it is running or has
+	 * failed. Detail is one click away, indented under a rule so an expanded
+	 * call still reads as belonging to its row.
+	 */
 	import { HugeiconsIcon } from '@hugeicons/svelte';
-	import {
-		Alert01Icon,
-		ArrowRight01Icon,
-		CheckmarkCircle02Icon,
-		Loading03Icon
-	} from '@hugeicons/core-free-icons';
+	import { Alert01Icon, ArrowRight01Icon, Loading03Icon } from '@hugeicons/core-free-icons';
 	import { slide } from 'svelte/transition';
 	import { duration } from '$lib/format';
 	import { cn } from '$lib/utils';
@@ -22,18 +27,17 @@
 	const failed = $derived(call.status === 'error');
 	const elapsed = $derived(call.endedAt ? call.endedAt - call.startedAt : null);
 
-	/** The latest progress line, shown inline so the card reads as alive. */
+	/** The latest progress line, shown inline so the row reads as alive. */
 	const latest = $derived.by(() => {
 		const last = call.progress.at(-1);
 		if (!last) return null;
 		switch (last.kind) {
 			case 'ocr:start':
-				return last.label;
 			case 'ocr:chunk':
 				return last.label;
 			case 'ocr:page':
 				return `Page ${last.page + 1} · ${last.tables} table${last.tables === 1 ? '' : 's'}${
-					last.confidence !== null ? ` · ${(last.confidence * 100).toFixed(0)}% confident` : ''
+					last.confidence !== null ? ` · ${(last.confidence * 100).toFixed(0)}%` : ''
 				}`;
 			case 'ocr:done':
 				return `${last.tables} table${last.tables === 1 ? '' : 's'} across ${last.pages} page${last.pages === 1 ? '' : 's'}`;
@@ -48,88 +52,92 @@
 		}
 	});
 
+	const subtitle = $derived(latest ?? detail);
 	const hasBody = $derived(Boolean(call.result || call.error || call.progress.length > 1));
+	const title = $derived(running ? meta.running : failed ? meta.done : meta.done);
 </script>
 
 <div
 	class={cn(
-		'rounded-xl border bg-card transition-colors',
-		running && 'border-primary/40 bg-primary/[0.03]',
-		failed && 'border-destructive/40 bg-destructive/[0.03]'
+		'rounded-lg transition-colors',
+		running && 'bg-primary/[0.06] ring-1 ring-primary/25',
+		failed && 'bg-destructive/[0.05] ring-1 ring-destructive/25'
 	)}
 >
 	<button
 		type="button"
-		class="flex w-full items-start gap-3 px-3 py-2.5 text-left"
+		class={cn(
+			'flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors',
+			hasBody && 'hover:bg-accent/60',
+			!hasBody && 'cursor-default'
+		)}
 		disabled={!hasBody}
-		aria-expanded={open}
+		aria-expanded={hasBody ? open : undefined}
 		onclick={() => (open = !open)}
 	>
 		<span
 			class={cn(
-				'mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md border',
-				running && 'border-primary/40 text-primary',
-				failed && 'border-destructive/40 text-destructive',
-				!running && !failed && 'text-muted-foreground'
+				'flex size-5 shrink-0 items-center justify-center',
+				running && 'text-primary',
+				failed && 'text-destructive',
+				!running && !failed && 'text-muted-foreground/70'
 			)}
 		>
-			<HugeiconsIcon icon={meta.icon} size={14} />
+			<HugeiconsIcon icon={meta.icon} size={15} />
 		</span>
 
-		<span class="min-w-0 flex-1">
-			<span class="flex items-baseline gap-2">
-				<span class="truncate text-sm font-medium">
-					{running ? meta.running : failed ? `${meta.done} — failed` : meta.done}
-				</span>
-				{#if call.subagent}
-					<span
-						class="shrink-0 rounded border border-chart-2/40 bg-chart-2/10 px-1.5 py-px text-[10px] font-medium tracking-wide text-chart-2 uppercase"
-					>
-						{call.subagent}
-					</span>
-				{/if}
-				{#if elapsed !== null && elapsed > 400}
-					<span class="ml-auto shrink-0 font-mono text-[11px] text-muted-foreground/70">
-						{duration(elapsed)}
-					</span>
-				{/if}
-			</span>
-
-			{#if latest ?? detail}
-				<span class="mt-0.5 block truncate text-xs text-muted-foreground">{latest ?? detail}</span>
+		<!-- Title and target share one line: the target is the interesting half,
+		     and stacking them doubled the height of every row in the feed. -->
+		<span class="flex min-w-0 flex-1 items-baseline gap-2 text-[0.8125rem]">
+			<span class={cn('shrink-0 font-medium', failed && 'text-destructive')}>{title}</span>
+			{#if subtitle}
+				<span class="truncate text-muted-foreground">{subtitle}</span>
 			{:else if running && call.argsText}
-				<!-- Arguments are still streaming: show them arriving. -->
-				<span class="mt-0.5 block truncate font-mono text-[11px] text-muted-foreground/70">
-					{call.argsText.slice(-70)}
+				<span class="truncate font-mono text-[11px] text-muted-foreground/60">
+					{call.argsText.slice(-56)}
 				</span>
 			{/if}
 		</span>
 
-		<span class="mt-0.5 shrink-0 text-muted-foreground">
+		{#if call.subagent}
+			<span
+				class="shrink-0 rounded bg-chart-2/12 px-1.5 py-px text-[10px] font-medium tracking-wide text-chart-2 uppercase"
+			>
+				{call.subagent}
+			</span>
+		{/if}
+
+		{#if elapsed !== null && elapsed > 400}
+			<span class="shrink-0 font-mono text-[11px] text-muted-foreground/60 tabular-nums">
+				{duration(elapsed)}
+			</span>
+		{/if}
+
+		<span class="flex size-4 shrink-0 items-center justify-center">
 			{#if running}
-				<HugeiconsIcon icon={Loading03Icon} size={14} class="animate-spin text-primary" />
+				<HugeiconsIcon icon={Loading03Icon} size={13} class="animate-spin text-primary" />
 			{:else if failed}
-				<HugeiconsIcon icon={Alert01Icon} size={14} class="text-destructive" />
+				<HugeiconsIcon icon={Alert01Icon} size={13} class="text-destructive" />
 			{:else if hasBody}
 				<HugeiconsIcon
 					icon={ArrowRight01Icon}
-					size={14}
-					class={cn('transition-transform', open && 'rotate-90')}
+					size={13}
+					class={cn(
+						'text-muted-foreground/40 transition-transform',
+						open ? 'rotate-90 text-muted-foreground' : 'group-hover:text-muted-foreground'
+					)}
 				/>
-			{:else}
-				<HugeiconsIcon icon={CheckmarkCircle02Icon} size={14} class="text-chart-2" />
 			{/if}
 		</span>
 	</button>
 
 	{#if open && hasBody}
-		<div transition:slide={{ duration: 160 }} class="space-y-2 border-t px-3 py-2.5">
-			{#if call.progress.length > 1}
-				<ol class="space-y-1 text-xs text-muted-foreground">
-					{#each call.progress as step, i (i)}
-						<li class="flex gap-2">
-							<span class="text-muted-foreground/40">·</span>
-							<span class="min-w-0 flex-1">
+		<div transition:slide={{ duration: 150 }} class="pb-2 pl-[1.65rem]">
+			<div class="space-y-2 border-l pl-3">
+				{#if call.progress.length > 1}
+					<ol class="space-y-1 text-xs text-muted-foreground">
+						{#each call.progress as step, i (i)}
+							<li>
 								{#if step.kind === 'ocr:page'}
 									Page {step.page + 1} — {step.tables} table{step.tables === 1 ? '' : 's'}
 									{#if step.confidence !== null}
@@ -153,19 +161,19 @@
 								{:else}
 									{step.text}
 								{/if}
-							</span>
-						</li>
-					{/each}
-				</ol>
-			{/if}
+							</li>
+						{/each}
+					</ol>
+				{/if}
 
-			{#if call.error}
-				<p class="text-xs text-destructive">{call.error}</p>
-			{:else if call.result}
-				<p class="text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground">
-					{call.result}
-				</p>
-			{/if}
+				{#if call.error}
+					<p class="text-xs text-destructive">{call.error}</p>
+				{:else if call.result}
+					<p class="text-xs leading-relaxed whitespace-pre-wrap text-muted-foreground">
+						{call.result}
+					</p>
+				{/if}
+			</div>
 		</div>
 	{/if}
 </div>
