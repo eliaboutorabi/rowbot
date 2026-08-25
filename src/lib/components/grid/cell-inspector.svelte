@@ -180,7 +180,9 @@
 		{#if sourceText}
 			<p class="mt-1 truncate text-xs text-muted-foreground">
 				The page said
-				<span class="font-mono text-foreground/80">{sourceText}</span>
+				<!-- Quoted from the page, so it is laid out the way the page laid it
+				     out, inside an English sentence that stays left-to-right. -->
+				<span dir="auto" class="inline-block font-mono text-foreground/80">{sourceText}</span>
 				— Rowbot read it as {TYPE_LABEL[cell.t].toLowerCase()}.
 			</p>
 		{/if}

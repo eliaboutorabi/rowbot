@@ -373,7 +373,7 @@
 												view = 'workbook';
 											}}
 										>
-											{sheet.name}
+											<span dir="auto">{sheet.name}</span>
 										</button>
 										<div class="text-muted-foreground">
 											<!-- eslint-disable-next-line svelte/no-at-html-tags -->
@@ -557,7 +557,9 @@
 							selected = null;
 						}}
 					>
-						{sheet.name}
+						<!-- The name resolves its own direction; the row count stays put
+						     beside it rather than being dragged to the other end. -->
+						<span dir="auto">{sheet.name}</span>
 						<span class="text-[11px] text-muted-foreground tabular-nums">
 							{Math.max(sheet.rows.length - sheet.headerRows, 0)}
 						</span>

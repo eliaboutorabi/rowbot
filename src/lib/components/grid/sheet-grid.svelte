@@ -566,7 +566,16 @@
 
 					{#each row as cell, c (c)}
 						{#if !cell.covered}
+							<!--
+								`dir="auto"` resolves bidi per cell, from the cell's own
+								text. A Persian transcript lands in the same grid as an
+								English one, and a column of Arabic-script titles laid out
+								left-to-right puts every trailing digit, bracket and
+								asterisk on the wrong end of the phrase. Numeric cells set
+								their alignment explicitly above, so this only moves text.
+							-->
 							<td
+								dir="auto"
 								rowspan={cell.merge?.rs ?? 1}
 								colspan={cell.merge?.cs ?? 1}
 								class={cn(
@@ -614,6 +623,7 @@
 									<input
 										bind:this={editor}
 										bind:value={draft}
+										dir="auto"
 										autofocus
 										class="-my-1.5 w-full bg-transparent px-0 py-1.5 text-inherit outline-none"
 										aria-label="Edit {cellRef(r, c)}"
