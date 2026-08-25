@@ -107,11 +107,31 @@
 	function focusRef(ref: SheetRef) {
 		const wanted = ref.sheet.trim().toLowerCase();
 		const match = sheets.find((sheet) => sheet.name.toLowerCase() === wanted);
-		if (!match) return;
+		if (!match) {
+			toast.info(`There is no sheet called “${ref.sheet}” any more.`);
+			return;
+		}
+
+		/*
+		 * A reference written earlier in the conversation points at where a cell
+		 * *was*. Remove a column and yesterday's `H33` is today's `G33` — and if
+		 * the sheet has since become narrower than the reference, following it
+		 * used to select nothing at all and say nothing about why. A link that
+		 * does nothing when clicked is the worst of the three options; being
+		 * told it has gone out of date is the least bad.
+		 */
+		const row = Math.max(ref.from.row, 0);
+		const column = Math.max(ref.from.column, 0);
+		if (column >= match.columns.length || row >= match.rows.length) {
+			toast.info(
+				`That link points outside “${match.name}” as it is now — it was written before the sheet changed shape.`
+			);
+			return;
+		}
 
 		view = 'workbook';
 		activeId = match.id;
-		selected = { row: Math.max(ref.from.row, 0), column: Math.max(ref.from.column, 0) };
+		selected = { row, column };
 
 		// A reference to one cell is a cursor, not a region. Highlighting it as a
 		// range put the inspector into its block mode — "1 × 1 block, sum 0.2" —
