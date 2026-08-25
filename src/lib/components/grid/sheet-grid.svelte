@@ -220,6 +220,36 @@
 	const rtl = $derived(isRightToLeft(sheet));
 
 	/**
+	 * Column widths, measured the way the exporter measures them.
+	 *
+	 * `table-fixed` divided the width evenly, which is fine on a ledger of
+	 * five similar columns and wrong on a transcript: a column of single
+	 * digits took as much room as the course titles beside it, and the titles
+	 * were the thing being truncated. The width the sheet declares is in Excel
+	 * character units, so the same figure that sizes the exported worksheet
+	 * sizes this one — the grid and the file people download agree.
+	 *
+	 * Clamped at both ends. A one-character column still needs to be clickable,
+	 * and a column of long prose must not push everything else off the screen.
+	 */
+	const columnWidths = $derived(
+		sheet.columns.map((column, index) => {
+			let units = column.width;
+			if (!units) {
+				units = 8;
+				for (const row of sheet.rows) {
+					const value = row[index]?.v;
+					const text = value == null ? '' : String(value);
+					units = Math.max(units, Math.min(text.length + 2, 60));
+				}
+			}
+			return Math.min(Math.max(Math.round(units * 7.2) + 26, 76), 420);
+		})
+	);
+
+	const tableWidth = $derived(columnWidths.reduce((total, width) => total + width, 0));
+
+	/**
 	 * Bring a cell into view.
 	 *
 	 * `nearest` is right for a step of one row and wrong for a jump from the
@@ -484,6 +514,7 @@
 	<table
 		dir={rtl ? 'rtl' : 'ltr'}
 		class="w-full table-fixed border-separate border-spacing-0 text-[13px] leading-5"
+		style:min-width="{tableWidth}px"
 	>
 		<thead bind:this={headEl}>
 			<tr>
@@ -492,7 +523,7 @@
 						'sticky start-0 top-0 z-30 border-e border-b border-[var(--grid-line-strong)] bg-[var(--grid-header-bg)]',
 						gutter
 					)}
-					style="border-bottom-width: var(--grid-hairline); border-right-width: var(--grid-hairline)"
+					style="border-bottom-width: var(--grid-hairline); border-inline-end-width: var(--grid-hairline)"
 					aria-label="Row numbers"
 				></th>
 				{#each sheet.columns as column, c (c)}
@@ -503,7 +534,8 @@
 								? 'bg-[var(--grid-range)]'
 								: 'bg-[var(--grid-header-bg)]'
 						)}
-						style="border-bottom-width: var(--grid-hairline)"
+						style:border-bottom-width="var(--grid-hairline)"
+						style:width="{columnWidths[c]}px"
 						title={column.label ?? undefined}
 					>
 						<!--
@@ -561,7 +593,7 @@
 						)}
 						style:top={isHeader ? `${stickyTops[r] ?? 0}px` : undefined}
 						style:border-bottom-width="var(--grid-hairline)"
-						style:border-right-width="var(--grid-hairline)"
+						style:border-inline-end-width="var(--grid-hairline)"
 						scope="row"
 					>
 						<button
@@ -619,7 +651,7 @@
 								aria-selected={selected?.row === r && selected?.column === c}
 								style:top={isHeader ? `${stickyTops[r] ?? 0}px` : undefined}
 								style:border-bottom-width="var(--grid-hairline)"
-								style:border-right-width="var(--grid-hairline)"
+								style:border-inline-end-width="var(--grid-hairline)"
 								style:scroll-margin-top="var(--sticky-top)"
 								style:scroll-margin-inline-start="2.75rem"
 								title={cell.raw && cell.raw !== formatCell(cell, sheet.columns[c]?.fmt)
