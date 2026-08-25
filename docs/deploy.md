@@ -21,11 +21,18 @@ Steps marked **you** need your login; I can't do them for you.
 From the project's **Storage** tab, choose **Turso** in the Marketplace and
 create a database. Vercel injects the connection variables automatically.
 
-Check the injected names under **Settings → Environment Variables**. Rowbot
-reads `DATABASE_URL` and `DATABASE_AUTH_TOKEN`. If the integration injects
-different names (`TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` is common), add two
-more variables pointing at the same values — Vercel lets you reference another
-variable, or just paste the values.
+When it asks you to connect the store to the project, the **Custom Prefix**
+field decides the variable names. Any of these work — the app resolves whichever
+it finds (`src/lib/server/db/env.ts`):
+
+| Prefix you choose | Variables injected                                         |
+| ----------------- | ---------------------------------------------------------- |
+| _(blank)_         | `TURSO_DATABASE_URL`, `TURSO_AUTH_TOKEN`                   |
+| `DATABASE`        | `DATABASE_TURSO_DATABASE_URL`, `DATABASE_TURSO_AUTH_TOKEN` |
+
+The values are marked sensitive and cannot be read back out of the dashboard,
+which is exactly why the app reads the injected names rather than expecting you
+to copy them into a variable of your own.
 
 ## 3. Create the blob store — _you_
 

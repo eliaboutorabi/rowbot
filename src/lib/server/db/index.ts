@@ -2,13 +2,13 @@ import { drizzle } from 'drizzle-orm/libsql';
 import { createClient } from '@libsql/client';
 import * as schema from './schema';
 import { env } from '$env/dynamic/private';
+import { databaseAuthToken, databaseUrl } from './env';
 
-if (!env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
+const authToken = databaseAuthToken(env);
 
 const client = createClient({
-	url: env.DATABASE_URL,
-	// Required by Turso; a local `file:` database has no token.
-	...(env.DATABASE_AUTH_TOKEN ? { authToken: env.DATABASE_AUTH_TOKEN } : {})
+	url: databaseUrl(env),
+	...(authToken ? { authToken } : {})
 });
 
 export const db = drizzle(client, { schema });

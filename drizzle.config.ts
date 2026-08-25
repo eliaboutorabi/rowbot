@@ -1,15 +1,15 @@
 import { defineConfig } from 'drizzle-kit';
+import { databaseAuthToken, databaseUrl } from './src/lib/server/db/env';
 
-if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
-
+// Runs at build time on Vercel, where the Turso integration supplies the
+// credentials under its own variable names — see ./src/lib/server/db/env.ts
 export default defineConfig({
 	schema: './src/lib/server/db/schema.ts',
 	out: './drizzle',
 	dialect: 'turso',
 	dbCredentials: {
-		url: process.env.DATABASE_URL,
-		// Absent for a local `file:` database, required for Turso.
-		authToken: process.env.DATABASE_AUTH_TOKEN
+		url: databaseUrl(process.env),
+		authToken: databaseAuthToken(process.env)
 	},
 	verbose: true,
 	strict: true
