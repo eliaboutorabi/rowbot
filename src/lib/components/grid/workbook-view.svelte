@@ -140,8 +140,10 @@
 	     The workbook and the page it came from are two readings of the same
 	     document, so they are peers here rather than one being buried behind
 	     a button on the other. -->
-	<div class="flex h-11 shrink-0 items-center gap-2 border-b px-3">
-		<div class="flex items-center gap-0.5 rounded-lg bg-muted/60 p-0.5">
+	<div
+		class="scroll-slim scroll-quiet flex h-11 shrink-0 items-center gap-2 overflow-x-auto border-b px-3"
+	>
+		<div class="flex shrink-0 items-center gap-0.5 rounded-lg bg-muted/60 p-0.5">
 			{#each [{ id: 'workbook', label: 'Workbook', icon: FileSpreadsheetIcon }, { id: 'source', label: 'Source', icon: File01Icon }] as const as tab (tab.id)}
 				<button
 					type="button"
@@ -161,11 +163,11 @@
 		</div>
 
 		{#if view === 'workbook' && workbook?.title}
-			<span class="min-w-0 truncate text-sm font-medium">{workbook.title}</span>
+			<span class="hidden min-w-0 truncate text-sm font-medium md:block">{workbook.title}</span>
 		{/if}
 
 		{#if view === 'workbook' && sheets.length}
-			<span class="ml-auto flex items-center gap-1.5">
+			<span class="ml-auto flex shrink-0 items-center gap-1.5">
 				{#if workbook?.notes}
 					<Popover.Root>
 						<Popover.Trigger>

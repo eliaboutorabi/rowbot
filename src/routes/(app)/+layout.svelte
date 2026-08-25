@@ -13,6 +13,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { theme } from '$lib/theme.svelte';
+	import { cn } from '$lib/utils';
 	import type { LayoutData } from './$types';
 
 	let { children, data }: { children: import('svelte').Snippet; data: LayoutData } = $props();
@@ -67,7 +68,7 @@
 			href={resolve('/documents')}
 			class="flex shrink-0 items-center rounded-lg px-1.5 py-1 transition-colors hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none"
 		>
-			<Wordmark size="sm" />
+			<Wordmark size="sm" hideText />
 		</a>
 
 		{#if crumbs.length}
@@ -76,16 +77,20 @@
 			<nav class="flex min-w-0 flex-1 items-center gap-0.5 text-sm" aria-label="Breadcrumb">
 				{#each crumbs as crumb, i (crumb.label)}
 					{#if i > 0}
+						<!-- The trail is a desktop luxury; a phone has room for one place. -->
 						<HugeiconsIcon
 							icon={ArrowRight01Icon}
 							size={15}
-							class="shrink-0 text-muted-foreground/50"
+							class="hidden shrink-0 text-muted-foreground/50 sm:block"
 						/>
 					{/if}
 					{#if crumb.toLibrary}
 						<a
 							href={resolve('/documents')}
-							class="shrink-0 rounded-md px-1.5 py-1 text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
+							class={cn(
+								'shrink-0 rounded-md px-1.5 py-1 text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground',
+								crumbs.length > 1 && 'hidden sm:block'
+							)}
 						>
 							{crumb.label}
 						</a>

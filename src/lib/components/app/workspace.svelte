@@ -7,6 +7,8 @@
 		Loading03Icon,
 		PlayIcon,
 		RefreshIcon,
+		FileSpreadsheetIcon,
+		Message01Icon,
 		SidebarLeft01Icon
 	} from '@hugeicons/core-free-icons';
 	import { Button } from '$lib/components/ui/button';
@@ -83,6 +85,14 @@
 	 */
 	let collapsed = $state(false);
 
+	/**
+	 * On a phone the two columns cannot both be on screen — stacked, each got
+	 * half a viewport and neither was usable. Below `lg` exactly one shows at a
+	 * time and a segmented control switches between them, which is what the
+	 * layout was always trying to be.
+	 */
+	let pane = $state<'chat' | 'workbook'>('chat');
+
 	/** References attached to the next message, picked out of the sheet. */
 	let attachments = $state<SheetRef[]>([]);
 
@@ -121,193 +131,231 @@
 
 <svelte:head><title>{data.document.name} · Rowbot</title></svelte:head>
 
-<div
-	class={cn(
-		'grid h-full min-h-0 grid-cols-1 transition-[grid-template-columns] duration-200',
-		collapsed ? 'lg:grid-cols-[3rem_1fr]' : 'lg:grid-cols-[minmax(22rem,32rem)_1fr]'
-	)}
->
-	{#if collapsed}
-		<!--
+<div class="flex h-full min-h-0 flex-col">
+	<!-- Phone only: one pane at a time. -->
+	<div class="flex shrink-0 items-center gap-1 border-b px-3 py-2 lg:hidden">
+		<div class="flex flex-1 items-center gap-0.5 rounded-lg bg-muted/60 p-0.5">
+			{#each [{ id: 'chat', label: 'Rowbot', icon: Message01Icon }, { id: 'workbook', label: 'Workbook', icon: FileSpreadsheetIcon }] as const as tab (tab.id)}
+				<button
+					type="button"
+					class={cn(
+						'flex flex-1 items-center justify-center gap-1.5 rounded-[0.4rem] py-1.5 text-[0.8125rem] font-medium transition-colors',
+						pane === tab.id
+							? 'bg-background text-foreground shadow-sm'
+							: 'text-muted-foreground hover:text-foreground'
+					)}
+					aria-pressed={pane === tab.id}
+					onclick={() => (pane = tab.id)}
+				>
+					<HugeiconsIcon icon={tab.icon} size={14} />
+					{tab.label}
+					{#if tab.id === 'chat' && run.busy}
+						<span class="size-1.5 animate-pulse rounded-full bg-primary"></span>
+					{:else if tab.id === 'workbook' && run.workbook?.sheets.length}
+						<span class="text-[11px] text-muted-foreground/60 tabular-nums">
+							{run.workbook.sheets.length}
+						</span>
+					{/if}
+				</button>
+			{/each}
+		</div>
+	</div>
+
+	<div
+		class={cn(
+			'grid min-h-0 flex-1 grid-cols-1 transition-[grid-template-columns] duration-200',
+			collapsed ? 'lg:grid-cols-[3rem_1fr]' : 'lg:grid-cols-[minmax(22rem,32rem)_1fr]'
+		)}
+	>
+		{#if collapsed}
+			<!--
 			A rail, not a hidden panel. Collapsing the agent column should buy the
 			workbook width without losing the thread — so the rail keeps the three
 			things you would otherwise reopen the panel to check: whether it is
 			working, how far through the plan it is, and what it last did.
 		-->
-		<section
-			class="hidden min-h-0 w-12 flex-col items-center gap-2 border-r py-2 lg:flex"
-			aria-label="Agent activity, collapsed"
-		>
-			<Button
-				variant="ghost"
-				size="icon-sm"
-				onclick={() => (collapsed = false)}
-				aria-label="Show the agent panel"
-				title="Show the agent panel"
+			<section
+				class="hidden min-h-0 w-12 flex-col items-center gap-2 border-r py-2 lg:flex"
+				aria-label="Agent activity, collapsed"
 			>
-				<HugeiconsIcon icon={SidebarLeft01Icon} size={16} />
-			</Button>
-
-			<span class="h-px w-6 bg-border" aria-hidden="true"></span>
-
-			<!-- Working / idle -->
-			<span
-				class="flex size-8 items-center justify-center"
-				title={run.busy ? 'Rowbot is working' : 'Idle'}
-			>
-				{#if run.busy}
-					<HugeiconsIcon icon={Loading03Icon} size={15} class="animate-spin text-primary" />
-				{:else if run.error}
-					<HugeiconsIcon icon={Alert01Icon} size={15} class="text-destructive" />
-				{:else}
-					<span class="size-1.5 rounded-full bg-muted-foreground/40"></span>
-				{/if}
-			</span>
-
-			<!-- Plan progress -->
-			{#if planTotal > 0}
-				<div
-					class="flex flex-col items-center gap-1"
-					title={`${planDone} of ${planTotal} plan steps done`}
-				>
-					<span class="text-[10px] font-medium text-muted-foreground tabular-nums">
-						{planDone}/{planTotal}
-					</span>
-					<span class="h-10 w-1 overflow-hidden rounded-full bg-muted">
-						<span
-							class="block w-full rounded-full bg-primary transition-[height] duration-500"
-							style:height="{(planDone / planTotal) * 100}%"
-						></span>
-					</span>
-				</div>
-			{/if}
-
-			<!-- Last thing it did -->
-			{#if lastTool}
-				<span
-					class="flex size-8 items-center justify-center text-muted-foreground/70"
-					title={`Last step: ${lastTool.name}`}
-				>
-					<HugeiconsIcon icon={toolMeta(lastTool.name).icon} size={15} />
-				</span>
-			{/if}
-
-			<div class="mt-auto flex flex-col items-center gap-2">
-				{#if totalTokens > 0}
-					<span
-						class="text-[10px] text-muted-foreground/60 tabular-nums [writing-mode:vertical-rl]"
-						title="Tokens used on this run"
-					>
-						{compactNumber(totalTokens)}
-					</span>
-				{/if}
 				<Button
 					variant="ghost"
 					size="icon-sm"
-					disabled={run.busy || !run.workbook?.sheets.length}
-					onclick={() =>
-						send('Re-check every sheet against the source pages and fix anything wrong.')}
-					aria-label="Re-check this workbook"
-					title="Re-check this workbook"
+					onclick={() => (collapsed = false)}
+					aria-label="Show the agent panel"
+					title="Show the agent panel"
 				>
-					<HugeiconsIcon icon={RefreshIcon} size={15} />
+					<HugeiconsIcon icon={SidebarLeft01Icon} size={16} />
 				</Button>
-			</div>
-		</section>
-	{/if}
 
-	<!-- Harness -->
-	<!-- The chips inside are real buttons, so keyboard activation already works;
-	     this listener only catches their click as it bubbles. -->
-	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-	<!-- svelte-ignore a11y_click_events_have_key_events -->
-	<section
-		class={cn('flex min-h-0 flex-col border-r', collapsed && 'hidden')}
-		aria-label="Agent activity"
-		onclick={onFeedClick}
-	>
-		<div class="flex h-9 shrink-0 items-center justify-end px-2">
-			<Button
-				variant="ghost"
-				size="icon-sm"
-				onclick={() => (collapsed = true)}
-				aria-label="Collapse the agent panel"
-				title="Collapse the agent panel"
-			>
-				<HugeiconsIcon icon={SidebarLeft01Icon} size={16} />
-			</Button>
-		</div>
+				<span class="h-px w-6 bg-border" aria-hidden="true"></span>
 
-		<Activity {run}>
-			{#snippet empty()}
-				<div class="flex flex-col items-center gap-4 px-4 py-14 text-center">
-					<Logo class="size-11 text-muted-foreground" />
-					<div class="space-y-1.5">
-						<p class="font-medium">Ready when you are</p>
-						<p class="max-w-xs text-sm text-muted-foreground">
-							{data.document.originalFilename} · {fileSize(data.document.sizeBytes)}
-						</p>
-					</div>
-					{#if canStart}
-						<Button class="mt-1 gap-2" onclick={() => send(START_PROMPT)}>
-							<HugeiconsIcon icon={PlayIcon} size={15} />
-							Extract the tables
-						</Button>
+				<!-- Working / idle -->
+				<span
+					class="flex size-8 items-center justify-center"
+					title={run.busy ? 'Rowbot is working' : 'Idle'}
+				>
+					{#if run.busy}
+						<HugeiconsIcon icon={Loading03Icon} size={15} class="animate-spin text-primary" />
+					{:else if run.error}
+						<HugeiconsIcon icon={Alert01Icon} size={15} class="text-destructive" />
+					{:else}
+						<span class="size-1.5 rounded-full bg-muted-foreground/40"></span>
 					{/if}
-				</div>
-			{/snippet}
-		</Activity>
+				</span>
 
-		{#if !run.busy && run.workbook?.sheets.length && run.timeline.length === 0}
-			<div class="shrink-0 border-t px-3 py-2">
-				<Button
-					variant="ghost"
-					size="sm"
-					class="w-full gap-2 text-muted-foreground"
-					onclick={() =>
-						send('Re-check every sheet against the source pages and fix anything wrong.')}
-				>
-					<HugeiconsIcon icon={RefreshIcon} size={14} />
-					Re-check this workbook
-				</Button>
-			</div>
+				<!-- Plan progress -->
+				{#if planTotal > 0}
+					<div
+						class="flex flex-col items-center gap-1"
+						title={`${planDone} of ${planTotal} plan steps done`}
+					>
+						<span class="text-[10px] font-medium text-muted-foreground tabular-nums">
+							{planDone}/{planTotal}
+						</span>
+						<span class="h-10 w-1 overflow-hidden rounded-full bg-muted">
+							<span
+								class="block w-full rounded-full bg-primary transition-[height] duration-500"
+								style:height="{(planDone / planTotal) * 100}%"
+							></span>
+						</span>
+					</div>
+				{/if}
+
+				<!-- Last thing it did -->
+				{#if lastTool}
+					<span
+						class="flex size-8 items-center justify-center text-muted-foreground/70"
+						title={`Last step: ${lastTool.name}`}
+					>
+						<HugeiconsIcon icon={toolMeta(lastTool.name).icon} size={15} />
+					</span>
+				{/if}
+
+				<div class="mt-auto flex flex-col items-center gap-2">
+					{#if totalTokens > 0}
+						<span
+							class="text-[10px] text-muted-foreground/60 tabular-nums [writing-mode:vertical-rl]"
+							title="Tokens used on this run"
+						>
+							{compactNumber(totalTokens)}
+						</span>
+					{/if}
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						disabled={run.busy || !run.workbook?.sheets.length}
+						onclick={() =>
+							send('Re-check every sheet against the source pages and fix anything wrong.')}
+						aria-label="Re-check this workbook"
+						title="Re-check this workbook"
+					>
+						<HugeiconsIcon icon={RefreshIcon} size={15} />
+					</Button>
+				</div>
+			</section>
 		{/if}
 
-		{#if run.error}
-			<div class="shrink-0 border-t px-3 py-2.5">
-				<div
-					class="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/8 px-3 py-2.5 text-sm"
-					role="alert"
+		<!-- Harness -->
+		<!-- The chips inside are real buttons, so keyboard activation already works;
+	     this listener only catches their click as it bubbles. -->
+		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<section
+			class={cn(
+				'min-h-0 flex-col border-r lg:flex',
+				collapsed && 'lg:hidden',
+				pane === 'chat' ? 'flex' : 'hidden'
+			)}
+			aria-label="Agent activity"
+			onclick={onFeedClick}
+		>
+			<div class="hidden h-9 shrink-0 items-center justify-end px-2 lg:flex">
+				<Button
+					variant="ghost"
+					size="icon-sm"
+					onclick={() => (collapsed = true)}
+					aria-label="Collapse the agent panel"
+					title="Collapse the agent panel"
 				>
-					<HugeiconsIcon
-						icon={run.outOfAllowance ? Key01Icon : Alert01Icon}
-						size={16}
-						class="mt-0.5 shrink-0 text-destructive"
-					/>
-					<div class="min-w-0 flex-1 space-y-2">
-						<p class="text-destructive">{run.error}</p>
-						{#if run.outOfAllowance}
-							<Button href={resolve('/settings')} variant="outline" size="sm">
-								Add your API keys
+					<HugeiconsIcon icon={SidebarLeft01Icon} size={16} />
+				</Button>
+			</div>
+
+			<Activity {run}>
+				{#snippet empty()}
+					<div class="flex flex-col items-center gap-4 px-4 py-14 text-center">
+						<Logo class="size-11 text-muted-foreground" />
+						<div class="space-y-1.5">
+							<p class="font-medium">Ready when you are</p>
+							<p class="max-w-xs text-sm text-muted-foreground">
+								{data.document.originalFilename} · {fileSize(data.document.sizeBytes)}
+							</p>
+						</div>
+						{#if canStart}
+							<Button class="mt-1 gap-2" onclick={() => send(START_PROMPT)}>
+								<HugeiconsIcon icon={PlayIcon} size={15} />
+								Extract the tables
 							</Button>
 						{/if}
 					</div>
+				{/snippet}
+			</Activity>
+
+			{#if !run.busy && run.workbook?.sheets.length && run.timeline.length === 0}
+				<div class="shrink-0 border-t px-3 py-2">
+					<Button
+						variant="ghost"
+						size="sm"
+						class="w-full gap-2 text-muted-foreground"
+						onclick={() =>
+							send('Re-check every sheet against the source pages and fix anything wrong.')}
+					>
+						<HugeiconsIcon icon={RefreshIcon} size={14} />
+						Re-check this workbook
+					</Button>
 				</div>
-			</div>
-		{/if}
+			{/if}
 
-		<Composer {run} bind:model bind:effort bind:attachments onsend={send} onresume={resume} />
-	</section>
+			{#if run.error}
+				<div class="shrink-0 border-t px-3 py-2.5">
+					<div
+						class="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/8 px-3 py-2.5 text-sm"
+						role="alert"
+					>
+						<HugeiconsIcon
+							icon={run.outOfAllowance ? Key01Icon : Alert01Icon}
+							size={16}
+							class="mt-0.5 shrink-0 text-destructive"
+						/>
+						<div class="min-w-0 flex-1 space-y-2">
+							<p class="text-destructive">{run.error}</p>
+							{#if run.outOfAllowance}
+								<Button href={resolve('/settings')} variant="outline" size="sm">
+									Add your API keys
+								</Button>
+							{/if}
+						</div>
+					</div>
+				</div>
+			{/if}
 
-	<!-- Workbook -->
-	<section class="min-h-0 min-w-0" aria-label="Workbook preview">
-		<WorkbookView
-			workbook={run.workbook}
-			documentId={data.document.id}
-			mimeType={data.document.mimeType}
-			busy={run.busy}
-			{reveal}
-			onattach={attach}
-		/>
-	</section>
+			<Composer {run} bind:model bind:effort bind:attachments onsend={send} onresume={resume} />
+		</section>
+
+		<!-- Workbook -->
+		<section
+			class={cn('min-h-0 min-w-0 lg:block', pane === 'workbook' ? 'block' : 'hidden')}
+			aria-label="Workbook preview"
+		>
+			<WorkbookView
+				workbook={run.workbook}
+				documentId={data.document.id}
+				mimeType={data.document.mimeType}
+				busy={run.busy}
+				{reveal}
+				onattach={attach}
+			/>
+		</section>
+	</div>
 </div>
