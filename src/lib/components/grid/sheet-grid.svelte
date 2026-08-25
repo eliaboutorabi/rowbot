@@ -19,6 +19,43 @@
 	const visibleRows = $derived(sheet.rows.slice(0, MAX_ROWS));
 	const truncated = $derived(sheet.rows.length - visibleRows.length);
 
+	/**
+	 * Sticky offsets for the sheet's own header rows.
+	 *
+	 * The column-letter strip pins itself at the top, but a header row lives in
+	 * the body and browsers do not stack sticky elements for you — each one
+	 * needs the exact height of everything pinned above it. Scrolling a
+	 * 130-row ledger used to lose the header entirely, which is precisely when
+	 * you need it. Measured rather than assumed, because a wrapped two-line
+	 * header is a normal thing for OCR to produce.
+	 */
+	let headEl = $state<HTMLTableSectionElement>();
+	const headerRowEls: HTMLTableRowElement[] = [];
+	let stickyTops = $state<number[]>([]);
+
+	function measureHeader() {
+		if (!headEl) return;
+		let offset = headEl.getBoundingClientRect().height;
+		const next: number[] = [];
+		for (let i = 0; i < sheet.headerRows; i++) {
+			next.push(offset);
+			offset += headerRowEls[i]?.getBoundingClientRect().height ?? 0;
+		}
+		stickyTops = next;
+	}
+
+	$effect(() => {
+		// Re-measure when the sheet changes shape, and whenever a row resizes.
+		void sheet.id;
+		void sheet.headerRows;
+		measureHeader();
+
+		const observer = new ResizeObserver(measureHeader);
+		if (headEl) observer.observe(headEl);
+		for (const row of headerRowEls) if (row) observer.observe(row);
+		return () => observer.disconnect();
+	});
+
 	function confidenceClass(cell: Cell): string {
 		if (!heat || cell.conf === undefined) return '';
 		if (cell.conf >= 0.95) return 'bg-chart-2/8';
@@ -54,7 +91,7 @@
 	onkeydown={move}
 >
 	<table class="border-separate border-spacing-0 font-mono text-[13px]">
-		<thead>
+		<thead bind:this={headEl}>
 			<tr>
 				<th
 					class="sticky top-0 left-0 z-30 w-11 border-r border-b bg-muted/95 backdrop-blur-sm"
@@ -74,12 +111,20 @@
 		<tbody>
 			{#each visibleRows as row, r (r)}
 				{@const isHeader = r < sheet.headerRows}
-				<tr class="group" style="content-visibility: auto; contain-intrinsic-size: auto 30px">
+				<tr
+					class="group"
+					bind:this={headerRowEls[r]}
+					style={isHeader
+						? undefined
+						: 'content-visibility: auto; contain-intrinsic-size: auto 30px'}
+				>
 					<th
 						class={cn(
-							'sticky left-0 z-10 w-11 border-r border-b bg-muted/95 px-1 text-right align-middle text-[11px] font-normal text-muted-foreground backdrop-blur-sm',
+							'sticky left-0 w-11 border-r border-b bg-muted/95 px-1 text-right align-middle text-[11px] font-normal text-muted-foreground backdrop-blur-sm',
+							isHeader ? 'z-25' : 'z-10',
 							selected?.row === r && 'bg-primary/15 text-primary'
 						)}
+						style:top={isHeader ? `${stickyTops[r] ?? 0}px` : undefined}
 						scope="row"
 					>
 						{r + 1}
@@ -93,12 +138,13 @@
 								class={cn(
 									'max-w-[24rem] truncate border-r border-b px-2.5 py-1 align-middle transition-colors',
 									isHeader
-										? 'bg-secondary/60 font-semibold text-foreground'
+										? 'sticky z-15 bg-secondary font-semibold text-foreground'
 										: 'bg-background hover:bg-accent/50',
 									isNumericCell(cell) && 'text-right tabular-nums',
 									!isHeader && confidenceClass(cell),
 									selected?.row === r && selected?.column === c && 'ring-2 ring-primary ring-inset'
 								)}
+								style:top={isHeader ? `${stickyTops[r] ?? 0}px` : undefined}
 								title={cell.raw && cell.raw !== formatCell(cell, sheet.columns[c]?.fmt)
 									? `Source text: ${cell.raw}`
 									: undefined}
