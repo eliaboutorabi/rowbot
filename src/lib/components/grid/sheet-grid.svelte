@@ -304,11 +304,21 @@
 		tick().then(() => editor?.select());
 	}
 
-	async function commitEdit() {
+	async function commitEdit(next?: { row: number; column: number }) {
 		if (!editing || !onedit) return;
 		const at = editing;
 		const value = draft;
 		editing = null;
+
+		// Move on before the save resolves. Correcting a column means typing,
+		// Enter, typing, Enter, and waiting for a round trip between each one
+		// would make the grid feel broken.
+		if (next) {
+			pick(next.row, next.column);
+			reveal(next.row, next.column);
+		}
+		scroller?.focus({ preventScroll: true });
+
 		saving = true;
 		try {
 			await onedit({ ...at, value });
@@ -317,19 +327,31 @@
 		}
 	}
 
+	/** One step from the cell being edited, clamped, for Enter and Tab. */
+	function step(rows: number, columns: number) {
+		if (!editing) return undefined;
+		return {
+			row: Math.min(Math.max(editing.row + rows, 0), lastRow),
+			column: Math.min(Math.max(editing.column + columns, 0), lastColumn)
+		};
+	}
+
 	function onEditorKey(event: KeyboardEvent) {
+		// Enter goes down and Tab goes right, as they do in a spreadsheet, so a
+		// column of corrections is one uninterrupted run of typing.
 		if (event.key === 'Enter') {
 			event.preventDefault();
 			event.stopPropagation();
-			void commitEdit();
+			void commitEdit(step(event.shiftKey ? -1 : 1, 0));
+		} else if (event.key === 'Tab') {
+			event.preventDefault();
+			event.stopPropagation();
+			void commitEdit(step(0, event.shiftKey ? -1 : 1));
 		} else if (event.key === 'Escape') {
 			event.preventDefault();
 			event.stopPropagation();
 			editing = null;
-		} else if (event.key === 'Tab') {
-			// Let the browser move focus, but save first — losing an edit to a Tab
-			// is the classic way a grid earns distrust.
-			void commitEdit();
+			scroller?.focus({ preventScroll: true });
 		}
 	}
 
@@ -518,7 +540,7 @@
 										class="-my-1.5 w-full bg-transparent px-0 py-1.5 text-inherit outline-none"
 										aria-label="Edit {cellRef(r, c)}"
 										onkeydown={onEditorKey}
-										onblur={commitEdit}
+										onblur={() => commitEdit()}
 										onclick={(event) => event.stopPropagation()}
 									/>
 								{:else}

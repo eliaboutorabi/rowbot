@@ -15,9 +15,8 @@ import { error, json } from '@sveltejs/kit';
 import { z } from 'zod';
 import type { RequestHandler } from './$types';
 import { latestWorkbook, ownedDocument, saveWorkbook } from '$lib/server/runs';
-import { toCell } from '$lib/coerce';
-import { evaluateFormula } from '$lib/formula';
-import { cellRef, type Cell, type WorkbookModel } from '$lib/types/workbook';
+import { applyCellEdit } from '$lib/cell-edit';
+import { cellRef, type WorkbookModel } from '$lib/types/workbook';
 
 const body = z.object({
 	sheetId: z.string(),
@@ -45,53 +44,10 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
 	const previous = sheet.rows[row]?.[column];
 	if (!previous) error(400, 'That cell is outside the sheet.');
 
-	const typed = value.trim().startsWith('=')
-		? formulaCell(value, model, sheet.name, previous)
-		: plainCell(value, previous);
-
-	sheet.rows[row][column] = {
-		...typed,
-		// What the page said survives a correction — it is the whole basis for
-		// the inspector being able to say "the page said 8,200".
-		raw: previous.raw ?? (previous.v == null ? undefined : String(previous.v)),
-		merge: previous.merge,
-		covered: previous.covered
-	};
+	sheet.rows[row][column] = applyCellEdit(value, previous, model, sheet.name);
 
 	const ref = `${sheet.name}!${cellRef(row, column)}`;
 	await saveWorkbook(doc.id, saved.runId, model, `You edited ${ref}`);
 
 	return json({ workbook: model, ref });
 };
-
-/** A typed value, taking its format from the cell it replaces. */
-function plainCell(value: string, previous: Cell): Cell {
-	const next = toCell(value);
-	return { ...next, fmt: next.fmt ?? previous.fmt };
-}
-
-/**
- * A formula the reviewer typed, evaluated here for the same reason the agent's
- * are: the grid has no calculation engine, and a formula with no value shows
- * as blank. One that will not evaluate is kept as text rather than rejected —
- * the reviewer can see what they typed and fix it.
- */
-function formulaCell(value: string, model: WorkbookModel, current: string, previous: Cell): Cell {
-	const source = value.trim().replace(/^=/, '');
-	const result = evaluateFormula(source, {
-		sheets: model.sheets.map((s) => ({ name: s.name, rows: s.rows })),
-		current
-	});
-
-	if (!result.ok) {
-		return { v: value.trim(), t: 'text', note: `That formula did not evaluate: ${result.error}` };
-	}
-
-	return {
-		v: result.value,
-		t: previous.t === 'currency' || previous.t === 'percent' ? previous.t : 'number',
-		f: source,
-		fmt: previous.fmt,
-		check: { status: 'ok', message: `Computed as =${source}.` }
-	};
-}
