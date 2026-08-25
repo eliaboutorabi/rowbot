@@ -25,6 +25,8 @@
 	interface Entry {
 		id: string;
 		name: string;
+		/** What the agent named the workbook, when it built one. */
+		title: string | null;
 		mimeType: string;
 		pageCount: number | null;
 		sheetCount: number;
@@ -46,7 +48,11 @@
 	const matches = $derived.by(() => {
 		const needle = query.trim().toLowerCase();
 		if (!needle) return documents;
-		return documents.filter((entry) => entry.name.toLowerCase().includes(needle));
+		return documents.filter(
+			(entry) =>
+				entry.name.toLowerCase().includes(needle) ||
+				(entry.title?.toLowerCase().includes(needle) ?? false)
+		);
 	});
 </script>
 
@@ -101,8 +107,11 @@
 								class={cn('shrink-0', current ? 'text-accent-ink' : 'text-muted-foreground')}
 							/>
 							<span class="min-w-0 flex-1">
-								<span class="block truncate text-[0.8125rem] leading-tight font-medium">
-									{entry.name}
+								<span
+									class="block truncate text-[0.8125rem] leading-tight font-medium"
+									title={entry.title ?? entry.name}
+								>
+									{entry.title ?? entry.name}
 								</span>
 								<span class="mt-0.5 block truncate text-[11px] text-muted-foreground">
 									{#if entry.sheetCount}

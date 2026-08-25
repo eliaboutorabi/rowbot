@@ -19,7 +19,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import { fileSize, timeAgo } from '$lib/format';
+	import { timeAgo } from '$lib/format';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -51,7 +51,10 @@
 		return data.documents.filter(
 			(doc) =>
 				doc.name.toLowerCase().includes(needle) ||
-				doc.originalFilename.toLowerCase().includes(needle)
+				doc.originalFilename.toLowerCase().includes(needle) ||
+				// Searching for what the workbook is called has to find it too, now
+				// that that is the name on the card.
+				(doc.title?.toLowerCase().includes(needle) ?? false)
 		);
 	});
 
@@ -208,10 +211,15 @@
 							/>
 
 							<div class="mt-1 px-1">
+								<!-- What the agent read off the page, when it got that far. The
+								     filename is what somebody saved it under and says nothing
+								     about what is inside; it keeps the line below, because that
+								     is still how you find the thing you uploaded. -->
 								<p
 									class="truncate text-sm font-medium transition-colors group-focus-within:text-accent-ink group-hover:text-accent-ink"
+									title={doc.title ?? doc.name}
 								>
-									{doc.name}
+									{doc.title ?? doc.name}
 								</p>
 								<p class="mt-0.5 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
 									<Icon
@@ -219,11 +227,14 @@
 										size={12}
 										class="shrink-0"
 									/>
+									{#if doc.title}
+										<span class="truncate">{doc.name}</span> ·
+									{/if}
 									{#if doc.pageCount}
 										{doc.pageCount}
 										{doc.pageCount === 1 ? 'page' : 'pages'} ·
 									{/if}
-									{fileSize(doc.sizeBytes)} · {timeAgo(doc.createdAt)}
+									{timeAgo(doc.createdAt)}
 								</p>
 							</div>
 						</a>

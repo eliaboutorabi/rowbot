@@ -5,34 +5,40 @@ import { db } from '$lib/server/db';
 import { document, workbook } from '$lib/server/db/schema';
 import { allowanceFor } from '$lib/server/entitlements';
 
+interface Built {
+	sheets: number;
+	/** What the agent named the workbook, which is rarely what the file was called. */
+	title: string | null;
+}
+
 /**
- * Sheet counts for a set of documents, read from the newest workbook version
- * of each.
+ * What each document turned into, read from its newest workbook version.
  *
  * Deliberately a second query rather than a correlated subquery: Drizzle
  * renders an interpolated column as a bare `"id"`, which inside a subquery
  * silently binds to the *inner* table's `id` and quietly returns nothing.
  */
-async function sheetCounts(documentIds: string[]): Promise<Map<string, number>> {
+async function builtWorkbooks(documentIds: string[]): Promise<Map<string, Built>> {
 	if (!documentIds.length) return new Map();
 
 	const rows = await db
 		.select({
 			documentId: workbook.documentId,
 			sheets: sql<number | null>`json_array_length(json_extract(${workbook.dataJson}, '$.sheets'))`,
+			title: sql<string | null>`json_extract(${workbook.dataJson}, '$.title')`,
 			version: workbook.version
 		})
 		.from(workbook)
 		.where(inArray(workbook.documentId, documentIds))
 		.orderBy(desc(workbook.version));
 
-	const counts = new Map<string, number>();
+	const built = new Map<string, Built>();
 	// Rows arrive newest-first, so the first one seen per document wins.
 	for (const row of rows) {
-		if (counts.has(row.documentId)) continue;
-		counts.set(row.documentId, row.sheets ?? 0);
+		if (built.has(row.documentId)) continue;
+		built.set(row.documentId, { sheets: row.sheets ?? 0, title: row.title?.trim() || null });
 	}
-	return counts;
+	return built;
 }
 
 /**
@@ -62,13 +68,28 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 		.orderBy(desc(document.createdAt))
 		.limit(100);
 
-	const counts = await sheetCounts(rows.map((r) => r.id));
+	const built = await builtWorkbooks(rows.map((r) => r.id));
 
 	// Every page in the workspace wants to know what is left in the allowance —
 	// the dropzone to warn before an upload, the composer to warn before a turn.
 	return {
 		user: locals.user,
 		allowance: await allowanceFor(locals.user),
-		documents: rows.map((row) => ({ ...row, sheetCount: counts.get(row.id) ?? 0 }))
+		documents: rows.map((row) => {
+			const made = built.get(row.id);
+			return {
+				...row,
+				sheetCount: made?.sheets ?? 0,
+				/**
+				 * What to call it on screen. The agent reads a title off the page —
+				 * "Meridian Group — Global Sales Ledger FY2025" — and the library was
+				 * showing "huge-ledger" instead, which is the name of the file
+				 * somebody happened to save it under and says nothing about what is
+				 * inside. The filename stays, one line down, because that is how you
+				 * find the thing you uploaded.
+				 */
+				title: made?.title ?? null
+			};
+		})
 	};
 };
