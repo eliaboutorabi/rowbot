@@ -23,6 +23,15 @@
 	/** Everything after the first plan is a revision, and says so. */
 	const firstPlanId = $derived(run.timeline.find((item) => item.kind === 'plan')?.id);
 
+	/**
+	 * `write_todos` is reported twice — once as the plan panel, once as a tool
+	 * row saying "Updated the plan" — and the panel is the version worth
+	 * reading. The row survived only to carry a duration, and because plan
+	 * writes tend to land last in a group, it was frequently the one line a
+	 * collapsed group chose to show.
+	 */
+	const PLAN_TOOL = 'write_todos';
+
 	const blocks = $derived.by<Block[]>(() => {
 		const out: Block[] = [];
 		for (const item of run.timeline) {
@@ -30,6 +39,7 @@
 				out.push({ kind: 'entry', id: item.id, item });
 				continue;
 			}
+			if (item.call.name === PLAN_TOOL) continue;
 			const last = out.at(-1);
 			if (last?.kind === 'tools') last.calls.push(item.call);
 			else out.push({ kind: 'tools', id: item.id, calls: [item.call] });

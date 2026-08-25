@@ -14,6 +14,8 @@
 	import { toast } from 'svelte-sonner';
 	import Dropzone from '$lib/components/app/dropzone.svelte';
 	import DocumentDeck from '$lib/components/app/document-deck.svelte';
+	import { Button } from '$lib/components/ui/button';
+	import * as Dialog from '$lib/components/ui/dialog';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { fileSize, timeAgo } from '$lib/format';
 	import type { PageData } from './$types';
@@ -39,13 +41,30 @@
 		}
 	];
 
-	async function remove(id: string, name: string) {
-		const response = await fetch(`/api/documents?id=${id}`, { method: 'DELETE' });
-		if (response.ok) {
+	/**
+	 * Deleting takes the page, the workbook and the conversation with it, and
+	 * none of it comes back — so it asks first, and says what goes. The menu
+	 * item that starts this sits one click from an ordinary open, which is
+	 * exactly the arrangement that produces accidents.
+	 */
+	let pending = $state<{ id: string; name: string; sheets: number } | null>(null);
+	let deleting = $state(false);
+
+	async function confirmRemove() {
+		if (!pending || deleting) return;
+		const { id, name } = pending;
+		deleting = true;
+		try {
+			const response = await fetch(`/api/documents?id=${id}`, { method: 'DELETE' });
+			if (!response.ok) {
+				toast.error('Could not delete that document');
+				return;
+			}
+			pending = null;
 			toast.success(`Deleted “${name}”`);
 			await invalidateAll();
-		} else {
-			toast.error('Could not delete that document');
+		} finally {
+			deleting = false;
 		}
 	}
 </script>
@@ -166,7 +185,11 @@
 							{/snippet}
 						</DropdownMenu.Trigger>
 						<DropdownMenu.Content align="start">
-							<DropdownMenu.Item variant="destructive" onSelect={() => remove(doc.id, doc.name)}>
+							<DropdownMenu.Item
+								variant="destructive"
+								onSelect={() =>
+									(pending = { id: doc.id, name: doc.name, sheets: doc.sheetCount ?? 0 })}
+							>
 								<HugeiconsIcon icon={Delete02Icon} size={16} />
 								Delete
 							</DropdownMenu.Item>
@@ -177,3 +200,32 @@
 		</ul>
 	{/if}
 </div>
+
+<Dialog.Root
+	open={pending !== null}
+	onOpenChange={(next) => {
+		if (!next && !deleting) pending = null;
+	}}
+>
+	<Dialog.Content class="sm:max-w-md">
+		<Dialog.Header>
+			<Dialog.Title>Delete “{pending?.name}”?</Dialog.Title>
+			<Dialog.Description>
+				{#if pending?.sheets}
+					This removes the original file, the {pending.sheets}-sheet workbook Rowbot built from it,
+					and the conversation about it. It cannot be undone.
+				{:else}
+					This removes the original file and everything Rowbot recorded about it. It cannot be
+					undone.
+				{/if}
+			</Dialog.Description>
+		</Dialog.Header>
+		<Dialog.Footer>
+			<Button variant="outline" disabled={deleting} onclick={() => (pending = null)}>Keep it</Button
+			>
+			<Button variant="destructive" disabled={deleting} onclick={confirmRemove}>
+				{deleting ? 'Deleting…' : 'Delete for good'}
+			</Button>
+		</Dialog.Footer>
+	</Dialog.Content>
+</Dialog.Root>

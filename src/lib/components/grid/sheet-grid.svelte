@@ -155,9 +155,15 @@
 		if (!heat || cell.conf === undefined) return '';
 		// Semantic, and deliberately separate from the brand accent: a confidence
 		// warning must not be mistaken for a highlight.
-		if (cell.conf >= 0.95) return 'bg-emerald-500/8';
-		if (cell.conf >= 0.85) return 'bg-amber-500/14';
-		return 'bg-red-500/14';
+		//
+		// The clean band is barely there on purpose. A heat map where a whole
+		// clean sheet glows green spends all its contrast saying "nothing is
+		// wrong" — the eye has to find the two amber cells inside a wash of
+		// colour instead of on a quiet ground. Enough tint to show the map is
+		// on and the cell was measured, and no more.
+		if (cell.conf >= 0.95) return 'bg-emerald-500/5';
+		if (cell.conf >= 0.85) return 'bg-amber-500/20';
+		return 'bg-red-500/22';
 	}
 
 	/* ── Keyboard ─────────────────────────────────────────────────────
