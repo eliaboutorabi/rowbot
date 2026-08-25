@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { mode } from 'mode-watcher';
 	import { Toaster as Sonner, type ToasterProps as SonnerProps } from 'svelte-sonner';
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import { Loading03Icon } from '@hugeicons/core-free-icons';
 	import { CheckmarkCircle02Icon } from '@hugeicons/core-free-icons';
 	import { MultiplicationSignCircleIcon } from '@hugeicons/core-free-icons';
@@ -18,18 +18,18 @@
 	{...restProps}
 >
 	{#snippet loadingIcon()}
-		<HugeiconsIcon icon={Loading03Icon} strokeWidth={2} class="size-4 animate-spin" />
+		<Icon icon={Loading03Icon} strokeWidth={2} class="size-4 animate-spin" />
 	{/snippet}
 	{#snippet successIcon()}
-		<HugeiconsIcon icon={CheckmarkCircle02Icon} strokeWidth={2} class="size-4" />
+		<Icon icon={CheckmarkCircle02Icon} strokeWidth={2} class="size-4" />
 	{/snippet}
 	{#snippet errorIcon()}
-		<HugeiconsIcon icon={MultiplicationSignCircleIcon} strokeWidth={2} class="size-4" />
+		<Icon icon={MultiplicationSignCircleIcon} strokeWidth={2} class="size-4" />
 	{/snippet}
 	{#snippet infoIcon()}
-		<HugeiconsIcon icon={InformationCircleIcon} strokeWidth={2} class="size-4" />
+		<Icon icon={InformationCircleIcon} strokeWidth={2} class="size-4" />
 	{/snippet}
 	{#snippet warningIcon()}
-		<HugeiconsIcon icon={Alert02Icon} strokeWidth={2} class="size-4" />
+		<Icon icon={Alert02Icon} strokeWidth={2} class="size-4" />
 	{/snippet}
 </Sonner>

@@ -13,7 +13,7 @@
 	 * twenty documents should not decode a hundred PDF pages on load.
 	 */
 	import { onMount } from 'svelte';
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import { Pdf01Icon } from '@hugeicons/core-free-icons';
 	import { openDocument, renderPage } from '$lib/pdf';
 
@@ -148,7 +148,7 @@
 			class="pointer-events-none absolute inset-0 flex items-center justify-center text-neutral-400"
 			title="This preview could not be drawn"
 		>
-			<HugeiconsIcon icon={Pdf01Icon} size={26} />
+			<Icon icon={Pdf01Icon} size={26} />
 		</span>
 	{/if}
 </div>

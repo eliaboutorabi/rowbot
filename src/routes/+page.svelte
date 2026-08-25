@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import {
 		AiBrain01Icon,
 		ArrowRight02Icon,
@@ -44,7 +44,7 @@
 		<Wordmark size="md" />
 		<div class="ml-auto flex items-center gap-2">
 			<Button variant="ghost" size="icon" onclick={() => theme.toggle()} aria-label="Toggle theme">
-				<HugeiconsIcon icon={theme.current === 'dark' ? Sun03Icon : Moon02Icon} size={18} />
+				<Icon icon={theme.current === 'dark' ? Sun03Icon : Moon02Icon} size={18} />
 			</Button>
 			{#if data.user}
 				<Button href="/documents">Open Rowbot</Button>
@@ -83,7 +83,7 @@
 				<div class="mt-9 flex flex-wrap items-center justify-center gap-3">
 					<Button size="lg" href={data.user ? '/documents' : '/sign-up'} class="gap-2">
 						{data.user ? 'Open Rowbot' : 'Start converting'}
-						<HugeiconsIcon icon={ArrowRight02Icon} size={17} />
+						<Icon icon={ArrowRight02Icon} size={17} />
 					</Button>
 					{#if !data.user}
 						<Button size="lg" variant="ghost" href="/sign-in">I already have an account</Button>
@@ -108,7 +108,7 @@
 						<span
 							class="mb-4 flex size-10 items-center justify-center rounded-xl border bg-background text-accent-ink"
 						>
-							<HugeiconsIcon icon={step.icon} size={19} />
+							<Icon icon={step.icon} size={19} />
 						</span>
 						<h2 class="mb-2 font-medium">{step.title}</h2>
 						<p class="text-sm leading-relaxed text-muted-foreground">{step.body}</p>

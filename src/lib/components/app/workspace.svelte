@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import {
 		Alert01Icon,
 		ArrowRight01Icon,
@@ -180,7 +180,7 @@
 					aria-pressed={pane === tab.id}
 					onclick={() => (pane = tab.id)}
 				>
-					<HugeiconsIcon icon={tab.icon} size={14} />
+					<Icon icon={tab.icon} size={14} />
 					{tab.label}
 					{#if tab.id === 'chat' && run.busy}
 						<span class="size-1.5 animate-pulse rounded-full bg-primary"></span>
@@ -245,7 +245,7 @@
 						</div>
 						{#if canStart}
 							<Button class="mt-1 gap-2" onclick={() => send(START_PROMPT)}>
-								<HugeiconsIcon icon={PlayIcon} size={15} />
+								<Icon icon={PlayIcon} size={15} />
 								Extract the tables
 							</Button>
 						{/if}
@@ -262,7 +262,7 @@
 						onclick={() =>
 							send('Re-check every sheet against the source pages and fix anything wrong.')}
 					>
-						<HugeiconsIcon icon={RefreshIcon} size={14} />
+						<Icon icon={RefreshIcon} size={14} />
 						Re-check this workbook
 					</Button>
 				</div>
@@ -282,7 +282,7 @@
 						class="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/8 px-3 py-2.5 text-sm"
 						role="alert"
 					>
-						<HugeiconsIcon
+						<Icon
 							icon={run.outOfAllowance ? Key01Icon : Alert01Icon}
 							size={16}
 							class="mt-0.5 shrink-0 text-destructive"
@@ -301,7 +301,7 @@
 								</Button>
 							{:else if failure.retryable && lastSent}
 								<Button variant="outline" size="sm" class="gap-2" onclick={retry}>
-									<HugeiconsIcon icon={RefreshIcon} size={14} />
+									<Icon icon={RefreshIcon} size={14} />
 									Try that again
 								</Button>
 							{/if}
@@ -311,7 +311,7 @@
 									<summary
 										class="inline-flex cursor-pointer list-none items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
 									>
-										<HugeiconsIcon
+										<Icon
 											icon={ArrowRight01Icon}
 											size={12}
 											class="transition-transform group-open/detail:rotate-90"
@@ -336,7 +336,7 @@
 								run.outOfAllowance = false;
 							}}
 						>
-							<HugeiconsIcon icon={Cancel01Icon} size={14} />
+							<Icon icon={Cancel01Icon} size={14} />
 						</button>
 					</div>
 				</div>

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import { Alert01Icon, Loading03Icon, Ticket01Icon } from '@hugeicons/core-free-icons';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
@@ -45,7 +45,7 @@
 				class="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/8 px-3 py-2.5 text-sm text-destructive"
 				role="alert"
 			>
-				<HugeiconsIcon icon={Alert01Icon} size={16} class="mt-0.5 shrink-0" />
+				<Icon icon={Alert01Icon} size={16} class="mt-0.5 shrink-0" />
 				{form.message}
 			</p>
 		{/if}
@@ -53,7 +53,7 @@
 		<div class="space-y-2">
 			<Label for="invite">Invite code</Label>
 			<div class="relative">
-				<HugeiconsIcon
+				<Icon
 					icon={Ticket01Icon}
 					size={16}
 					class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
@@ -110,7 +110,7 @@
 
 		<Button type="submit" class="w-full" disabled={submitting}>
 			{#if submitting}
-				<HugeiconsIcon icon={Loading03Icon} size={16} class="animate-spin" />
+				<Icon icon={Loading03Icon} size={16} class="animate-spin" />
 				Creating account…
 			{:else}
 				Create account

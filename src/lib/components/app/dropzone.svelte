@@ -2,7 +2,7 @@
 	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import { CloudUploadIcon, Key01Icon, Loading03Icon } from '@hugeicons/core-free-icons';
 	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
@@ -95,7 +95,7 @@
 		<span
 			class="flex size-14 items-center justify-center rounded-2xl border bg-card text-muted-foreground shadow-sm"
 		>
-			<HugeiconsIcon icon={Key01Icon} size={26} />
+			<Icon icon={Key01Icon} size={26} />
 		</span>
 		<div class="space-y-1.5">
 			<p class="font-medium">You have used your free document</p>
@@ -161,7 +161,7 @@
 				dragging ? 'scale-110' : 'group-hover:scale-105'
 			)}
 		>
-			<HugeiconsIcon
+			<Icon
 				icon={uploading ? Loading03Icon : CloudUploadIcon}
 				size={26}
 				class={uploading ? 'animate-spin' : ''}

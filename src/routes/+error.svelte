@@ -11,7 +11,7 @@
 	 */
 	import { page } from '$app/state';
 	import { resolve } from '$app/paths';
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import { ArrowLeft01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
 	import { Button } from '$lib/components/ui/button';
 	import Logo from '$lib/components/brand/logo.svelte';
@@ -68,12 +68,12 @@
 
 		<div class="mt-7 flex flex-wrap items-center justify-center gap-2">
 			<Button href={resolve('/documents')} class="gap-2">
-				<HugeiconsIcon icon={ArrowLeft01Icon} size={15} />
+				<Icon icon={ArrowLeft01Icon} size={15} />
 				Back to your documents
 			</Button>
 			{#if isServerFault}
 				<Button variant="outline" class="gap-2" onclick={() => location.reload()}>
-					<HugeiconsIcon icon={RefreshIcon} size={15} />
+					<Icon icon={RefreshIcon} size={15} />
 					Try again
 				</Button>
 			{/if}

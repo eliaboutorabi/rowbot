@@ -12,7 +12,7 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import {
 		FileSpreadsheetIcon,
 		Image01Icon,
@@ -53,7 +53,7 @@
 <div class="flex min-h-0 flex-1 flex-col">
 	<div class="shrink-0 px-3 pt-3 pb-2">
 		<div class="relative">
-			<HugeiconsIcon
+			<Icon
 				icon={Search01Icon}
 				size={14}
 				class="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-muted-foreground"
@@ -95,7 +95,7 @@
 								current ? 'bg-foreground/6 text-foreground' : 'hover:bg-foreground/4'
 							)}
 						>
-							<HugeiconsIcon
+							<Icon
 								icon={entry.mimeType === 'application/pdf' ? Pdf01Icon : Image01Icon}
 								size={15}
 								class={cn('shrink-0', current ? 'text-accent-ink' : 'text-muted-foreground')}
@@ -116,7 +116,7 @@
 								</span>
 							</span>
 							{#if entry.sheetCount}
-								<HugeiconsIcon
+								<Icon
 									icon={FileSpreadsheetIcon}
 									size={13}
 									class="shrink-0 text-muted-foreground/70"

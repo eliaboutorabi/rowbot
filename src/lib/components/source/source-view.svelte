@@ -13,7 +13,7 @@
 	 * hundred-page PDF costs what you actually look at.
 	 */
 	import { onMount, tick } from 'svelte';
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import {
 		Alert01Icon,
 		Download04Icon,
@@ -401,7 +401,7 @@
 				title={overlay ? 'Hide what the reader found' : 'Show what the reader found'}
 				onclick={() => (overlay = !overlay)}
 			>
-				<HugeiconsIcon icon={overlay ? ViewIcon : ViewOffSlashIcon} size={15} />
+				<Icon icon={overlay ? ViewIcon : ViewOffSlashIcon} size={15} />
 				Segmentation
 			</Button>
 			<Button
@@ -411,7 +411,7 @@
 				download
 				title="Download the OCR JSON"
 			>
-				<HugeiconsIcon icon={Download04Icon} size={15} />
+				<Icon icon={Download04Icon} size={15} />
 				<span class="sr-only">Download the OCR JSON</span>
 			</Button>
 		</div>
@@ -483,14 +483,14 @@
 		>
 			{#if loading}
 				<div class="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
-					<HugeiconsIcon icon={Loading03Icon} size={16} class="animate-spin" />
+					<Icon icon={Loading03Icon} size={16} class="animate-spin" />
 					Loading the page…
 				</div>
 			{:else if loadError}
 				<div
 					class="mx-auto flex max-w-md items-start gap-2 rounded-lg bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
 				>
-					<HugeiconsIcon icon={Alert01Icon} size={16} class="mt-0.5 shrink-0" />
+					<Icon icon={Alert01Icon} size={16} class="mt-0.5 shrink-0" />
 					{loadError}
 				</div>
 			{:else if !pages.length}

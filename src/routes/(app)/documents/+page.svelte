@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { invalidateAll } from '$app/navigation';
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import {
 		CheckmarkBadge01Icon,
 		Delete02Icon,
@@ -140,7 +140,7 @@
 						<span
 							class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground"
 						>
-							<HugeiconsIcon icon={step.icon} size={15} />
+							<Icon icon={step.icon} size={15} />
 						</span>
 						<div class="min-w-0">
 							<p class="text-sm font-medium">
@@ -166,7 +166,7 @@
 			</h2>
 
 			<div class="relative w-full sm:w-64">
-				<HugeiconsIcon
+				<Icon
 					icon={Search01Icon}
 					size={15}
 					class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
@@ -214,7 +214,7 @@
 									{doc.name}
 								</p>
 								<p class="mt-0.5 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
-									<HugeiconsIcon
+									<Icon
 										icon={doc.mimeType === 'application/pdf' ? Pdf01Icon : Image01Icon}
 										size={12}
 										class="shrink-0"
@@ -233,7 +233,7 @@
 							<span
 								class="pointer-events-none absolute top-1 right-1 flex items-center gap-1 rounded-full bg-background/90 px-2 py-0.5 text-[11px] font-medium text-foreground shadow-sm ring-1 ring-border backdrop-blur-sm"
 							>
-								<HugeiconsIcon icon={FileSpreadsheetIcon} size={11} class="text-accent-ink" />
+								<Icon icon={FileSpreadsheetIcon} size={11} class="text-accent-ink" />
 								{doc.sheetCount}
 							</span>
 						{:else if doc.status === 'pending'}
@@ -252,7 +252,7 @@
 										class="absolute top-1 left-1 flex size-7 items-center justify-center rounded-md bg-background/90 text-muted-foreground opacity-0 shadow-sm ring-1 ring-border backdrop-blur-sm transition group-hover:opacity-100 hover:text-foreground focus-visible:opacity-100"
 										aria-label="Actions for {doc.name}"
 									>
-										<HugeiconsIcon icon={More01Icon} size={15} />
+										<Icon icon={More01Icon} size={15} />
 									</button>
 								{/snippet}
 							</DropdownMenu.Trigger>
@@ -262,7 +262,7 @@
 									onSelect={() =>
 										(pending = { id: doc.id, name: doc.name, sheets: doc.sheetCount ?? 0 })}
 								>
-									<HugeiconsIcon icon={Delete02Icon} size={16} />
+									<Icon icon={Delete02Icon} size={16} />
 									Delete
 								</DropdownMenu.Item>
 							</DropdownMenu.Content>

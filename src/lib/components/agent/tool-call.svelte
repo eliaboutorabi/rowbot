@@ -9,7 +9,7 @@
 	 * failed. Detail is one click away, indented under a rule so an expanded
 	 * call still reads as belonging to its row.
 	 */
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import { Alert01Icon, ArrowRight01Icon, Loading03Icon } from '@hugeicons/core-free-icons';
 	import { slide } from 'svelte/transition';
 	import { duration } from '$lib/format';
@@ -85,7 +85,7 @@
 				!running && !failed && 'text-muted-foreground'
 			)}
 		>
-			<HugeiconsIcon icon={meta.icon} size={15} />
+			<Icon icon={meta.icon} size={15} />
 		</span>
 
 		<!-- Title and target share one line: the target is the interesting half,
@@ -113,11 +113,11 @@
 
 		<span class="flex size-4 shrink-0 items-center justify-center">
 			{#if running}
-				<HugeiconsIcon icon={Loading03Icon} size={13} class="animate-spin text-accent-ink" />
+				<Icon icon={Loading03Icon} size={13} class="animate-spin text-accent-ink" />
 			{:else if failed}
-				<HugeiconsIcon icon={Alert01Icon} size={13} class="text-destructive" />
+				<Icon icon={Alert01Icon} size={13} class="text-destructive" />
 			{:else if hasBody}
-				<HugeiconsIcon
+				<Icon
 					icon={ArrowRight01Icon}
 					size={13}
 					class={cn(

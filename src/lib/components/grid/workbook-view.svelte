@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import {
 		Alert01Icon,
 		Download04Icon,
@@ -287,7 +287,7 @@
 					aria-pressed={view === tab.id}
 					onclick={() => (view = tab.id)}
 				>
-					<HugeiconsIcon icon={tab.icon} size={14} />
+					<Icon icon={tab.icon} size={14} />
 					{tab.label}
 				</button>
 			{/each}
@@ -330,7 +330,7 @@
 									title="What Rowbot wants you to check"
 									aria-label="What Rowbot wants you to check"
 								>
-									<HugeiconsIcon icon={Note01Icon} size={15} />
+									<Icon icon={Note01Icon} size={15} />
 								</Button>
 							{/snippet}
 						</Popover.Trigger>
@@ -387,7 +387,7 @@
 							? ' does'
 							: 's do'} not match what the column adds up to"
 					>
-						<HugeiconsIcon icon={Alert01Icon} size={13} />
+						<Icon icon={Alert01Icon} size={13} />
 						{mismatches}
 					</span>
 				{/if}
@@ -401,7 +401,7 @@
 					aria-pressed={heat}
 					aria-label="Confidence"
 				>
-					<HugeiconsIcon icon={ThermometerIcon} size={15} />
+					<Icon icon={ThermometerIcon} size={15} />
 					{#if lowConfidenceCount > 0}
 						<span class="rounded bg-destructive/15 px-1 text-[10px] font-medium text-destructive">
 							{lowConfidenceCount}
@@ -410,7 +410,7 @@
 				</Button>
 
 				<Button size="sm" href="/api/export/{documentId}" download class="gap-1.5">
-					<HugeiconsIcon icon={Download04Icon} size={14} />
+					<Icon icon={Download04Icon} size={14} />
 					.xlsx
 				</Button>
 			</span>
@@ -432,7 +432,10 @@
 			<span
 				class="flex size-12 items-center justify-center rounded-xl border bg-card text-muted-foreground"
 			>
-				<HugeiconsIcon icon={busy ? FileSpreadsheetIcon : Alert01Icon} size={22} />
+				<!-- Only the third state is a problem. A workbook that has not been
+				     started yet is not a warning, and the triangle was saying it was
+				     — for the whole of every run, since the icon never changed. -->
+				<Icon icon={finished ? Alert01Icon : FileSpreadsheetIcon} size={22} />
 			</span>
 			<p class="text-sm font-medium">
 				{busy ? 'Building your workbook…' : finished ? 'No table here' : 'No sheets yet'}
@@ -449,7 +452,7 @@
 			</p>
 			{#if finished}
 				<Button variant="outline" size="sm" class="mt-1 gap-2" onclick={() => (view = 'source')}>
-					<HugeiconsIcon icon={File01Icon} size={15} />
+					<Icon icon={File01Icon} size={15} />
 					See what it read
 				</Button>
 			{/if}

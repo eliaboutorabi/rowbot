@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Select as SelectPrimitive } from 'bits-ui';
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import { UnfoldMoreIcon } from '@hugeicons/core-free-icons';
 	import { cn, type WithoutChild } from '$lib/utils.js';
 
@@ -26,7 +26,7 @@
 	{...restProps}
 >
 	{@render children?.()}
-	<HugeiconsIcon
+	<Icon
 		icon={UnfoldMoreIcon}
 		strokeWidth={2}
 		class="pointer-events-none size-4 text-muted-foreground"

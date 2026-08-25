@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import { Alert01Icon, AiBrain01Icon } from '@hugeicons/core-free-icons';
 	import { fly } from 'svelte/transition';
 	import Logo from '$lib/components/brand/logo.svelte';
@@ -151,7 +151,7 @@
 						class="flex items-start gap-2 rounded-xl bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
 						in:fly={{ y: 6, duration: 150 }}
 					>
-						<HugeiconsIcon icon={Alert01Icon} size={15} class="mt-0.5 shrink-0" />
+						<Icon icon={Alert01Icon} size={15} class="mt-0.5 shrink-0" />
 						{item.text}
 					</p>
 				{/if}
@@ -170,7 +170,7 @@
 		{#if run.busy}
 			<p class="flex h-6 items-center gap-2 px-1 text-xs text-muted-foreground" aria-live="polite">
 				{#if run.activeSubagents.length}
-					<HugeiconsIcon icon={AiBrain01Icon} size={14} class="animate-pulse text-chart-2" />
+					<Icon icon={AiBrain01Icon} size={14} class="animate-pulse text-chart-2" />
 				{:else}
 					<span class="flex gap-1" aria-hidden="true">
 						{#each [0, 1, 2] as i (i)}

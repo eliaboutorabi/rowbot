@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import { ArrowDown01Icon, CheckmarkCircle02Icon } from '@hugeicons/core-free-icons';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { EFFORTS, MODELS, effortLabel, modelLabel } from '$lib/models';
@@ -22,7 +22,7 @@
 				<span>{modelLabel(model)}</span>
 				<span class="text-muted-foreground" aria-hidden="true">·</span>
 				<span class="text-muted-foreground">{effortLabel(effort)}</span>
-				<HugeiconsIcon icon={ArrowDown01Icon} size={13} class="text-muted-foreground" />
+				<Icon icon={ArrowDown01Icon} size={13} class="text-muted-foreground" />
 			</button>
 		{/snippet}
 	</DropdownMenu.Trigger>
@@ -34,7 +34,7 @@
 				class="cursor-pointer items-start gap-2"
 				onSelect={() => (model = option.id)}
 			>
-				<HugeiconsIcon
+				<Icon
 					icon={CheckmarkCircle02Icon}
 					size={15}
 					class={cn('mt-0.5 shrink-0', model === option.id ? 'text-accent-ink' : 'opacity-0')}
@@ -53,7 +53,7 @@
 				class="cursor-pointer items-start gap-2"
 				onSelect={() => (effort = option.id)}
 			>
-				<HugeiconsIcon
+				<Icon
 					icon={CheckmarkCircle02Icon}
 					size={15}
 					class={cn('mt-0.5 shrink-0', effort === option.id ? 'text-accent-ink' : 'opacity-0')}

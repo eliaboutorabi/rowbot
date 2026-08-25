@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Dialog as DialogPrimitive } from 'bits-ui';
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import { Cancel01Icon } from '@hugeicons/core-free-icons';
 	import { Button } from '$lib/components/ui/button/index.js';
 	import { cn, type WithoutChildrenOrChild } from '$lib/utils.js';
@@ -39,7 +39,7 @@
 			<DialogPrimitive.Close data-slot="dialog-close">
 				{#snippet child({ props })}
 					<Button variant="ghost" class="absolute top-2 right-2" size="icon-sm" {...props}>
-						<HugeiconsIcon icon={Cancel01Icon} strokeWidth={2} />
+						<Icon icon={Cancel01Icon} strokeWidth={2} />
 						<span class="sr-only">Close</span>
 					</Button>
 				{/snippet}

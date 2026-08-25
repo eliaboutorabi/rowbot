@@ -9,7 +9,7 @@
 	 * between them is the shape of the conversation and worth keeping.
 	 */
 	import { slide } from 'svelte/transition';
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import { ArrowRight01Icon } from '@hugeicons/core-free-icons';
 	import ToolCall from './tool-call.svelte';
 	import type { ToolCallView } from '$lib/types/events';
@@ -31,7 +31,7 @@
 			aria-expanded={open}
 			onclick={() => (open = !open)}
 		>
-			<HugeiconsIcon
+			<Icon
 				icon={ArrowRight01Icon}
 				size={13}
 				class="shrink-0 transition-transform {open ? 'rotate-90' : ''}"

@@ -10,7 +10,7 @@
 	 */
 	import { enhance } from '$app/forms';
 	import { invalidateAll } from '$app/navigation';
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import {
 		Alert01Icon,
 		CheckmarkCircle02Icon,
@@ -86,7 +86,7 @@
 			<span
 				class="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-background text-muted-foreground"
 			>
-				<HugeiconsIcon icon={allowance.tier === 'free' ? Coins01Icon : SparklesIcon} size={16} />
+				<Icon icon={allowance.tier === 'free' ? Coins01Icon : SparklesIcon} size={16} />
 			</span>
 			<div class="min-w-0 flex-1">
 				<h2 class="text-sm font-medium">{tier.label}</h2>
@@ -108,7 +108,7 @@
 			<span
 				class="flex size-8 shrink-0 items-center justify-center rounded-lg border bg-background text-muted-foreground"
 			>
-				<HugeiconsIcon icon={Key01Icon} size={16} />
+				<Icon icon={Key01Icon} size={16} />
 			</span>
 			<div class="min-w-0 flex-1">
 				<h2 class="text-sm font-medium">Your API keys</h2>
@@ -126,7 +126,7 @@
 					: 'border-destructive/30 bg-destructive/8 text-destructive'}"
 				role="status"
 			>
-				<HugeiconsIcon
+				<Icon
 					icon={result.saved ? CheckmarkCircle02Icon : Alert01Icon}
 					size={15}
 					class="mt-0.5 shrink-0"
@@ -193,7 +193,7 @@
 			<div class="flex flex-wrap items-center gap-2 pt-1">
 				<Button type="submit" size="sm" disabled={saving}>
 					{#if saving}
-						<HugeiconsIcon icon={Loading03Icon} size={15} class="animate-spin" />
+						<Icon icon={Loading03Icon} size={15} class="animate-spin" />
 						Checking the keys…
 					{:else}
 						Save keys
@@ -203,7 +203,7 @@
 				{#if hasKeys}
 					<!-- Submits the sibling form below: a <form> cannot nest. -->
 					<Button type="submit" form="remove-keys" size="sm" variant="ghost" disabled={removing}>
-						<HugeiconsIcon icon={Delete02Icon} size={15} />
+						<Icon icon={Delete02Icon} size={15} />
 						{removing ? 'Removing…' : 'Remove'}
 					</Button>
 				{/if}

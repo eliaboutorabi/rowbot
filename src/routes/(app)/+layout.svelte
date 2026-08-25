@@ -12,7 +12,7 @@
 	import { page } from '$app/state';
 	import { slide } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import { Cancel01Icon, Logout01Icon } from '@hugeicons/core-free-icons';
 	import Rail from '$lib/components/app/rail.svelte';
 	import ResizeEdge from '$lib/components/app/resize-edge.svelte';
@@ -88,6 +88,9 @@
 			of a second of it moving in reads as it opening. The inner column keeps
 			its own fixed width so the contents do not reflow on the way.
 		-->
+		<!-- Escape lives on the panel so it cannot be mistaken for a global key;
+		     the listener is a keyboard convenience over a region, not a control. -->
+		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 		<aside
 			class="relative flex shrink-0 flex-col overflow-hidden border-r bg-rail"
 			aria-label={TITLES[showing]}
@@ -122,7 +125,7 @@
 						aria-label="Close"
 						onclick={() => sidebar.toggle(showing)}
 					>
-						<HugeiconsIcon icon={Cancel01Icon} size={15} />
+						<Icon icon={Cancel01Icon} size={15} />
 					</button>
 				</header>
 
@@ -139,7 +142,7 @@
 
 						<form method="post" action="/documents?/signOut" class="contents">
 							<Button type="submit" variant="outline" size="sm" class="w-full justify-center gap-2">
-								<HugeiconsIcon icon={Logout01Icon} size={15} />
+								<Icon icon={Logout01Icon} size={15} />
 								Sign out
 							</Button>
 						</form>

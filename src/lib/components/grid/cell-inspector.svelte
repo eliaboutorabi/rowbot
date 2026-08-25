@@ -7,7 +7,7 @@
 	 * confidence onto one 36px line, where the note — the one field written for
 	 * a human — was truncated at 16rem and unreadable.
 	 */
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import { Alert01Icon, Note01Icon, PlusSignIcon, ViewIcon } from '@hugeicons/core-free-icons';
 	import { cellRef, type Sheet } from '$lib/types/workbook';
 	import { TYPE_LABEL, formatCell } from '$lib/cell-format';
@@ -130,7 +130,7 @@
 					class="flex shrink-0 items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 font-medium text-accent-ink transition-colors hover:bg-primary/20"
 					onclick={onattach}
 				>
-					<HugeiconsIcon icon={PlusSignIcon} size={12} />
+					<Icon icon={PlusSignIcon} size={12} />
 					Add to chat
 				</button>
 			{/if}
@@ -155,7 +155,7 @@
 					class="flex shrink-0 items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 font-medium text-accent-ink transition-colors hover:bg-primary/20"
 					onclick={onattach}
 				>
-					<HugeiconsIcon icon={PlusSignIcon} size={12} />
+					<Icon icon={PlusSignIcon} size={12} />
 					Add to chat
 				</button>
 			{/if}
@@ -166,7 +166,7 @@
 					class="flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-accent-ink transition-colors hover:bg-primary/10"
 					onclick={onshowsource}
 				>
-					<HugeiconsIcon icon={ViewIcon} size={13} />
+					<Icon icon={ViewIcon} size={13} />
 					Show on page{origin.pageIndex !== undefined ? ` ${origin.pageIndex + 1}` : ''}
 				</button>
 			{/if}
@@ -177,7 +177,7 @@
 					title="The lowest word-level OCR confidence in this cell"
 				>
 					{#if confidence < 0.85}
-						<HugeiconsIcon icon={Alert01Icon} size={12} />
+						<Icon icon={Alert01Icon} size={12} />
 					{/if}
 					{(confidence * 100).toFixed(1)}% · {band.word}
 				</span>
@@ -198,7 +198,7 @@
 			<p
 				class="mt-1.5 flex items-start gap-1.5 rounded-md bg-destructive/10 px-2 py-1.5 text-xs leading-relaxed text-destructive"
 			>
-				<HugeiconsIcon icon={Alert01Icon} size={13} class="mt-0.5 shrink-0" />
+				<Icon icon={Alert01Icon} size={13} class="mt-0.5 shrink-0" />
 				<span class="min-w-0">
 					{cell.check.message}
 					<span class="text-destructive/80">
@@ -219,7 +219,7 @@
 
 		{#if cell.note}
 			<p class="mt-1.5 flex items-start gap-1.5 text-xs leading-relaxed text-foreground">
-				<HugeiconsIcon icon={Note01Icon} size={13} class="mt-0.5 shrink-0 text-accent-ink" />
+				<Icon icon={Note01Icon} size={13} class="mt-0.5 shrink-0 text-accent-ink" />
 				<span class="min-w-0">
 					<!--
 						Safe by construction: `renderInline` escapes the model's output

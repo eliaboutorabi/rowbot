@@ -9,7 +9,7 @@
 	 * sit on a quiet second line inside the same surface, so the composer reads
 	 * as one object instead of a textarea with a toolbar bolted underneath.
 	 */
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import {
 		ArrowRight01Icon,
 		ArrowUp01Icon,
@@ -102,7 +102,7 @@
 				<span
 					class="mt-px flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/15 text-accent-ink"
 				>
-					<HugeiconsIcon icon={HelpCircleIcon} size={15} />
+					<Icon icon={HelpCircleIcon} size={15} />
 				</span>
 				<div class="min-w-0 flex-1">
 					<p class="text-[10px] font-semibold tracking-[0.09em] text-accent-ink uppercase">
@@ -149,11 +149,7 @@
 									</span>
 								{/if}
 							</span>
-							<HugeiconsIcon
-								icon={ArrowRight01Icon}
-								size={15}
-								class="shrink-0 text-muted-foreground"
-							/>
+							<Icon icon={ArrowRight01Icon} size={15} class="shrink-0 text-muted-foreground" />
 						</button>
 					{/each}
 				</div>
@@ -181,7 +177,7 @@
 							aria-label="Remove {ref.raw}"
 							onclick={() => (attachments = attachments.filter((a) => a.raw !== ref.raw))}
 						>
-							<HugeiconsIcon icon={Cancel01Icon} size={11} />
+							<Icon icon={Cancel01Icon} size={11} />
 						</button>
 					</span>
 				{/each}
@@ -230,7 +226,7 @@
 					aria-label="Stop Rowbot"
 					class="ml-auto flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary text-secondary-foreground transition-colors hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none"
 				>
-					<HugeiconsIcon icon={StopIcon} size={15} />
+					<Icon icon={StopIcon} size={15} />
 				</button>
 			{:else}
 				<button
@@ -245,7 +241,7 @@
 							: 'cursor-not-allowed bg-muted text-muted-foreground'
 					)}
 				>
-					<HugeiconsIcon icon={ArrowUp01Icon} size={17} strokeWidth={2.4} />
+					<Icon icon={ArrowUp01Icon} size={17} strokeWidth={2.4} />
 				</button>
 			{/if}
 		</div>

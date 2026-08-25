@@ -17,7 +17,7 @@
 	 */
 	import { resolve } from '$app/paths';
 	import { page } from '$app/state';
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import type { IconSvgElement } from '@hugeicons/svelte';
 	import {
 		DashboardSquare01Icon,
@@ -51,7 +51,7 @@
 		title={active ? label.on : label.off}
 		onclick={() => sidebar.toggle(panel)}
 	>
-		<HugeiconsIcon {icon} size={19} />
+		<Icon {icon} size={19} />
 	</button>
 {/snippet}
 
@@ -137,7 +137,7 @@
 		aria-label={theme.current === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
 		title={theme.current === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
 	>
-		<HugeiconsIcon icon={theme.current === 'dark' ? Sun03Icon : Moon02Icon} size={19} />
+		<Icon icon={theme.current === 'dark' ? Sun03Icon : Moon02Icon} size={19} />
 	</button>
 
 	{@render railButton('settings', Settings01Icon, { on: 'Close settings', off: 'Settings' })}

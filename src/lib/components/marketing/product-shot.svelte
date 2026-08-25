@@ -12,7 +12,7 @@
 	 * quarterly table whose printed Q3 total does not reconcile. Showing the one
 	 * case Rowbot exists for is worth more than showing four clean rows.
 	 */
-	import { HugeiconsIcon } from '@hugeicons/svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
 	import {
 		Alert01Icon,
 		CheckmarkCircle02Icon,
@@ -68,15 +68,15 @@
 		<div class="hidden flex-col items-center gap-2 border-r py-2.5 md:flex" aria-hidden="true">
 			<Logo class="mb-0.5 size-4" />
 			{#each RAIL as item (item.label)}
-				<HugeiconsIcon
+				<Icon
 					icon={item.icon}
 					size={13}
 					class={item.active ? 'text-accent-ink' : 'text-muted-foreground/60'}
 				/>
 			{/each}
 			<span class="flex-1"></span>
-			<HugeiconsIcon icon={Moon02Icon} size={13} class="text-muted-foreground/60" />
-			<HugeiconsIcon icon={Settings01Icon} size={13} class="text-muted-foreground/60" />
+			<Icon icon={Moon02Icon} size={13} class="text-muted-foreground/60" />
+			<Icon icon={Settings01Icon} size={13} class="text-muted-foreground/60" />
 			<span class="mt-0.5 size-4 rounded-full bg-foreground/10"></span>
 		</div>
 
@@ -95,7 +95,7 @@
 				<ul class="space-y-1.5">
 					{#each plan as step (step)}
 						<li class="flex gap-1.5 text-[11px] leading-snug text-muted-foreground line-through">
-							<HugeiconsIcon
+							<Icon
 								icon={CheckmarkCircle02Icon}
 								size={11}
 								class="mt-0.5 shrink-0 text-accent-ink"
@@ -107,7 +107,7 @@
 			</div>
 
 			<p class="flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground">
-				<HugeiconsIcon icon={TaskDaily01Icon} size={12} class="shrink-0" />
+				<Icon icon={TaskDaily01Icon} size={12} class="shrink-0" />
 				check_totals · Revenue by Region
 			</p>
 
@@ -134,13 +134,13 @@
 				<span
 					class="flex items-center gap-1.5 rounded-md bg-card px-2 py-1 text-[11px] font-medium shadow-sm"
 				>
-					<HugeiconsIcon icon={FileSpreadsheetIcon} size={11} />
+					<Icon icon={FileSpreadsheetIcon} size={11} />
 					Workbook
 				</span>
 				<span
 					class="flex items-center gap-1.5 px-2 py-1 text-[11px] font-medium text-muted-foreground"
 				>
-					<HugeiconsIcon icon={File01Icon} size={11} />
+					<Icon icon={File01Icon} size={11} />
 					Source
 				</span>
 			</div>
@@ -207,7 +207,7 @@
 				<p
 					class="flex items-start gap-1.5 border-t bg-muted/25 px-2.5 py-2 text-[11px] text-muted-foreground"
 				>
-					<HugeiconsIcon icon={Alert01Icon} size={12} class="mt-0.5 shrink-0 text-amber-500" />
+					<Icon icon={Alert01Icon} size={12} class="mt-0.5 shrink-0 text-amber-500" />
 					<span>
 						<span class="font-mono text-foreground">D6</span> — the page printed 20,100, but D2:D5
 						adds up to
