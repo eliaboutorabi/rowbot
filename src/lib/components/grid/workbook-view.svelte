@@ -114,7 +114,11 @@
 							{/snippet}
 						</Popover.Trigger>
 						<Popover.Content class="w-96 text-sm leading-relaxed" align="end">
-							<p class="mb-2 font-medium">What Rowbot wants you to check</p>
+							<p class="font-medium">What Rowbot wants you to check</p>
+							<p class="mt-0.5 mb-2.5 text-xs text-muted-foreground">
+								Written by the agent while it built this workbook — the judgement calls it made and
+								anything it could not resolve from the page.
+							</p>
 							<p class="whitespace-pre-wrap text-muted-foreground">{workbook.notes}</p>
 						</Popover.Content>
 					</Popover.Root>
@@ -125,7 +129,7 @@
 					size="sm"
 					class="gap-1.5"
 					onclick={() => (heat = !heat)}
-					title="Tint cells by how confident the OCR was when it read them"
+					title="Tint cells by how confident the reader was, lowest word first"
 				>
 					<HugeiconsIcon icon={ThermometerIcon} size={14} />
 					Confidence
@@ -143,6 +147,37 @@
 			</span>
 		{/if}
 	</div>
+
+	<!--
+		The heat map was unexplained, so an amber cell read as decoration rather
+		than a warning. Turning it on now states what is being measured and what
+		each band means — the legend is the feature, the tint is just its index.
+	-->
+	{#if view === 'workbook' && heat && sheets.length}
+		<div
+			class="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1.5 border-b bg-muted/25 px-3 py-2 text-[11px]"
+		>
+			<span class="text-muted-foreground">
+				Tint shows the <strong class="font-medium text-foreground">lowest</strong> word-level OCR confidence
+				in each cell
+			</span>
+			<span class="flex items-center gap-1.5 text-muted-foreground">
+				<span class="size-2.5 rounded-[3px] bg-emerald-500/40"></span> 95%+ read cleanly
+			</span>
+			<span class="flex items-center gap-1.5 text-muted-foreground">
+				<span class="size-2.5 rounded-[3px] bg-amber-500/50"></span> 85–95% slightly unsure
+			</span>
+			<span class="flex items-center gap-1.5 text-muted-foreground">
+				<span class="size-2.5 rounded-[3px] bg-red-500/50"></span> under 85% worth checking
+			</span>
+			{#if lowConfidenceCount > 0}
+				<span class="ml-auto text-muted-foreground">
+					{lowConfidenceCount} cell{lowConfidenceCount === 1 ? '' : 's'} on this sheet fall in the last
+					band
+				</span>
+			{/if}
+		</div>
+	{/if}
 
 	{#if view === 'source'}
 		<div class="min-h-0 flex-1">
