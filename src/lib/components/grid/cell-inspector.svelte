@@ -8,20 +8,27 @@
 	 * a human — was truncated at 16rem and unreadable.
 	 */
 	import { HugeiconsIcon } from '@hugeicons/svelte';
-	import { Alert01Icon, Note01Icon, ViewIcon } from '@hugeicons/core-free-icons';
+	import { Alert01Icon, Note01Icon, PlusSignIcon, ViewIcon } from '@hugeicons/core-free-icons';
 	import { cellRef, type Sheet } from '$lib/types/workbook';
 	import { TYPE_LABEL, formatCell } from '$lib/cell-format';
 	import { cn } from '$lib/utils';
+	import { refLabel, type SheetRef } from '$lib/sheet-ref';
 
 	let {
 		sheet,
 		selected,
-		onshowsource
+		range = null,
+		onshowsource,
+		onattach
 	}: {
 		sheet: Sheet;
 		selected: { row: number; column: number } | null;
+		/** A highlighted row or column, when one is taken. */
+		range?: SheetRef | null;
 		/** Jump to the region of the page this sheet was read from. */
 		onshowsource?: () => void;
+		/** Hand the current selection to the composer. */
+		onattach?: () => void;
 	} = $props();
 
 	const cell = $derived(selected ? sheet.rows[selected.row]?.[selected.column] : undefined);
@@ -45,7 +52,24 @@
 </script>
 
 <div class="shrink-0 border-t bg-muted/25 px-3 py-2">
-	{#if selected && cell}
+	{#if range}
+		<div class="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs">
+			<span class="font-mono text-[13px] font-semibold">{refLabel(range)}</span>
+			<span class="min-w-0 flex-1 truncate text-muted-foreground">
+				{range.kind === 'row' ? 'Whole row selected' : 'Whole column selected'}
+			</span>
+			{#if onattach}
+				<button
+					type="button"
+					class="flex shrink-0 items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 font-medium text-primary transition-colors hover:bg-primary/20"
+					onclick={onattach}
+				>
+					<HugeiconsIcon icon={PlusSignIcon} size={12} />
+					Add to chat
+				</button>
+			{/if}
+		</div>
+	{:else if selected && cell}
 		<div class="flex flex-wrap items-baseline gap-x-4 gap-y-1 text-xs">
 			<span class="font-mono text-[13px] font-semibold tabular-nums">
 				{cellRef(selected.row, selected.column)}
@@ -58,6 +82,17 @@
 			{/if}
 
 			<span class="text-muted-foreground">{TYPE_LABEL[cell.t]}</span>
+
+			{#if onattach}
+				<button
+					type="button"
+					class="flex shrink-0 items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 font-medium text-primary transition-colors hover:bg-primary/20"
+					onclick={onattach}
+				>
+					<HugeiconsIcon icon={PlusSignIcon} size={12} />
+					Add to chat
+				</button>
+			{/if}
 
 			{#if onshowsource && sheet.source?.tablePath}
 				<button

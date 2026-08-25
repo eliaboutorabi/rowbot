@@ -13,6 +13,7 @@
 	import {
 		ArrowRight01Icon,
 		ArrowUp01Icon,
+		Cancel01Icon,
 		HelpCircleIcon,
 		StopIcon
 	} from '@hugeicons/core-free-icons';
@@ -20,17 +21,21 @@
 	import { compactNumber } from '$lib/format';
 	import { cn } from '$lib/utils';
 	import type { RunState } from '$lib/stores/run.svelte';
+	import { refLabel, type SheetRef } from '$lib/sheet-ref';
 
 	let {
 		run,
 		model = $bindable(),
 		effort = $bindable(),
+		attachments = $bindable([]),
 		onsend,
 		onresume
 	}: {
 		run: RunState;
 		model: string;
 		effort: string;
+		/** Cells, rows and columns picked out of the sheet to talk about. */
+		attachments?: SheetRef[];
 		onsend: (message: string) => void;
 		onresume: (value: unknown) => void;
 	} = $props();
@@ -47,13 +52,22 @@
 	function submit() {
 		const message = value.trim();
 		if (!message || run.busy) return;
+
+		// Attached references go in as A1 notation the agent already understands,
+		// so "why is this wrong?" against a column becomes a question it can act
+		// on without guessing which column you meant.
+		const prefix = attachments.length
+			? `Regarding ${attachments.map((ref) => `[[${ref.raw}]]`).join(', ')}:\n`
+			: '';
+
 		value = '';
+		attachments = [];
 		queueMicrotask(grow);
 
 		// While a question is outstanding, what you type is the answer to it —
 		// sending it as a fresh turn would strand the suspended run.
 		if (run.interrupt) onresume(message);
-		else onsend(message);
+		else onsend(prefix + message);
 	}
 
 	const totalTokens = $derived(run.usage.input + run.usage.output);
@@ -140,6 +154,26 @@
 	<div
 		class="rounded-3xl border bg-card shadow-lg shadow-black/[0.04] transition-shadow focus-within:border-primary/40 focus-within:shadow-xl focus-within:shadow-primary/[0.06] dark:shadow-black/25"
 	>
+		{#if attachments.length}
+			<div class="flex flex-wrap items-center gap-1.5 px-3.5 pt-3">
+				{#each attachments as ref (ref.raw)}
+					<span
+						class="flex items-center gap-1 rounded-md bg-primary/10 py-0.5 pr-1 pl-2 font-mono text-[11px] text-primary"
+					>
+						{ref.sheet}!{refLabel(ref)}
+						<button
+							type="button"
+							class="flex size-4 items-center justify-center rounded transition-colors hover:bg-primary/20"
+							aria-label="Remove {ref.raw}"
+							onclick={() => (attachments = attachments.filter((a) => a.raw !== ref.raw))}
+						>
+							<HugeiconsIcon icon={Cancel01Icon} size={11} />
+						</button>
+					</span>
+				{/each}
+			</div>
+		{/if}
+
 		<textarea
 			bind:this={textarea}
 			bind:value

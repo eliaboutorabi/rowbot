@@ -149,7 +149,11 @@
 		</div>
 	</header>
 
-	<div class={isWorkspace ? 'min-h-0 flex-1' : 'min-h-0 flex-1 overflow-y-auto'}>
+	<div
+		class={isWorkspace
+			? 'min-h-0 flex-1'
+			: 'scroll-slim scroll-quiet min-h-0 flex-1 overflow-y-auto'}
+	>
 		{@render children()}
 	</div>
 </div>

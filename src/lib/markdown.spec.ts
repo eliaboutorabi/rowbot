@@ -37,3 +37,35 @@ describe('renderMarkdown', () => {
 		expect(html.match(/<p /g)).toHaveLength(2);
 	});
 });
+
+describe('workbook references', () => {
+	it('turns a valid reference into a clickable chip carrying the raw ref', () => {
+		const html = renderMarkdown('The total in [[Revenue!F7]] does not reconcile.');
+		expect(html).toContain('data-ref="Revenue!F7"');
+		expect(html).toContain('>F7</button>');
+	});
+
+	it('labels rows and columns the way a person says them', () => {
+		expect(renderMarkdown('[[Ledger!5:5]]')).toContain('>row 5</button>');
+		expect(renderMarkdown('[[Ledger!C:C]]')).toContain('>column C</button>');
+	});
+
+	it('survives a quoted sheet name through HTML escaping', () => {
+		// The text is escaped before this runs, so the quotes arrive as &#39;.
+		const html = renderMarkdown("[['Revenue by Region'!B2:B6]]");
+		expect(html).toContain('data-ref="\'Revenue by Region\'!B2:B6"');
+		expect(html).toContain('>B2:B6</button>');
+	});
+
+	it('leaves a malformed reference as the literal text the model wrote', () => {
+		// A chip that goes nowhere is worse than no chip.
+		const html = renderMarkdown('see [[not a reference]] and [[Sheet!]]');
+		expect(html).not.toContain('data-ref');
+		expect(html).toContain('[[not a reference]]');
+	});
+
+	it('still escapes hostile input inside a reference', () => {
+		const html = renderMarkdown('[[<img src=x onerror=alert(1)>!A1]]');
+		expect(html).not.toContain('<img');
+	});
+});

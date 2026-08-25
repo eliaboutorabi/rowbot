@@ -16,6 +16,7 @@
 	import Logo from '$lib/components/brand/logo.svelte';
 	import { RunState, type TimelineItem } from '$lib/stores/run.svelte';
 	import { compactNumber, fileSize } from '$lib/format';
+	import { parseRef, type SheetRef } from '$lib/sheet-ref';
 	import { toolMeta } from '$lib/components/agent/tool-icon';
 	import { cn } from '$lib/utils';
 	import type { TodoItem } from '$lib/types/events';
@@ -81,6 +82,33 @@
 	 * disappearing, so the way back is always visible.
 	 */
 	let collapsed = $state(false);
+
+	/** References attached to the next message, picked out of the sheet. */
+	let attachments = $state<SheetRef[]>([]);
+
+	/** A reference the agent wrote, to reveal in the grid. */
+	let reveal = $state<{ ref: SheetRef; nonce: number } | null>(null);
+	let revealNonce = 0;
+
+	function attach(ref: SheetRef) {
+		if (attachments.some((existing) => existing.raw === ref.raw)) return;
+		attachments = [...attachments, ref];
+	}
+
+	/**
+	 * The agent's prose is injected as HTML, so its reference chips cannot carry
+	 * Svelte handlers. One delegated listener on the column reads `data-ref` off
+	 * whatever was clicked.
+	 */
+	function onFeedClick(event: MouseEvent) {
+		const target = (event.target as HTMLElement | null)?.closest<HTMLElement>('[data-ref]');
+		const raw = target?.dataset.ref;
+		if (!raw) return;
+		const ref = parseRef(raw);
+		if (!ref) return;
+		event.preventDefault();
+		reveal = { ref, nonce: ++revealNonce };
+	}
 
 	const planTotal = $derived(run.todos.length);
 	const planDone = $derived(run.todos.filter((todo) => todo.status === 'completed').length);
@@ -189,9 +217,14 @@
 	{/if}
 
 	<!-- Harness -->
+	<!-- The chips inside are real buttons, so keyboard activation already works;
+	     this listener only catches their click as it bubbles. -->
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<section
 		class={cn('flex min-h-0 flex-col border-r', collapsed && 'hidden')}
 		aria-label="Agent activity"
+		onclick={onFeedClick}
 	>
 		<div class="flex h-9 shrink-0 items-center justify-end px-2">
 			<Button
@@ -263,7 +296,7 @@
 			</div>
 		{/if}
 
-		<Composer {run} bind:model bind:effort onsend={send} onresume={resume} />
+		<Composer {run} bind:model bind:effort bind:attachments onsend={send} onresume={resume} />
 	</section>
 
 	<!-- Workbook -->
@@ -273,6 +306,8 @@
 			documentId={data.document.id}
 			mimeType={data.document.mimeType}
 			busy={run.busy}
+			{reveal}
+			onattach={attach}
 		/>
 	</section>
 </div>

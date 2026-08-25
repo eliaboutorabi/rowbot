@@ -10,6 +10,8 @@
  * any markup is generated, so no tag in the source text can survive.
  */
 
+import { parseRef, refLabel } from './sheet-ref';
+
 function escapeHtml(input: string): string {
 	return input
 		.replace(/&/g, '&amp;')
@@ -19,9 +21,43 @@ function escapeHtml(input: string): string {
 		.replace(/'/g, '&#39;');
 }
 
+/**
+ * `[[Sheet!B3]]` becomes a clickable chip.
+ *
+ * The agent is told to write these when it refers to a place in the workbook,
+ * so "the total in [[Revenue!F7]] does not reconcile" lands you on that cell
+ * instead of leaving you to find it. Rendered as a `data-ref` button and
+ * handled by delegation on the container: this HTML is injected with `@html`,
+ * so there is no component here to attach a listener to.
+ *
+ * The reference is validated before it becomes a button. Anything malformed
+ * stays as the literal text the model wrote, because a chip that goes nowhere
+ * is worse than no chip.
+ */
+function references(text: string): string {
+	return text.replace(/\[\[([^\]\n]{1,120})\]\]/g, (whole, body: string) => {
+		// The text arrives HTML-escaped, so a quoted sheet name is &#39;…&#39;.
+		const ref = parseRef(
+			body
+				.replace(/&#39;/g, "'")
+				.replace(/&quot;/g, '"')
+				.replace(/&amp;/g, '&')
+		);
+		if (!ref) return whole;
+
+		return (
+			`<button type="button" data-ref="${ref.raw}" ` +
+			'class="mx-px inline-flex items-baseline gap-1 rounded-md bg-primary/10 px-1.5 py-px align-baseline ' +
+			'font-mono text-[0.82em] text-primary transition-colors hover:bg-primary/20 ' +
+			'focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none">' +
+			`${escapeHtml(refLabel(ref))}</button>`
+		);
+	});
+}
+
 /** Inline spans, applied to already-escaped text. */
 function inline(text: string): string {
-	return (
+	return references(
 		text
 			// `code`
 			.replace(

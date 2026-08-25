@@ -163,13 +163,18 @@
 		object-position: top center;
 		background: #fff;
 		border-radius: 6px;
+		/* Carries the dark-mode rim; unset in light mode, where the shadow is
+		   doing the separating and a rim would only muddy the paper edge. */
+		box-shadow: var(--deck-rim, none);
 
 		transform-origin: 50% 100%;
 		transform: rotate(calc((var(--i) - (var(--n) - 1) / 2) * var(--fan, 5deg)));
 
 		/* The shadow goes last in the chain. Anything after it gets filtered too,
 		   which rings every page in a halo. */
-		filter: brightness(calc(1 - var(--i) * 0.05)) var(--deck-shadow);
+		/* Back pages dim slightly so the deck has thickness. In dark mode they
+		   dim faster: the eye has less shadow to read depth from. */
+		filter: brightness(calc(1 - var(--i) * var(--deck-dim, 0.05))) var(--deck-shadow);
 		transition:
 			transform 420ms var(--deck-ease),
 			filter 480ms var(--deck-ease);

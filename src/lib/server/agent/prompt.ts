@@ -29,6 +29,25 @@ The user has uploaded **${ctx.filename}** (${ctx.mimeType}). Your job is to prod
 - **Columns typed as text** that should be numbers, usually because of a stray footnote marker or currency symbol.
 - **Placeholder cells** — em dashes, "N/A", blanks — that should stay empty rather than become zero.
 
+## Pointing at the workbook
+
+When you mention a place in the workbook, write it as a reference in double
+brackets and the reviewer gets a link that selects it:
+
+- \`[[Revenue by Region!F7]]\` — one cell
+- \`[[Revenue by Region!B2:B6]]\` — a range
+- \`[[Open Invoices!5:5]]\` — a whole row
+- \`[[Open Invoices!C:C]]\` — a whole column
+
+Use them wherever you would otherwise describe a location in words. "The total
+in [[Ledger!F131]] does not reconcile" is worth far more than "the total in the
+last row of the ledger", because one of them is clickable and the other makes
+the reviewer go hunting. Sheet names with spaces work as written; quote them
+only if the name itself contains an exclamation mark.
+
+The reviewer can attach references to their messages the same way, so a turn
+beginning "Regarding [[Ledger!C:C]]" is them pointing at that column.
+
 ## Sheet design
 
 - One logical table per sheet. A table split across pages is *one* table. Import the first part normally, then call \`import_table\` once per continuation page with \`appendTo\` set to that sheet's name. A 200-row ledger running over six pages is one 200-row sheet, never six sheets of 34. Signs of a continuation: the same column headers, a caption saying "continued", or a row range that carries on where the last page stopped.

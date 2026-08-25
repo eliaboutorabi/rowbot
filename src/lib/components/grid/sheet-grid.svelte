@@ -1,21 +1,94 @@
 <script lang="ts">
 	import { columnLetter, type Cell, type Sheet } from '$lib/types/workbook';
+	import { contains, formatRef, type SheetRef } from '$lib/sheet-ref';
 	import { formatCell, isNumericCell } from '$lib/cell-format';
 	import { cn } from '$lib/utils';
 
 	let {
 		sheet,
 		heat = false,
-		selected = $bindable()
+		selected = $bindable(),
+		range = $bindable(null)
 	}: {
 		sheet: Sheet;
 		/** Tint cells by OCR confidence so weak reads are easy to find. */
 		heat?: boolean;
 		selected: { row: number; column: number } | null;
+		/**
+		 * A highlighted region — a whole row or column you clicked, or the place
+		 * the agent pointed at. Distinct from `selected`, which is always the one
+		 * cell the inspector is describing.
+		 */
+		range?: SheetRef | null;
 	} = $props();
+
+	/** A column reads as numeric when most of its data cells are. */
+	function numericColumn(index: number): boolean {
+		let numeric = 0;
+		let seen = 0;
+		for (let r = sheet.headerRows; r < Math.min(sheet.rows.length, sheet.headerRows + 12); r++) {
+			const cell = sheet.rows[r]?.[index];
+			if (!cell || cell.t === 'blank') continue;
+			seen++;
+			if (isNumericCell(cell)) numeric++;
+		}
+		return seen > 0 && numeric / seen >= 0.6;
+	}
+
+	const inRange = (row: number, column: number) => Boolean(range && contains(range, row, column));
+
+	/** A four-digit gutter needs room a two-digit one is wasting. */
+	const gutter = $derived(
+		sheet.rows.length > 10000
+			? 'w-12'
+			: sheet.rows.length > 1000
+				? 'w-11'
+				: sheet.rows.length > 100
+					? 'w-9'
+					: 'w-8'
+	);
+
+	/** Clicking a gutter number or a column letter takes the whole line. */
+	function takeRow(row: number) {
+		range = {
+			sheet: sheet.name,
+			kind: 'row',
+			from: { row, column: -1 },
+			to: { row, column: -1 },
+			raw: formatRef(sheet.name, {
+				kind: 'row',
+				from: { row, column: -1 },
+				to: { row, column: -1 }
+			})
+		};
+		selected = { row, column: 0 };
+	}
+
+	function takeColumn(column: number) {
+		range = {
+			sheet: sheet.name,
+			kind: 'column',
+			from: { row: -1, column },
+			to: { row: -1, column },
+			raw: formatRef(sheet.name, {
+				kind: 'column',
+				from: { row: -1, column },
+				to: { row: -1, column }
+			})
+		};
+		selected = { row: sheet.headerRows, column };
+	}
 
 	/** Beyond this the DOM cost stops being worth it; the export has everything. */
 	const MAX_ROWS = 4000;
+
+	/**
+	 * The real rendered row height: 20px line-height + 12px padding + 1px rule.
+	 * `content-visibility` skips offscreen rows and needs a size to reserve; a
+	 * wrong guess here compounds into thousands of pixels of scroll error over
+	 * a long sheet, which shows up as a thumb that drifts as you scroll.
+	 */
+	const ROW_HEIGHT = 33;
 	const visibleRows = $derived(sheet.rows.slice(0, MAX_ROWS));
 	const truncated = $derived(sheet.rows.length - visibleRows.length);
 
@@ -84,7 +157,7 @@
 </script>
 
 <div
-	class="h-full overflow-auto"
+	class="scroll-slim h-full overflow-auto"
 	role="grid"
 	tabindex="0"
 	aria-label="Sheet {sheet.name}"
@@ -97,19 +170,58 @@
 		wants proportional text with tabular figures, so numbers still line up
 		in their columns while labels stay legible.
 	-->
-	<table class="border-separate border-spacing-0 text-[13px] leading-5">
+	<!--
+		`table-fixed`: with auto layout the browser measures every row before it
+		can resolve a column width, which fights `content-visibility` — whose
+		entire purpose is to avoid measuring what is offscreen — and makes the
+		columns jump as data streams in.
+	-->
+	<table class="w-full table-fixed border-separate border-spacing-0 text-[13px] leading-5">
 		<thead bind:this={headEl}>
 			<tr>
 				<th
-					class="sticky top-0 left-0 z-30 w-12 border-r border-b border-border/70 bg-muted backdrop-blur-sm"
+					class={cn(
+						'sticky top-0 left-0 z-30 border-r border-b border-[var(--grid-line-strong)] bg-[var(--grid-header-bg)]',
+						gutter
+					)}
+					style="border-bottom-width: var(--grid-hairline); border-right-width: var(--grid-hairline)"
 					aria-label="Row numbers"
 				></th>
 				{#each sheet.columns as column, c (c)}
 					<th
-						class="sticky top-0 z-20 min-w-[7.5rem] border-r border-b border-border/70 bg-muted px-3 py-1 text-center text-[10px] font-medium tracking-[0.08em] text-muted-foreground/70 uppercase backdrop-blur-sm"
+						class={cn(
+							'sticky top-0 z-20 border-b border-[var(--grid-line-strong)] p-0',
+							range?.kind === 'column' && inRange(0, c)
+								? 'bg-[var(--grid-range)]'
+								: 'bg-[var(--grid-header-bg)]'
+						)}
+						style="border-bottom-width: var(--grid-hairline)"
 						title={column.label ?? undefined}
 					>
-						{columnLetter(c)}
+						<!--
+							The column's own name, not just its letter. Letters make sense in
+							Excel because that is how you address a cell; here every column
+							carries a label the model read off the page, and hiding it in a
+							tooltip was the most toy-like thing in the grid.
+						-->
+						<button
+							type="button"
+							class={cn(
+								'flex w-full cursor-pointer items-baseline gap-1.5 px-3 py-1.5 text-[13px] font-semibold transition-colors hover:text-foreground',
+								numericColumn(c) ? 'justify-end' : 'justify-start'
+							)}
+							onclick={() => takeColumn(c)}
+							aria-label="Select column {columnLetter(c)}"
+						>
+							{#if column.label}
+								<span class="truncate text-foreground/90">{column.label}</span>
+								<span class="shrink-0 text-[10px] font-normal text-muted-foreground/50">
+									{columnLetter(c)}
+								</span>
+							{:else}
+								<span class="text-muted-foreground/70">{columnLetter(c)}</span>
+							{/if}
+						</button>
 					</th>
 				{/each}
 			</tr>
@@ -119,22 +231,33 @@
 			{#each visibleRows as row, r (r)}
 				{@const isHeader = r < sheet.headerRows}
 				<tr
-					class={cn('group', !isHeader && r % 2 === 1 && '[&>td]:bg-muted/25')}
+					class="group"
 					bind:this={headerRowEls[r]}
 					style={isHeader
 						? undefined
-						: 'content-visibility: auto; contain-intrinsic-size: auto 30px'}
+						: `content-visibility: auto; contain-intrinsic-size: auto ${ROW_HEIGHT}px`}
 				>
 					<th
 						class={cn(
-							'sticky left-0 w-12 border-r border-b border-border/70 bg-muted px-1.5 text-right align-middle text-[11px] font-normal text-muted-foreground/70 tabular-nums backdrop-blur-sm',
+							'sticky left-0 border-r border-b border-[var(--grid-line)] bg-[var(--grid-header-bg)] px-1.5 text-right align-middle text-[11px] font-normal text-muted-foreground/60 tabular-nums',
+							gutter,
 							isHeader ? 'z-25' : 'z-10',
-							selected?.row === r && 'bg-primary/12 font-medium text-primary'
+							range?.kind === 'row' && inRange(r, 0) && 'bg-[var(--grid-range)] text-primary',
+							selected?.row === r && 'font-medium text-primary'
 						)}
 						style:top={isHeader ? `${stickyTops[r] ?? 0}px` : undefined}
+						style:border-bottom-width="var(--grid-hairline)"
+						style:border-right-width="var(--grid-hairline)"
 						scope="row"
 					>
-						{r + 1}
+						<button
+							type="button"
+							class="w-full cursor-pointer px-0.5 text-right transition-colors hover:text-foreground"
+							onclick={() => takeRow(r)}
+							aria-label="Select row {r + 1}"
+						>
+							{r + 1}
+						</button>
 					</th>
 
 					{#each row as cell, c (c)}
@@ -143,21 +266,31 @@
 								rowspan={cell.merge?.rs ?? 1}
 								colspan={cell.merge?.cs ?? 1}
 								class={cn(
-									'max-w-[24rem] truncate border-r border-b border-border/45 px-3 py-1.5 align-middle transition-colors',
+									// Horizontal rules only. Alignment and padding separate the
+									// columns; a full lattice is what makes a grid look like a
+									// spreadsheet from 1997.
+									'truncate border-b border-[var(--grid-line)] px-3 py-1.5 align-middle transition-colors',
 									isHeader
-										? 'sticky z-15 bg-muted font-medium text-foreground'
-										: 'bg-background group-hover:bg-accent/40',
+										? 'sticky z-15 bg-[var(--grid-header-bg)] font-semibold text-foreground'
+										: 'bg-background group-hover:bg-[var(--grid-row-hover)]',
 									// Tabular figures keep digits on a shared grid; the slight
 									// negative tracking stops long currency strings sprawling.
 									isNumericCell(cell) && 'text-right tracking-[-0.01em] tabular-nums',
 									!isHeader && confidenceClass(cell),
 									// Correctness, not confidence — so it does not wait for the
 									// heat map to be switched on.
+									inRange(r, c) && 'bg-[var(--grid-range)]',
 									cell.check?.status === 'mismatch' &&
 										'bg-red-500/15 font-semibold text-red-700 ring-1 ring-red-500/40 ring-inset dark:text-red-300',
-									selected?.row === r && selected?.column === c && 'ring-2 ring-primary ring-inset'
+									// `outline`, not `ring`: with border-separate a box-shadow
+									// ring on a td gets painted over by the next cell's
+									// background, and 1px is what every serious grid uses.
+									selected?.row === r &&
+										selected?.column === c &&
+										'outline-1 -outline-offset-1 outline-primary'
 								)}
 								style:top={isHeader ? `${stickyTops[r] ?? 0}px` : undefined}
+								style:border-bottom-width="var(--grid-hairline)"
 								title={cell.raw && cell.raw !== formatCell(cell, sheet.columns[c]?.fmt)
 									? `Source text: ${cell.raw}`
 									: undefined}

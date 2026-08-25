@@ -56,7 +56,11 @@
 	});
 </script>
 
-<div bind:this={viewport} onscroll={onScroll} class="min-h-0 flex-1 overflow-y-auto">
+<div
+	bind:this={viewport}
+	onscroll={onScroll}
+	class="scroll-slim scroll-quiet min-h-0 flex-1 overflow-y-auto"
+>
 	<div class="space-y-3 p-4">
 		{#if run.timeline.length === 0 && !run.todos.length}
 			{#if empty}{@render empty()}{/if}

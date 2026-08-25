@@ -15,18 +15,45 @@
 	import SourceView from '$lib/components/source/source-view.svelte';
 	import { cn } from '$lib/utils';
 	import type { WorkbookModel } from '$lib/types/workbook';
+	import { formatRef, type SheetRef } from '$lib/sheet-ref';
 
 	let {
 		workbook,
 		documentId,
 		mimeType,
-		busy = false
+		busy = false,
+		reveal = null,
+		onattach
 	}: {
 		workbook: WorkbookModel | null;
 		documentId: string;
 		mimeType: string;
 		busy?: boolean;
+		/** A reference the agent wrote, to select and scroll to. */
+		reveal?: { ref: SheetRef; nonce: number } | null;
+		/** Send the current selection to the composer. */
+		onattach?: (ref: SheetRef) => void;
 	} = $props();
+
+	let range = $state<SheetRef | null>(null);
+
+	/** Following a reference out of the agent's prose into the sheet. */
+	$effect(() => {
+		const request = reveal;
+		if (!request) return;
+
+		const wanted = request.ref.sheet.trim().toLowerCase();
+		const match = sheets.find((sheet) => sheet.name.toLowerCase() === wanted);
+		if (!match) return;
+
+		view = 'workbook';
+		activeId = match.id;
+		range = request.ref;
+		selected = {
+			row: Math.max(request.ref.from.row, 0),
+			column: Math.max(request.ref.from.column, 0)
+		};
+	});
 
 	type View = 'workbook' | 'source';
 	let view = $state<View>('workbook');
@@ -42,6 +69,17 @@
 	 */
 	let focus = $state<{ tablePath: string; nonce: number } | null>(null);
 	let nonce = 0;
+
+	/**
+	 * What "add to chat" sends: the highlighted row or column if there is one,
+	 * otherwise the single selected cell.
+	 */
+	function attachable(): SheetRef {
+		if (range) return range;
+		const at = { row: selected?.row ?? 0, column: selected?.column ?? 0 };
+		const shape = { kind: 'cell' as const, from: at, to: { ...at } };
+		return { sheet: active?.name ?? '', ...shape, raw: formatRef(active?.name ?? '', shape) };
+	}
 
 	function showOnPage() {
 		const path = active?.source?.tablePath;
@@ -60,6 +98,7 @@
 		if (!match) return;
 		activeId = match.id;
 		selected = null;
+		range = null;
 		view = 'workbook';
 	}
 
@@ -243,13 +282,19 @@
 				<div class="min-h-0 flex-1">
 					{#if active}
 						{#key active.id}
-							<SheetGrid sheet={active} {heat} bind:selected />
+							<SheetGrid sheet={active} {heat} bind:selected bind:range />
 						{/key}
 					{/if}
 				</div>
 
 				{#if active}
-					<CellInspector sheet={active} {selected} onshowsource={showOnPage} />
+					<CellInspector
+						sheet={active}
+						{selected}
+						{range}
+						onshowsource={showOnPage}
+						onattach={onattach ? () => onattach(attachable()) : undefined}
+					/>
 				{/if}
 			</div>
 		</div>
@@ -260,7 +305,7 @@
 		     floating above the edge while the other runs into it. -->
 		<div class="shrink-0 px-3 pt-2 pb-3">
 			<div
-				class="flex h-10 items-center gap-1 overflow-x-auto rounded-xl border bg-card px-1.5 shadow-sm"
+				class="scroll-slim scroll-quiet flex h-10 items-center gap-1 overflow-x-auto rounded-xl border bg-card px-1.5 shadow-sm"
 			>
 				{#each sheets as sheet (sheet.id)}
 					<button

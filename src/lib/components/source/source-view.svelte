@@ -346,7 +346,10 @@
 	<div class="flex min-h-0 flex-1">
 		<!-- ── Thumbnail rail ──────────────────────────────────────── -->
 		{#if pages.length > 1 && !isImage}
-			<nav class="w-[7.5rem] shrink-0 overflow-y-auto border-r bg-muted/20 p-2" aria-label="Pages">
+			<nav
+				class="scroll-slim scroll-quiet w-[7.5rem] shrink-0 overflow-y-auto border-r bg-muted/20 p-2"
+				aria-label="Pages"
+			>
 				<ul class="space-y-2">
 					{#each pages as info (info.index)}
 						<li>
@@ -388,7 +391,10 @@
 		{/if}
 
 		<!-- ── Pages ───────────────────────────────────────────────── -->
-		<div bind:this={scroller} class="relative min-h-0 flex-1 overflow-auto bg-muted/30 p-4">
+		<div
+			bind:this={scroller}
+			class="scroll-slim scroll-quiet relative min-h-0 flex-1 overflow-auto bg-muted/30 p-4"
+		>
 			{#if loading}
 				<div class="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
 					<HugeiconsIcon icon={Loading03Icon} size={16} class="animate-spin" />
