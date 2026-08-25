@@ -78,6 +78,7 @@
 		"exceljs": "^4.4.0",
 		"langchain": "^1.5.10",
 		"langsmith": "^0.9.0",
+		"pdfjs-dist": "^5.7.284",
 		"zod": "^4.4.3"
 	}
 }

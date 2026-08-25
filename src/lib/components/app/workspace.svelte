@@ -21,6 +21,7 @@
 			id: string;
 			name: string;
 			originalFilename: string;
+			mimeType: string;
 			sizeBytes: number;
 		};
 		workbook: WorkbookModel | null;
@@ -134,6 +135,11 @@
 
 	<!-- Workbook -->
 	<section class="min-h-0 min-w-0" aria-label="Workbook preview">
-		<WorkbookView workbook={run.workbook} documentId={data.document.id} busy={run.busy} />
+		<WorkbookView
+			workbook={run.workbook}
+			documentId={data.document.id}
+			mimeType={data.document.mimeType}
+			busy={run.busy}
+		/>
 	</section>
 </div>

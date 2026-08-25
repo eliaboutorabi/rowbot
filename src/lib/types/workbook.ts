@@ -44,8 +44,13 @@ export interface Column {
 export interface SheetSource {
 	/** Zero-based page this sheet was extracted from. */
 	pageIndex: number;
-	/** Mistral table id, e.g. `tbl-0.html`. */
-	tableId?: string;
+	/**
+	 * Path of the OCR table in the agent's workspace, e.g.
+	 * `/source/tables/page-1-tbl-0.html`. This rather than Mistral's raw table
+	 * id: the path is what both the importer and the source overlay build with
+	 * `tablePath()`, so the two always agree.
+	 */
+	tablePath?: string;
 	/** Bounding box on the page, for the source overlay. */
 	bbox?: { x0: number; y0: number; x1: number; y1: number };
 }

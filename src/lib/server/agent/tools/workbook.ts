@@ -159,7 +159,7 @@ export const importTableTool = tool(
 			columns: labels.map((label) => ({ label: label || undefined })),
 			headerRows: resolvedHeaderRows,
 			freeze: resolvedHeaderRows > 0 ? { rows: resolvedHeaderRows, cols: 0 } : undefined,
-			source: pageMatch ? { pageIndex: Number(pageMatch[1]) - 1 } : undefined,
+			source: pageMatch ? { pageIndex: Number(pageMatch[1]) - 1, tablePath: path } : undefined,
 			notes
 		});
 

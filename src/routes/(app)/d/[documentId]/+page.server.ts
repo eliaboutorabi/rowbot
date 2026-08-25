@@ -19,6 +19,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 			id: doc.id,
 			name: doc.name,
 			originalFilename: doc.originalFilename,
+			mimeType: doc.mimeType,
 			sizeBytes: doc.sizeBytes
 		},
 		workbook: (saved?.dataJson as WorkbookModel | null) ?? null,

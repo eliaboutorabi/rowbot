@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import ExcelJS from 'exceljs';
 import { buildWorkbook, workbookFilename } from './build';
 import { sheetFromHtml } from '../ocr/html-table';
+import { tablePath } from '$lib/server/agent/tools/ocr';
 import type { OcrResponse } from '../ocr/mistral';
 import type { WorkbookModel } from '$lib/types/workbook';
 import fixture from '../ocr/__fixtures__/report-ocr.json' with { type: 'json' };
@@ -15,7 +16,7 @@ function workbookFromFixture(): WorkbookModel {
 			sheetFromHtml(table.content, {
 				id: `${page.index}-${table.id}`,
 				name: `Page ${page.index + 1} Table ${i + 1}`,
-				source: { pageIndex: page.index, tableId: table.id }
+				source: { pageIndex: page.index, tablePath: tablePath(page.index, table.id) }
 			})
 		)
 	);

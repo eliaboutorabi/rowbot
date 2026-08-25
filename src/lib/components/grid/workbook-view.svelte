@@ -10,18 +10,41 @@
 	import * as Popover from '$lib/components/ui/popover';
 	import SheetGrid from './sheet-grid.svelte';
 	import CellInspector from './cell-inspector.svelte';
+	import SourceView from '$lib/components/source/source-view.svelte';
 	import { cn } from '$lib/utils';
 	import type { WorkbookModel } from '$lib/types/workbook';
 
 	let {
 		workbook,
 		documentId,
+		mimeType,
 		busy = false
-	}: { workbook: WorkbookModel | null; documentId: string; busy?: boolean } = $props();
+	}: {
+		workbook: WorkbookModel | null;
+		documentId: string;
+		mimeType: string;
+		busy?: boolean;
+	} = $props();
+
+	type View = 'workbook' | 'source';
+	let view = $state<View>('workbook');
 
 	let activeId = $state<string | null>(null);
 	let heat = $state(false);
 	let selected = $state<{ row: number; column: number } | null>(null);
+
+	/**
+	 * Crossing from a block on the page to the sheet it became. Both sides
+	 * name the table by the same workspace path, so this is a lookup rather
+	 * than a guess.
+	 */
+	function openTable(path: string) {
+		const match = sheets.find((sheet) => sheet.source?.tablePath === path);
+		if (!match) return;
+		activeId = match.id;
+		selected = null;
+		view = 'workbook';
+	}
 
 	const sheets = $derived(workbook?.sheets ?? []);
 	const active = $derived(sheets.find((s) => s.id === activeId) ?? sheets[0]);
@@ -35,6 +58,11 @@
 		}
 	});
 
+	/** Paths of OCR tables that made it into the workbook, for the overlay. */
+	const linkedPaths = $derived(
+		sheets.map((sheet) => sheet.source?.tablePath).filter((path): path is string => Boolean(path))
+	);
+
 	const lowConfidenceCount = $derived(
 		active?.rows.reduce(
 			(total, row) => total + row.filter((c) => c.conf !== undefined && c.conf < 0.85).length,
@@ -44,27 +72,34 @@
 </script>
 
 <div class="flex h-full min-w-0 flex-col bg-background">
-	{#if !sheets.length}
-		<div class="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-			<span
-				class="flex size-12 items-center justify-center rounded-xl border bg-card text-muted-foreground"
-			>
-				<HugeiconsIcon icon={FileSpreadsheetIcon} size={22} />
-			</span>
-			<p class="text-sm font-medium">
-				{busy ? 'Building your workbook…' : 'No sheets yet'}
-			</p>
-			<p class="max-w-xs text-sm text-muted-foreground">
-				{busy
-					? 'Sheets appear here the moment Rowbot creates them.'
-					: 'Sheets will appear here once Rowbot reads the document.'}
-			</p>
+	<!-- ── View switcher ───────────────────────────────────────────────
+	     The workbook and the page it came from are two readings of the same
+	     document, so they are peers here rather than one being buried behind
+	     a button on the other. -->
+	<div class="flex h-11 shrink-0 items-center gap-2 border-b px-3">
+		<div class="flex items-center gap-0.5 rounded-lg bg-muted/60 p-0.5">
+			{#each [{ id: 'workbook', label: 'Workbook' }, { id: 'source', label: 'Source' }] as const as tab (tab.id)}
+				<button
+					type="button"
+					class={cn(
+						'rounded-[0.4rem] px-2.5 py-1 text-[0.8125rem] font-medium transition-colors',
+						view === tab.id
+							? 'bg-background text-foreground shadow-sm'
+							: 'text-muted-foreground hover:text-foreground'
+					)}
+					aria-pressed={view === tab.id}
+					onclick={() => (view = tab.id)}
+				>
+					{tab.label}
+				</button>
+			{/each}
 		</div>
-	{:else}
-		<!-- Toolbar -->
-		<div class="flex h-11 shrink-0 items-center gap-2 border-b px-3">
-			<span class="truncate text-sm font-medium">{workbook?.title}</span>
 
+		{#if view === 'workbook' && workbook?.title}
+			<span class="min-w-0 truncate text-sm font-medium">{workbook.title}</span>
+		{/if}
+
+		{#if view === 'workbook' && sheets.length}
 			<span class="ml-auto flex items-center gap-1.5">
 				{#if workbook?.notes}
 					<Popover.Root>
@@ -88,7 +123,7 @@
 					size="sm"
 					class="gap-1.5"
 					onclick={() => (heat = !heat)}
-					title="Tint cells by how confident the OCR was"
+					title="Tint cells by how confident the OCR was when it read them"
 				>
 					<HugeiconsIcon icon={ThermometerIcon} size={14} />
 					Confidence
@@ -104,9 +139,30 @@
 					Export .xlsx
 				</Button>
 			</span>
-		</div>
+		{/if}
+	</div>
 
-		<!-- Grid -->
+	{#if view === 'source'}
+		<div class="min-h-0 flex-1">
+			<SourceView {documentId} {mimeType} {linkedPaths} onopentable={openTable} />
+		</div>
+	{:else if !sheets.length}
+		<div class="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+			<span
+				class="flex size-12 items-center justify-center rounded-xl border bg-card text-muted-foreground"
+			>
+				<HugeiconsIcon icon={FileSpreadsheetIcon} size={22} />
+			</span>
+			<p class="text-sm font-medium">
+				{busy ? 'Building your workbook…' : 'No sheets yet'}
+			</p>
+			<p class="max-w-xs text-sm text-muted-foreground">
+				{busy
+					? 'Sheets appear here the moment Rowbot creates them.'
+					: 'Sheets will appear here once Rowbot reads the document.'}
+			</p>
+		</div>
+	{:else}
 		<div class="min-h-0 flex-1">
 			{#if active}
 				{#key active.id}
