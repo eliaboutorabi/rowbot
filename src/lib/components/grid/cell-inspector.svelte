@@ -70,13 +70,16 @@
 
 	const number = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
 
-	const shape = $derived(
-		range?.kind === 'row'
-			? 'Whole row'
-			: range?.kind === 'column'
-				? 'Whole column'
-				: `${(range?.to.row ?? 0) - (range?.from.row ?? 0) + 1} × ${(range?.to.column ?? 0) - (range?.from.column ?? 0) + 1} block`
-	);
+	const shape = $derived.by(() => {
+		if (!range) return '';
+		const rows = range.to.row - range.from.row + 1;
+		const columns = range.to.column - range.from.column + 1;
+		// Shift-clicking a second gutter number takes a run of lines, so these
+		// are no longer always singular.
+		if (range.kind === 'row') return rows === 1 ? 'Whole row' : `${rows} whole rows`;
+		if (range.kind === 'column') return columns === 1 ? 'Whole column' : `${columns} whole columns`;
+		return `${rows} × ${columns} block`;
+	});
 
 	/** The modifier this reader actually presses. */
 	const copyKey =

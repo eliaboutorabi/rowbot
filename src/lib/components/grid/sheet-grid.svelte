@@ -65,35 +65,39 @@
 					: 'w-8'
 	);
 
+	/**
+	 * Whole-line selections keep their own anchor.
+	 *
+	 * Shift-clicking a second gutter number should take everything between the
+	 * two, the way it does in a spreadsheet — and that span is a run of rows,
+	 * not the rectangle the cell anchor describes. Cleared whenever a plain
+	 * click starts somewhere else.
+	 */
+	let lineAnchor: { kind: 'row' | 'column'; index: number } | null = null;
+
+	function lineRef(kind: 'row' | 'column', a: number, b: number): SheetRef {
+		const lo = Math.min(a, b);
+		const hi = Math.max(a, b);
+		const shape =
+			kind === 'row'
+				? { kind, from: { row: lo, column: -1 }, to: { row: hi, column: -1 } }
+				: { kind, from: { row: -1, column: lo }, to: { row: -1, column: hi } };
+		return { sheet: sheet.name, ...shape, raw: formatRef(sheet.name, shape) };
+	}
+
 	/** Clicking a gutter number or a column letter takes the whole line. */
-	function takeRow(row: number) {
-		range = {
-			sheet: sheet.name,
-			kind: 'row',
-			from: { row, column: -1 },
-			to: { row, column: -1 },
-			raw: formatRef(sheet.name, {
-				kind: 'row',
-				from: { row, column: -1 },
-				to: { row, column: -1 }
-			})
-		};
+	function takeRow(row: number, extend = false) {
+		const from = extend && lineAnchor?.kind === 'row' ? lineAnchor.index : row;
+		if (!extend || lineAnchor?.kind !== 'row') lineAnchor = { kind: 'row', index: row };
+		range = lineRef('row', from, row);
 		selected = { row, column: 0 };
 		anchor = { row, column: 0 };
 	}
 
-	function takeColumn(column: number) {
-		range = {
-			sheet: sheet.name,
-			kind: 'column',
-			from: { row: -1, column },
-			to: { row: -1, column },
-			raw: formatRef(sheet.name, {
-				kind: 'column',
-				from: { row: -1, column },
-				to: { row: -1, column }
-			})
-		};
+	function takeColumn(column: number, extend = false) {
+		const from = extend && lineAnchor?.kind === 'column' ? lineAnchor.index : column;
+		if (!extend || lineAnchor?.kind !== 'column') lineAnchor = { kind: 'column', index: column };
+		range = lineRef('column', from, column);
 		selected = { row: sheet.headerRows, column };
 		anchor = { row: sheet.headerRows, column };
 	}
@@ -268,9 +272,20 @@
 		reveal(to.row, to.column);
 	}
 
-	function pick(row: number, column: number) {
+	/**
+	 * Clicking a cell. With shift held it extends from wherever the selection
+	 * started instead of moving it, which is what shift-click means in every
+	 * spreadsheet and is the same gesture shift-arrow already performed.
+	 */
+	function pick(row: number, column: number, extend = false) {
+		if (extend && anchor) {
+			selected = { row, column };
+			range = spanBetween(anchor, { row, column }, sheet.name);
+			return;
+		}
 		selected = { row, column };
 		anchor = { row, column };
+		lineAnchor = null;
 		range = null;
 	}
 </script>
@@ -332,7 +347,7 @@
 								'flex w-full cursor-pointer items-baseline gap-1.5 px-3 py-1.5 text-[13px] font-medium transition-colors hover:text-foreground',
 								numericColumn(c) ? 'justify-end' : 'justify-start'
 							)}
-							onclick={() => takeColumn(c)}
+							onclick={(event) => takeColumn(c, event.shiftKey)}
 							aria-label="Select column {columnLetter(c)}"
 						>
 							<!--
@@ -381,7 +396,7 @@
 						<button
 							type="button"
 							class="w-full cursor-pointer px-0.5 text-right transition-colors hover:text-foreground"
-							onclick={() => takeRow(r)}
+							onclick={(event) => takeRow(r, event.shiftKey)}
 							aria-label="Select row {r + 1}"
 						>
 							{r + 1}
@@ -430,7 +445,7 @@
 								title={cell.raw && cell.raw !== formatCell(cell, sheet.columns[c]?.fmt)
 									? `Source text: ${cell.raw}`
 									: undefined}
-								onclick={() => pick(r, c)}
+								onclick={(event) => pick(r, c, event.shiftKey)}
 							>
 								{formatCell(cell, sheet.columns[c]?.fmt)}
 								{#if cell.check?.status === 'mismatch'}
