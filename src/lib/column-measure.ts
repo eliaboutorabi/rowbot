@@ -48,10 +48,11 @@ export interface MeasureOptions {
 /**
  * What each column would like, and what it will not go below.
  *
- * A numeric column's minimum is its full width: a truncated word is still
- * readable, a truncated number is a different number, and this is a workbook
- * whose whole promise is that the figures are right. Text columns carry the
- * slack, which is what lets a sheet fit its pane at all.
+ * A numeric column's minimum is the width of its widest *figure*: a truncated
+ * word is still readable, a truncated number is a different number, and this
+ * is a workbook whose whole promise is that the figures are right. Text
+ * columns, and every column's header, carry the slack — which is what lets a
+ * sheet fit its pane at all.
  */
 export function measureColumns(sheet: Sheet, options: MeasureOptions): ColumnDemand[] {
 	const body = context(options.font);
@@ -66,14 +67,16 @@ export function measureColumns(sheet: Sheet, options: MeasureOptions): ColumnDem
 	const rows = sampleRows(sheet.rows.length);
 
 	return sheet.columns.map((column, c) => {
-		const label = column.label ?? columnLetter(c);
-		// The header names the column, and a column whose name you cannot read
-		// is a column you have to go and ask about — so it sets a floor too,
-		// though a generous label is allowed to be clipped rather than to
-		// dominate the sheet.
-		const headerWidth = width(label, true) + PADDING;
-
-		const widths: number[] = [];
+		/*
+		 * Headers and figures are measured apart, because they are allowed
+		 * different things. A header may be clipped — its full text is a hover
+		 * and a click away, and the alternative is a column of two-character
+		 * grades made 140px wide by the word above them, which is most of what
+		 * was pushing this transcript off the side of the screen. A figure may
+		 * not be clipped, so only the figures set a numeric column's floor.
+		 */
+		let headerDemand = width(column.label ?? columnLetter(c), true) + PADDING;
+		const bodyWidths: number[] = [];
 		let numeric = 0;
 		let seen = 0;
 
@@ -82,25 +85,39 @@ export function measureColumns(sheet: Sheet, options: MeasureOptions): ColumnDem
 			if (!cell || cell.covered) continue;
 			const text = formatCell(cell, column.fmt);
 			if (!text) continue;
+
+			if (r < sheet.headerRows) {
+				headerDemand = Math.max(headerDemand, width(text, true) + PADDING);
+				continue;
+			}
+
 			seen++;
 			if (isNumericCell(cell)) numeric++;
-			widths.push(width(text) + PADDING);
+			bodyWidths.push(width(text) + PADDING);
 		}
 
+		const widest = bodyWidths.length ? Math.max(...bodyWidths) : 0;
 		const isNumeric = seen > 0 && numeric / seen >= 0.6;
-		const content = representative(widths);
-		const widest = widths.length ? Math.max(...widths) : 0;
 
 		if (isNumeric) {
-			// No outlier rule here: every figure has to be readable in full, so
-			// the widest one sets the width and the column does not shrink.
-			const needed = Math.max(widest, Math.min(headerWidth, TEXT_CEILING));
-			return { demand: needed, min: needed, max: needed };
+			const floor = Math.max(widest, TEXT_FLOOR);
+			return {
+				// Room for the header when there is room to spare, and the figures
+				// alone when there is not.
+				demand: Math.max(floor, Math.min(headerDemand, TEXT_CEILING)),
+				min: floor,
+				max: Math.max(floor, Math.min(headerDemand, TEXT_CEILING))
+			};
 		}
 
-		const demand = Math.max(content, Math.min(headerWidth, 200), TEXT_FLOOR);
+		const content = representative(bodyWidths);
+		const demand = Math.min(
+			Math.max(content, Math.min(headerDemand, 200), TEXT_FLOOR),
+			TEXT_CEILING
+		);
+
 		return {
-			demand: Math.min(demand, TEXT_CEILING),
+			demand,
 			min: Math.min(TEXT_FLOOR, demand),
 			// Room to grow into a half-empty pane, but not without limit: two
 			// columns should not become two 600px columns because they can.
