@@ -20,6 +20,9 @@
 	 * anything the agent or the user actually said — because that is where the
 	 * reader's attention resets.
 	 */
+	/** Everything after the first plan is a revision, and says so. */
+	const firstPlanId = $derived(run.timeline.find((item) => item.kind === 'plan')?.id);
+
 	const blocks = $derived.by<Block[]>(() => {
 		const out: Block[] = [];
 		for (const item of run.timeline) {
@@ -59,10 +62,12 @@
 			{#if empty}{@render empty()}{/if}
 		{/if}
 
-		<PlanPanel todos={run.todos} />
-
 		{#each blocks as block (block.id)}
-			{#if block.kind === 'tools'}
+			{#if block.kind === 'entry' && block.item.kind === 'plan'}
+				<div in:fly={{ y: 6, duration: 150 }}>
+					<PlanPanel todos={block.item.todos} revised={block.id !== firstPlanId} />
+				</div>
+			{:else if block.kind === 'tools'}
 				<div in:fly={{ y: 6, duration: 150 }}>
 					<ToolGroup calls={block.calls} />
 				</div>

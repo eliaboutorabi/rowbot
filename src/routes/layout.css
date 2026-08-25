@@ -46,6 +46,8 @@
 	--sidebar-accent-foreground: oklch(0.212 0.019 322.12);
 	--sidebar-border: oklch(0.922 0.005 325.62);
 	--sidebar-ring: oklch(0.711 0.019 323.02);
+	--scrollbar-thumb: oklch(0.78 0.012 324 / 0.85);
+	--scrollbar-thumb-hover: oklch(0.66 0.02 324 / 0.95);
 }
 
 .dark {
@@ -80,6 +82,8 @@
 	--sidebar-accent-foreground: oklch(0.985 0 0);
 	--sidebar-border: oklch(1 0 0 / 10%);
 	--sidebar-ring: oklch(0.542 0.034 322.5);
+	--scrollbar-thumb: oklch(0.42 0.02 322 / 0.9);
+	--scrollbar-thumb-hover: oklch(0.55 0.025 322 / 0.95);
 }
 
 @theme inline {
@@ -133,5 +137,66 @@
 	}
 	html {
 		@apply font-sans;
+	}
+}
+
+/*
+ * Scrollbars.
+ *
+ * The platform default is a wide, high-contrast bar that fights every surface
+ * it sits on — worst of all inside the sheet, where it draws a grey column
+ * beside the data. These are thin, tinted from the theme's own neutrals, and
+ * only resolve once the pointer is over the region that scrolls, so a resting
+ * page has no chrome on it at all.
+ *
+ * `scrollbar-gutter: stable` on scrollers that reveal on hover: without it the
+ * content shifts sideways the moment the bar appears.
+ */
+@layer base {
+	* {
+		scrollbar-width: thin;
+		scrollbar-color: transparent transparent;
+	}
+
+	*:hover,
+	*:focus-within {
+		scrollbar-color: var(--scrollbar-thumb) transparent;
+	}
+
+	*::-webkit-scrollbar {
+		width: 10px;
+		height: 10px;
+	}
+
+	*::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	*::-webkit-scrollbar-thumb {
+		background-color: transparent;
+		border-radius: 999px;
+		/* Padding drawn as a transparent border, so the thumb reads as a slim
+		   pill inside a wider hit area rather than a bar wedged to the edge. */
+		border: 3px solid transparent;
+		background-clip: content-box;
+		transition: background-color 150ms ease;
+	}
+
+	*:hover::-webkit-scrollbar-thumb,
+	*:focus-within::-webkit-scrollbar-thumb {
+		background-color: var(--scrollbar-thumb);
+	}
+
+	*::-webkit-scrollbar-thumb:hover {
+		background-color: var(--scrollbar-thumb-hover);
+	}
+
+	*::-webkit-scrollbar-corner {
+		background: transparent;
+	}
+
+	/* A scroller whose content must not jump when the bar resolves. */
+	.scroll-stable {
+		scrollbar-gutter: stable;
 	}
 }

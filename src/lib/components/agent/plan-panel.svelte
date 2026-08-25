@@ -9,7 +9,14 @@
 	import { cn } from '$lib/utils';
 	import type { TodoItem } from '$lib/types/events';
 
-	let { todos }: { todos: TodoItem[] } = $props();
+	let {
+		todos,
+		revised = false
+	}: {
+		todos: TodoItem[];
+		/** True for every plan after the first, so a re-plan reads as a change. */
+		revised?: boolean;
+	} = $props();
 
 	let open = $state(true);
 
@@ -26,7 +33,11 @@
 			aria-expanded={open}
 			onclick={() => (open = !open)}
 		>
-			<span class="text-xs font-medium tracking-wide text-muted-foreground uppercase">Plan</span>
+			<span
+				class="shrink-0 text-[10px] font-semibold tracking-[0.09em] text-muted-foreground uppercase"
+			>
+				{revised ? 'Revised plan' : 'Plan'}
+			</span>
 
 			<span class="flex flex-1 items-center gap-2">
 				<span

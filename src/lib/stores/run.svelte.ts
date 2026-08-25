@@ -14,7 +14,18 @@ export type TimelineItem =
 	| { kind: 'user'; id: string; text: string; at: number }
 	| { kind: 'assistant'; id: string; text: string; at: number }
 	| { kind: 'tool'; id: string; call: ToolCallView }
+	/**
+	 * A plan, in the place the agent made it. Re-planning pushes a new one
+	 * rather than rewriting the last, because changing your mind halfway is an
+	 * event in the conversation, not a silent edit to something at the top.
+	 */
+	| { kind: 'plan'; id: string; todos: TodoItem[]; at: number }
 	| { kind: 'notice'; id: string; text: string; tone: 'error' | 'info'; at: number };
+
+/** Same steps in the same order — a status change, not a new plan. */
+function sameSteps(a: TodoItem[], b: TodoItem[]): boolean {
+	return a.length === b.length && a.every((todo, i) => todo.content === b[i]?.content);
+}
 
 export interface InterruptState {
 	id: string;
@@ -113,7 +124,12 @@ export class RunState {
 	restore(items: TimelineItem[], todos: TodoItem[] = []) {
 		if (this.timeline.length || !items.length) return;
 
-		this.timeline = items;
+		// The checkpoint stores only the final state of the plan, not each
+		// revision, so a restored run shows one plan at the top rather than
+		// inventing a history of re-plans that we cannot actually recover.
+		this.timeline = todos.length
+			? [{ kind: 'plan' as const, id: 'restored-plan', todos, at: 0 }, ...items]
+			: items;
 		this.todos = todos;
 		this.status = 'done';
 
@@ -229,9 +245,25 @@ export class RunState {
 				if (event.delta) this.#appendText(event.delta);
 				break;
 
-			case 'todos':
+			case 'todos': {
 				this.todos = event.items;
+
+				// Marking one step in progress leaves the step list identical, so it
+				// updates the plan already on screen. A different list of steps is a
+				// re-plan and earns its own place in the timeline.
+				const last = this.timeline.findLast((item) => item.kind === 'plan');
+				if (last?.kind === 'plan' && sameSteps(last.todos, event.items)) {
+					last.todos = event.items;
+				} else {
+					this.timeline.push({
+						kind: 'plan',
+						id: nextId(),
+						todos: event.items,
+						at: Date.now()
+					});
+				}
 				break;
+			}
 
 			case 'tool:start': {
 				this.#toolIndex.set(event.id, this.timeline.length);

@@ -10,8 +10,12 @@
 	 * as one object instead of a textarea with a toolbar bolted underneath.
 	 */
 	import { HugeiconsIcon } from '@hugeicons/svelte';
-	import { ArrowUp01Icon, HelpCircleIcon, StopIcon } from '@hugeicons/core-free-icons';
-	import { Button } from '$lib/components/ui/button';
+	import {
+		ArrowRight01Icon,
+		ArrowUp01Icon,
+		HelpCircleIcon,
+		StopIcon
+	} from '@hugeicons/core-free-icons';
 	import ModelPicker from './model-picker.svelte';
 	import { compactNumber } from '$lib/format';
 	import { cn } from '$lib/utils';
@@ -71,55 +75,64 @@
 			defaultChoice?: string;
 		}}
 		<!--
-			The agent has suspended mid-run and the checkpoint is holding
-			everything it has done. This is the moment the whole harness exists
-			for, so it gets a real question with real answers rather than a
-			generic Approve/Reject that cannot express either.
+			The agent has suspended and the checkpoint is holding everything it has
+			done. Each option owns a row: label, then what choosing it does. The
+			first draft put the buttons in one wrap and their consequences in a
+			list underneath, so you had to match them up by reading order.
 		-->
-		<div class="mb-2.5 rounded-2xl border border-primary/40 bg-primary/[0.06] p-3.5">
-			<div class="flex items-start gap-2.5">
+		<div class="mb-2 overflow-hidden rounded-2xl border border-primary/35 bg-primary/[0.05]">
+			<div class="flex items-start gap-2.5 px-3.5 pt-3">
 				<span
 					class="mt-px flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary"
 				>
 					<HugeiconsIcon icon={HelpCircleIcon} size={15} />
 				</span>
 				<div class="min-w-0 flex-1">
-					<p class="text-[11px] font-medium tracking-wide text-primary uppercase">
-						Rowbot paused to ask
+					<p class="text-[10px] font-semibold tracking-[0.09em] text-primary uppercase">
+						Paused for you
 					</p>
-					<p class="mt-1 text-sm leading-relaxed font-medium">{run.interrupt.question}</p>
+					<p class="mt-1 text-sm leading-relaxed font-medium text-balance">
+						{run.interrupt.question}
+					</p>
 					{#if ask.context}
-						<p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">{ask.context}</p>
+						<p class="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{ask.context}</p>
 					{/if}
 				</div>
 			</div>
 
 			{#if ask.options?.length}
-				<div class="mt-3 flex flex-wrap gap-2">
+				<div class="mt-3 divide-y border-t border-primary/15">
 					{#each ask.options as option (option.value)}
-						<Button
-							size="sm"
-							variant={option.value === ask.defaultChoice ? 'default' : 'outline'}
-							title={option.detail}
+						<button
+							type="button"
+							class="flex w-full items-center gap-3 px-3.5 py-2.5 text-left transition-colors hover:bg-primary/8 focus-visible:bg-primary/8 focus-visible:outline-none"
 							onclick={() => onresume(option.value)}
 						>
-							{option.label}
-						</Button>
+							<span class="min-w-0 flex-1">
+								<span class="flex items-center gap-1.5 text-[13px] font-medium">
+									{option.label}
+									{#if option.value === ask.defaultChoice}
+										<span class="text-[10px] font-normal text-muted-foreground">suggested</span>
+									{/if}
+								</span>
+								{#if option.detail}
+									<span class="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+										{option.detail}
+									</span>
+								{/if}
+							</span>
+							<HugeiconsIcon
+								icon={ArrowRight01Icon}
+								size={15}
+								class="shrink-0 text-muted-foreground/40"
+							/>
+						</button>
 					{/each}
 				</div>
-				{#if ask.options.some((option) => option.detail)}
-					<ul class="mt-2 space-y-0.5">
-						{#each ask.options.filter((option) => option.detail) as option (option.value)}
-							<li class="text-xs text-muted-foreground">
-								<span class="font-medium text-foreground/80">{option.label}</span> — {option.detail}
-							</li>
-						{/each}
-					</ul>
-				{/if}
 			{/if}
 
-			<p class="mt-3 text-xs text-muted-foreground">
-				Or type your own answer below — whatever you send next becomes the reply.
+			<p class="border-t border-primary/15 px-3.5 py-2 text-xs text-muted-foreground">
+				Or write your own answer below.
 			</p>
 		</div>
 	{/if}
