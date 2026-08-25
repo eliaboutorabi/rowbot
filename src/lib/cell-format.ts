@@ -34,7 +34,11 @@ const DATE = new Intl.DateTimeFormat('en-CA', {
 
 export function formatCell(cell: Cell, columnFormat?: string): string {
 	if (cell.t === 'blank' || cell.v === null || cell.v === undefined) return '';
-	if (cell.t === 'formula') return `=${cell.f ?? cell.v}`;
+	// A formula cell shows what it evaluates to, the way a spreadsheet does; the
+	// formula itself belongs in the inspector. Only when nothing computed it
+	// does the expression stand in for a value — otherwise it falls through to
+	// the numeric formatting below and looks like the column it sits in.
+	if (cell.t === 'formula' && typeof cell.v !== 'number') return `=${cell.f ?? cell.v}`;
 	if (cell.t === 'boolean') return cell.v ? 'TRUE' : 'FALSE';
 
 	if (cell.t === 'date') {
@@ -75,6 +79,9 @@ export function formatCell(cell: Cell, columnFormat?: string): string {
 }
 
 export function isNumericCell(cell: Cell): boolean {
+	// A formula that produced a number is a number as far as the grid is
+	// concerned: it aligns right and takes tabular figures like its neighbours.
+	if (cell.t === 'formula') return typeof cell.v === 'number';
 	return cell.t === 'number' || cell.t === 'currency' || cell.t === 'percent';
 }
 

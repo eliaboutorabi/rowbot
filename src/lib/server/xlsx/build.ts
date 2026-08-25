@@ -52,7 +52,14 @@ function applyValue(target: ExcelJS.Cell, cell: Cell, columnFormat?: string) {
 			target.value = null;
 			break;
 		case 'formula':
-			target.value = { formula: String(cell.f ?? cell.v ?? '').replace(/^=/, '') };
+			// The cached result matters as much as the formula. Excel recalculates
+			// on open, but Numbers, LibreOffice's preview and anything reading the
+			// file with a library show whatever value is stored — and with none
+			// stored, that is a blank where a total should be.
+			target.value = {
+				formula: String(cell.f ?? cell.v ?? '').replace(/^=/, ''),
+				result: typeof cell.v === 'number' ? cell.v : undefined
+			};
 			break;
 		case 'date': {
 			const d = typeof cell.v === 'string' ? new Date(cell.v) : null;
@@ -192,6 +199,10 @@ export async function buildWorkbook(model: WorkbookModel): Promise<Uint8Array> {
 	wb.lastModifiedBy = 'Rowbot';
 	wb.created = new Date();
 	wb.modified = new Date();
+	// Recalculate everything when the file opens. Cross-sheet formulas are
+	// written with the value Rowbot computed, but a reader who edits a source
+	// figure should see the summary follow it without pressing anything.
+	wb.calcProperties.fullCalcOnLoad = true;
 
 	const taken: string[] = [];
 	if (!model.sheets.length) {

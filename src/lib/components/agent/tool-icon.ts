@@ -45,6 +45,7 @@ const TOOLS: Record<string, ToolMeta> = {
 		done: 'Checked the totals'
 	},
 	ask_user: { icon: HelpCircleIcon, running: 'Waiting on you', done: 'Asked you' },
+	set_formula: { icon: Calculator01Icon, running: 'Writing formulas', done: 'Wrote formulas' },
 	write_todos: { icon: CheckListIcon, running: 'Planning', done: 'Updated the plan' },
 	task: { icon: AiBrain01Icon, running: 'Delegating to a subagent', done: 'Subagent finished' },
 	read_file: { icon: TextIcon, running: 'Reading a file', done: 'Read a file' },
@@ -95,6 +96,12 @@ export function toolDetail(name: string, args: Record<string, unknown> | undefin
 		}
 		case 'ask_user':
 			return str('question');
+		case 'set_formula': {
+			const count = Array.isArray(args.formulas) ? args.formulas.length : 0;
+			const sheet = str('sheet');
+			if (!count) return sheet;
+			return `${count} formula${count === 1 ? '' : 's'}${sheet ? ` on ${sheet}` : ''}`;
+		}
 		case 'task':
 			return str('subagent_type') ?? str('description');
 		case 'read_file':

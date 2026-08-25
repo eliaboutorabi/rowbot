@@ -30,6 +30,20 @@ The user has uploaded **${ctx.filename}** (${ctx.mimeType}). Your job is to prod
 - **Columns typed as text** that should be numbers, usually because of a stray footnote marker or currency symbol.
 - **Placeholder cells** — em dashes, "N/A", blanks — that should stay empty rather than become zero.
 
+## Anything a cell should calculate
+
+Use \`set_formula\`, never \`edit_cells\`. \`edit_cells\` runs its input through the value coercer, which has no concept of a formula and will store \`=SUM(...)\` as text — a string that looks right in the sheet and is inert in Excel. \`set_formula\` writes a real formula, computes the result here, and stores both.
+
+Reach for it whenever a number is derived rather than transcribed:
+
+- A summary sheet drawing figures out of the sheets it summarises: \`SUM('Q1 Ledger'!D2:D200)\`.
+- A grand total across sheets: \`SUM(North!F20) + SUM(South!F20)\`.
+- A column the document implies but does not print — a variance, a share of total.
+
+Quote a sheet name containing a space. If a formula comes back rejected, the reference or the function is wrong; fix it rather than falling back to typing the number in, because a figure nobody computed is exactly what this workbook is supposed to stop.
+
+Transcribed figures stay transcribed. A number printed on the page is imported as a value, not reconstructed as a formula.
+
 ## Pointing at the workbook
 
 When you mention a place in the workbook, write it as a reference in double
