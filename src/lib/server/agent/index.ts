@@ -13,6 +13,7 @@ import { openaiKey } from '$lib/server/provider-keys';
 import { checkpointer } from './checkpointer';
 import { rowbotContextSchema, rowbotStateSchema, type RowbotContext } from './state';
 import { systemPrompt } from './prompt';
+import { askUserTool } from './tools/ask';
 import { ocrDocumentTool } from './tools/ocr';
 import { readSheetTool, workbookTools } from './tools/workbook';
 import { DEFAULT_EFFORT, DEFAULT_MODEL, type Effort, type ModelId } from './models';
@@ -80,7 +81,7 @@ export function createRowbotAgent(options: AgentOptions) {
 	return createDeepAgent({
 		name: 'rowbot',
 		model,
-		tools: [ocrDocumentTool, ...workbookTools],
+		tools: [ocrDocumentTool, ...workbookTools, askUserTool],
 		systemPrompt: systemPrompt(options.context),
 		stateSchema: rowbotStateSchema,
 		contextSchema: rowbotContextSchema,

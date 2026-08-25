@@ -10,7 +10,7 @@
 	 * as one object instead of a textarea with a toolbar bolted underneath.
 	 */
 	import { HugeiconsIcon } from '@hugeicons/svelte';
-	import { ArrowUp01Icon, StopIcon } from '@hugeicons/core-free-icons';
+	import { ArrowUp01Icon, HelpCircleIcon, StopIcon } from '@hugeicons/core-free-icons';
 	import { Button } from '$lib/components/ui/button';
 	import ModelPicker from './model-picker.svelte';
 	import { compactNumber } from '$lib/format';
@@ -45,7 +45,11 @@
 		if (!message || run.busy) return;
 		value = '';
 		queueMicrotask(grow);
-		onsend(message);
+
+		// While a question is outstanding, what you type is the answer to it —
+		// sending it as a fresh turn would strand the suspended run.
+		if (run.interrupt) onresume(message);
+		else onsend(message);
 	}
 
 	const totalTokens = $derived(run.usage.input + run.usage.output);
@@ -61,13 +65,62 @@
 	></div>
 
 	{#if run.interrupt}
-		<div class="mb-2.5 rounded-xl border border-primary/40 bg-primary/[0.07] px-3.5 py-3">
-			<p class="text-sm font-medium">Rowbot needs a decision</p>
-			<p class="mt-1 text-sm text-muted-foreground">{run.interrupt.question}</p>
-			<div class="mt-3 flex gap-2">
-				<Button size="sm" onclick={() => onresume(true)}>Approve</Button>
-				<Button size="sm" variant="outline" onclick={() => onresume(false)}>Reject</Button>
+		{@const ask = (run.interrupt.payload ?? {}) as {
+			context?: string;
+			options?: Array<{ value: string; label: string; detail?: string }>;
+			defaultChoice?: string;
+		}}
+		<!--
+			The agent has suspended mid-run and the checkpoint is holding
+			everything it has done. This is the moment the whole harness exists
+			for, so it gets a real question with real answers rather than a
+			generic Approve/Reject that cannot express either.
+		-->
+		<div class="mb-2.5 rounded-2xl border border-primary/40 bg-primary/[0.06] p-3.5">
+			<div class="flex items-start gap-2.5">
+				<span
+					class="mt-px flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary"
+				>
+					<HugeiconsIcon icon={HelpCircleIcon} size={15} />
+				</span>
+				<div class="min-w-0 flex-1">
+					<p class="text-[11px] font-medium tracking-wide text-primary uppercase">
+						Rowbot paused to ask
+					</p>
+					<p class="mt-1 text-sm leading-relaxed font-medium">{run.interrupt.question}</p>
+					{#if ask.context}
+						<p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">{ask.context}</p>
+					{/if}
+				</div>
 			</div>
+
+			{#if ask.options?.length}
+				<div class="mt-3 flex flex-wrap gap-2">
+					{#each ask.options as option (option.value)}
+						<Button
+							size="sm"
+							variant={option.value === ask.defaultChoice ? 'default' : 'outline'}
+							title={option.detail}
+							onclick={() => onresume(option.value)}
+						>
+							{option.label}
+						</Button>
+					{/each}
+				</div>
+				{#if ask.options.some((option) => option.detail)}
+					<ul class="mt-2 space-y-0.5">
+						{#each ask.options.filter((option) => option.detail) as option (option.value)}
+							<li class="text-xs text-muted-foreground">
+								<span class="font-medium text-foreground/80">{option.label}</span> — {option.detail}
+							</li>
+						{/each}
+					</ul>
+				{/if}
+			{/if}
+
+			<p class="mt-3 text-xs text-muted-foreground">
+				Or type your own answer below — whatever you send next becomes the reply.
+			</p>
 		</div>
 	{/if}
 
@@ -85,7 +138,11 @@
 				}
 			}}
 			rows="1"
-			placeholder={run.busy ? 'Rowbot is working…' : 'Ask Rowbot for a change…'}
+			placeholder={run.interrupt
+				? 'Answer Rowbot…'
+				: run.busy
+					? 'Rowbot is working…'
+					: 'Ask Rowbot for a change…'}
 			aria-label="Message Rowbot"
 			class="max-h-[200px] min-h-[1.5rem] w-full resize-none bg-transparent px-4 pt-3.5 pb-1 text-[0.9375rem] leading-relaxed placeholder:text-muted-foreground focus:outline-none"
 		></textarea>

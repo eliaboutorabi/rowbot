@@ -61,18 +61,39 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	const controller = new AbortController();
 	request.signal.addEventListener('abort', () => controller.abort());
 
+	// A reader that goes away should stop the model call, not leave it running
+	// to completion against a stream nobody is listening to.
+	const onCancel = () => {
+		gone = true;
+		controller.abort();
+	};
+
 	const encoder = new TextEncoder();
 	const result: { current?: StreamRunResult } = {};
 
 	// `start` runs synchronously inside the constructor, so building the stream
 	// inside this scope is what puts the keys in scope for the whole run.
+	/**
+	 * Set once the consumer has gone — a closed tab, a navigation, a reload.
+	 * Without this, every write after the disconnect throws
+	 * `Invalid state: Controller is already closed`, which surfaces from inside
+	 * the catch block and reports a perfectly healthy run as failed.
+	 */
+	let gone = false;
+
 	const stream = withProviderKeys(
 		keys,
 		() =>
 			new ReadableStream<Uint8Array>({
 				async start(streamController) {
 					const send = (event: AgentEvent) => {
-						streamController.enqueue(encoder.encode(encodeEvent(event)));
+						if (gone) return;
+						try {
+							streamController.enqueue(encoder.encode(encodeEvent(event)));
+						} catch {
+							// The reader vanished between the check and the write.
+							gone = true;
+						}
 					};
 
 					await setRunStatus(activeRun.id, 'running');
@@ -121,7 +142,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 							await setRunStatus(activeRun.id, 'done');
 						}
 					} catch (cause) {
-						const aborted = controller.signal.aborted || (cause as Error)?.name === 'AbortError';
+						const aborted =
+							gone || controller.signal.aborted || (cause as Error)?.name === 'AbortError';
 
 						// Whatever the agent finished before the failure is still worth
 						// keeping — this is the difference between a hiccup and lost work.
@@ -146,9 +168,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 							send({ type: 'done', status: 'complete' });
 						}
 					} finally {
-						streamController.close();
+						try {
+							if (!gone) streamController.close();
+						} catch {
+							// Already closed by the disconnect; nothing to do.
+						}
 					}
-				}
+				},
+				cancel: onCancel
 			})
 	);
 
