@@ -22,6 +22,7 @@ import type { OcrTable } from '$lib/server/ocr/mistral';
 import {
 	blankCell,
 	cellRef,
+	columnLetter,
 	normalizeSheet,
 	type Cell,
 	type CellType,
@@ -428,12 +429,34 @@ export const editCellsTool = tool(
 
 export const updateSheetTool = tool(
 	async (
-		{ sheet: sheetName, rename, headerRows, columns: columnPatches, notes, remove },
+		{ sheet: sheetName, rename, headerRows, columns: columnPatches, dropColumns, notes, remove },
 		runtime: ToolRuntime<RowbotState, RowbotContext>
 	) => {
 		const wb = currentWorkbook(runtime.state);
 		const sheet = findSheet(wb, sheetName);
 		if (!sheet) return `No sheet called "${sheetName}". Sheets: ${sheetList(wb)}`;
+
+		if (dropColumns?.length) {
+			const width = sheet.columns.length;
+			const wanted = [...new Set(dropColumns)].filter((c) => c >= 0 && c < width);
+			if (!wanted.length) {
+				return `“${sheet.name}” has ${width} columns, numbered 0 to ${width - 1}.`;
+			}
+			if (wanted.length >= width) {
+				return 'That would remove every column. Use `remove: true` to delete the sheet instead.';
+			}
+
+			const names = wanted
+				.map((c) => sheet.columns[c]?.label || columnLetter(c))
+				.map((label) => `“${label}”`)
+				.join(', ');
+
+			return commit(
+				runtime,
+				[{ op: 'dropColumns', id: sheet.id, columns: wanted }],
+				`Removed ${names} from “${sheet.name}”. It now has ${width - wanted.length} columns.`
+			);
+		}
 
 		if (remove) {
 			emitProgress(runtime)({ kind: 'sheet:removed', name: sheet.name });
@@ -510,7 +533,7 @@ export const updateSheetTool = tool(
 	{
 		name: 'update_sheet',
 		description:
-			'Rename a sheet, change where the header ends, retype or reformat columns, relabel headers, attach reviewer notes, or delete the sheet entirely.',
+			'Rename a sheet, change where the header ends, retype or reformat columns, relabel headers, drop columns the reviewer does not want, attach reviewer notes, or delete the sheet entirely.',
 		schema: z.object({
 			sheet: z.string(),
 			rename: z.string().optional(),
@@ -535,6 +558,16 @@ export const updateSheetTool = tool(
 					})
 				)
 				.optional(),
+			dropColumns: z
+				.array(z.number().int().min(0))
+				.optional()
+				.describe(
+					[
+						'Zero-based indices of columns to delete from this sheet, with the rows',
+						'closing up behind them. This is how a column the reviewer does not want',
+						'is removed — do not rebuild the sheet from its source HTML to do it.'
+					].join(' ')
+				),
 			notes: z.string().optional(),
 			remove: z.boolean().optional().describe('Delete this sheet.')
 		})

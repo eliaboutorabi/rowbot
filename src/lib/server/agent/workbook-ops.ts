@@ -26,6 +26,7 @@ export type WorkbookOp =
 	 * a sheet per page.
 	 */
 	| { op: 'appendRows'; id: string; rows: Cell[][]; sourcePath?: string }
+	| { op: 'dropColumns'; id: string; columns: number[] }
 	| { op: 'removeSheet'; id: string }
 	| { op: 'setMeta'; title?: string; notes?: string; order?: string[] };
 
@@ -109,6 +110,47 @@ export function applyOp(wb: WorkbookModel, op: WorkbookOp): WorkbookModel {
 				});
 			});
 
+		case 'dropColumns':
+			return withSheet(wb, op.id, (sheet) => {
+				const drop = new Set(op.columns.filter((c) => c >= 0 && c < sheet.columns.length));
+				if (!drop.size || drop.size >= sheet.columns.length) return sheet;
+
+				const keep = sheet.columns.map((_, index) => index).filter((index) => !drop.has(index));
+
+				/*
+				 * A horizontal merge that spanned a dropped column has to shrink by
+				 * however many of its columns went, or the sheet is left claiming a
+				 * span wider than the row it sits in — which the grid renders as a
+				 * cell running off the end and Excel refuses to open at all.
+				 */
+				const rows = sheet.rows.map((row) =>
+					keep.map((index) => {
+						const cell = row[index];
+						if (!cell?.merge?.cs || cell.merge.cs <= 1) return cell ?? blankCell();
+
+						const span = cell.merge.cs;
+						let lost = 0;
+						for (let offset = 0; offset < span; offset++) {
+							if (drop.has(index + offset)) lost++;
+						}
+						if (!lost) return cell;
+
+						const cs = span - lost;
+						const merge = cs > 1 || (cell.merge.rs ?? 1) > 1 ? { ...cell.merge, cs } : undefined;
+						return merge ? { ...cell, merge } : { ...cell, merge: undefined };
+					})
+				);
+
+				return normalizeSheet({
+					...sheet,
+					columns: keep.map((index) => sheet.columns[index]),
+					rows,
+					freeze: sheet.freeze
+						? { ...sheet.freeze, cols: Math.min(sheet.freeze.cols, keep.length) }
+						: undefined
+				});
+			});
+
 		case 'removeSheet':
 			return withSheet(wb, op.id, () => null);
 
@@ -167,6 +209,8 @@ export function describeOp(op: WorkbookOp, wb: WorkbookModel): string {
 			return `Corrected ${op.edits.length} cell${op.edits.length === 1 ? '' : 's'} in “${nameOf(op.id)}”`;
 		case 'appendRows':
 			return `Added ${op.rows.length} row${op.rows.length === 1 ? '' : 's'} to “${nameOf(op.id)}”`;
+		case 'dropColumns':
+			return `Removed ${op.columns.length} column${op.columns.length === 1 ? '' : 's'} from “${nameOf(op.id)}”`;
 		case 'removeSheet':
 			return `Removed “${nameOf(op.id)}”`;
 		case 'setMeta':

@@ -104,6 +104,89 @@ describe('workbook operations', () => {
 		expect(applyOps(wb, 'nonsense' as never)).toBe(wb);
 	});
 
+	describe('dropColumns', () => {
+		const wide = (): Sheet => ({
+			id: 'a',
+			name: 'Open Items',
+			headerRows: 1,
+			columns: [{ label: 'Line' }, { label: 'Invoice' }, { label: 'Net' }],
+			rows: [
+				[
+					{ v: 'Line', t: 'text' },
+					{ v: 'Invoice', t: 'text' },
+					{ v: 'Net', t: 'text' }
+				],
+				[
+					{ v: '001', t: 'text' },
+					{ v: 'SI-4201', t: 'text' },
+					{ v: 240, t: 'number' }
+				]
+			]
+		});
+
+		it('removes the column and closes the rows up behind it', () => {
+			const next = applyOps({ title: 'S', sheets: [wide()] }, [
+				{ op: 'dropColumns', id: 'a', columns: [0] }
+			]);
+
+			expect(next.sheets[0].columns.map((c) => c.label)).toEqual(['Invoice', 'Net']);
+			expect(next.sheets[0].rows[1].map((c) => c.v)).toEqual(['SI-4201', 240]);
+		});
+
+		it('shrinks a merge that spanned the column it lost', () => {
+			// A span left claiming more columns than the row has is a cell running
+			// off the end of the grid, and a file Excel will not open.
+			const sheet = wide();
+			sheet.rows[0] = [
+				{ v: 'Heading', t: 'text', merge: { rs: 1, cs: 3 } },
+				{ v: null, t: 'blank', covered: true },
+				{ v: null, t: 'blank', covered: true }
+			];
+
+			const next = applyOps({ title: 'S', sheets: [sheet] }, [
+				{ op: 'dropColumns', id: 'a', columns: [1] }
+			]);
+
+			expect(next.sheets[0].rows[0][0].merge?.cs).toBe(2);
+		});
+
+		it('drops a merge entirely once it covers one cell', () => {
+			const sheet = wide();
+			sheet.rows[0] = [
+				{ v: 'Pair', t: 'text', merge: { rs: 1, cs: 2 } },
+				{ v: null, t: 'blank', covered: true },
+				{ v: 'Net', t: 'text' }
+			];
+
+			const next = applyOps({ title: 'S', sheets: [sheet] }, [
+				{ op: 'dropColumns', id: 'a', columns: [1] }
+			]);
+
+			expect(next.sheets[0].rows[0][0].merge).toBeUndefined();
+		});
+
+		it('refuses to empty the sheet, and ignores indices that are not there', () => {
+			const untouched = applyOps({ title: 'S', sheets: [wide()] }, [
+				{ op: 'dropColumns', id: 'a', columns: [0, 1, 2] }
+			]);
+			expect(untouched.sheets[0].columns).toHaveLength(3);
+
+			const ignored = applyOps({ title: 'S', sheets: [wide()] }, [
+				{ op: 'dropColumns', id: 'a', columns: [9] }
+			]);
+			expect(ignored.sheets[0].columns).toHaveLength(3);
+		});
+
+		it('pulls a frozen column count back inside the sheet', () => {
+			const sheet = { ...wide(), freeze: { rows: 1, cols: 3 } };
+			const next = applyOps({ title: 'S', sheets: [sheet] }, [
+				{ op: 'dropColumns', id: 'a', columns: [0] }
+			]);
+
+			expect(next.sheets[0].freeze?.cols).toBe(2);
+		});
+	});
+
 	describe('appendRows — a table that continues over a page break', () => {
 		const cells = (region: string, value: number) => [
 			{ v: region, t: 'text' as const },
