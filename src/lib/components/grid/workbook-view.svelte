@@ -133,6 +133,17 @@
 	}
 
 	const sheets = $derived(workbook?.sheets ?? []);
+
+	/**
+	 * Notes the agent left on individual sheets.
+	 *
+	 * These were written, exported into the .xlsx as a comment on A1, and shown
+	 * nowhere in the app — so the units a column is in, or the footnote that
+	 * explains a blank, only reached a reviewer who downloaded the file and
+	 * hovered the right cell. They belong next to the workbook's own note.
+	 */
+	const sheetNotes = $derived(sheets.filter((sheet) => sheet.notes?.trim()));
+	const hasNotes = $derived(Boolean(workbook?.notes?.trim()) || sheetNotes.length > 0);
 	const active = $derived(sheets.find((s) => s.id === activeId) ?? sheets[0]);
 
 	// Follow the agent to whatever sheet it just created.
@@ -208,7 +219,7 @@
 
 		{#if view === 'workbook' && sheets.length}
 			<span class="ml-auto flex shrink-0 items-center gap-1.5">
-				{#if workbook?.notes}
+				{#if hasNotes}
 					<Popover.Root>
 						<Popover.Trigger>
 							{#snippet child({ props })}
@@ -218,7 +229,10 @@
 								</Button>
 							{/snippet}
 						</Popover.Trigger>
-						<Popover.Content class="w-96 text-sm leading-relaxed" align="end">
+						<Popover.Content
+							class="scroll-slim max-h-[60vh] w-96 overflow-y-auto text-sm leading-relaxed"
+							align="end"
+						>
 							<p class="font-medium">What Rowbot wants you to check</p>
 							<p class="mt-0.5 mb-2.5 text-xs text-muted-foreground">
 								Written by the agent while it built this workbook — the judgement calls it made and
@@ -228,13 +242,34 @@
 							     works; this listener only catches their click as it bubbles. -->
 							<!-- svelte-ignore a11y_no_static_element_interactions -->
 							<!-- svelte-ignore a11y_click_events_have_key_events -->
-							<div class="text-muted-foreground" onclick={onNoteClick}>
-								<!--
-									Safe by construction: `renderMarkdown` escapes the model's output
-									before generating any markup. See markdown.spec.ts.
-								-->
-								<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-								{@html renderMarkdown(workbook.notes)}
+							<div onclick={onNoteClick}>
+								{#if workbook?.notes?.trim()}
+									<!--
+										Safe by construction: `renderMarkdown` escapes the model's
+										output before generating any markup. See markdown.spec.ts.
+									-->
+									<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+									<div class="text-muted-foreground">{@html renderMarkdown(workbook.notes)}</div>
+								{/if}
+
+								{#each sheetNotes as sheet (sheet.id)}
+									<div class="mt-3 border-t pt-3 first:mt-0 first:border-0 first:pt-0">
+										<button
+											type="button"
+											class="mb-1 block text-xs font-medium text-accent-ink"
+											onclick={() => {
+												activeId = sheet.id;
+												view = 'workbook';
+											}}
+										>
+											{sheet.name}
+										</button>
+										<div class="text-muted-foreground">
+											<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+											{@html renderMarkdown(sheet.notes ?? '')}
+										</div>
+									</div>
+								{/each}
 							</div>
 						</Popover.Content>
 					</Popover.Root>
