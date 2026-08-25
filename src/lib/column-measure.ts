@@ -139,7 +139,13 @@ export function measureColumns(sheet: Sheet, options: MeasureOptions): ColumnDem
 
 		return {
 			demand,
-			min: Math.min(TEXT_FLOOR, demand),
+			// The floor follows the content rather than being a flat number: a
+			// column of two-character grades can go all the way down to what two
+			// characters need, and only a column that would be showing you a
+			// fragment holds out for the full text floor. Across the eleven
+			// narrow columns of a transcript that is the difference between
+			// fitting and not.
+			min: Math.min(Math.max(content, FIGURE_FLOOR), TEXT_FLOOR),
 			// Room to grow into a half-empty pane, but not without limit: two
 			// columns should not become two 600px columns because they can.
 			max: Math.min(Math.max(demand * 1.8, 200), TEXT_CEILING)

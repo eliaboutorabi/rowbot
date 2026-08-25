@@ -86,6 +86,16 @@ describe('measureColumns', () => {
 		expect(column.demand).toBeLessThan(120);
 	});
 
+	it('lets a column of short text shrink to what that text needs', () => {
+		// Eleven columns of two-character grades held a flat 84px floor apiece,
+		// which was 200px of nothing and the reason the sheet still scrolled.
+		const grades = sheet([['Term'], ...Array.from({ length: 20 }, () => ['14'])]);
+
+		const [column] = measureColumns(grades, FONT);
+
+		expect(column.min).toBeLessThan(84);
+	});
+
 	it('sizes a column with no body rows from its header alone', () => {
 		const empty = sheet([['Status'], [null], [null]]);
 
