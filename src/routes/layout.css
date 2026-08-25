@@ -176,6 +176,24 @@
 	html {
 		@apply font-sans;
 	}
+
+	/*
+	 * A keyboard focus ring for everything, by default.
+	 *
+	 * The shadcn primitives style their own focus and the hand-written controls
+	 * around them — the plan header, a tool row, a sheet tab, a page thumbnail,
+	 * the reference chips — had none at all, so tabbing through the workspace
+	 * went dark for most of a screen. Opting in per component is a rule you
+	 * have to remember every time; a base rule is one you cannot forget.
+	 *
+	 * Components that draw their own ring set `outline-none`, which is a
+	 * utility and so wins over this. No double ring, and no component has to
+	 * know this rule exists.
+	 */
+	:focus-visible {
+		outline: 2px solid var(--ring);
+		outline-offset: 2px;
+	}
 }
 
 /*
