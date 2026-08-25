@@ -12,6 +12,7 @@
 		sheet,
 		heat = false,
 		onedit,
+		locked,
 		selected = $bindable(),
 		range = $bindable(null)
 	}: {
@@ -24,6 +25,12 @@
 		 * save.
 		 */
 		onedit?: (edit: { row: number; column: number; value: string }) => Promise<void> | void;
+		/**
+		 * Why editing is unavailable at this moment, if it is. Editing while the
+		 * agent is mid-run would race its writes, and a silent refusal reads as a
+		 * broken double-click — so the reason is shown rather than swallowed.
+		 */
+		locked?: string;
 		selected: { row: number; column: number } | null;
 		/**
 		 * A highlighted region — a whole row or column you clicked, or the place
@@ -251,6 +258,15 @@
 			return;
 		}
 
+		// Enter and F2 open the cell under the cursor. Both are deliberate — the
+		// thing not offered is typing over a selection, which would make a stray
+		// keystroke destructive in a grid whose point is that you can trust it.
+		if ((event.key === 'Enter' || event.key === 'F2') && selected && !editing) {
+			event.preventDefault();
+			beginEdit(selected.row, selected.column);
+			return;
+		}
+
 		if (event.key === 'Escape') {
 			event.preventDefault();
 			range = null;
@@ -294,6 +310,10 @@
 
 	function beginEdit(row: number, column: number) {
 		if (!onedit || saving) return;
+		if (locked) {
+			toast.info(locked);
+			return;
+		}
 		const cell = sheet.rows[row]?.[column];
 		if (!cell || cell.covered) return;
 		// The formula, if there is one — editing a computed cell should show you

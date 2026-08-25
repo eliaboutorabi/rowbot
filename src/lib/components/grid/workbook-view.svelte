@@ -467,6 +467,9 @@
 								sheet={active}
 								{heat}
 								onedit={saveCell}
+								locked={busy
+									? 'Rowbot is still working — wait for it to finish before editing.'
+									: undefined}
 								bind:selected
 								bind:range
 							/>
