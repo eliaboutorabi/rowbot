@@ -133,6 +133,9 @@
 				<HugeiconsIcon icon={Alert01Icon} size={13} class="mt-0.5 shrink-0" />
 				<span class="min-w-0">
 					{cell.check.message}
+					<span class="text-destructive/80">
+						This cell keeps what the document printed; nothing has been changed for you.
+					</span>
 					{#if sheet.source?.tablePath && onshowsource}
 						<button type="button" class="ml-1 underline underline-offset-2" onclick={onshowsource}>
 							Check the page

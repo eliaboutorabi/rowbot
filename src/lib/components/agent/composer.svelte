@@ -22,6 +22,7 @@
 	import { cn } from '$lib/utils';
 	import type { RunState } from '$lib/stores/run.svelte';
 	import { refLabel, type SheetRef } from '$lib/sheet-ref';
+	import { renderInline } from '$lib/markdown';
 
 	let {
 		run,
@@ -105,11 +106,21 @@
 					<p class="text-[10px] font-semibold tracking-[0.09em] text-primary uppercase">
 						Paused for you
 					</p>
+					<!--
+						Rendered rather than printed. The agent writes [[Sheet!D6]] here
+						exactly as it does in its prose, and a question about a cell is
+						precisely when you want to click through and look at it — this was
+						showing the raw brackets.
+					-->
 					<p class="mt-1 text-sm leading-relaxed font-medium text-balance">
-						{run.interrupt.question}
+						<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+						{@html renderInline(run.interrupt.question)}
 					</p>
 					{#if ask.context}
-						<p class="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">{ask.context}</p>
+						<div class="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+							<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+							{@html renderInline(ask.context)}
+						</div>
 					{/if}
 				</div>
 			</div>
@@ -131,7 +142,8 @@
 								</span>
 								{#if option.detail}
 									<span class="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
-										{option.detail}
+										<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+										{@html renderInline(option.detail)}
 									</span>
 								{/if}
 							</span>

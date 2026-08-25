@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderMarkdown } from './markdown';
+import { renderInline, renderMarkdown } from './markdown';
 
 describe('renderMarkdown', () => {
 	it('renders the subset the agent actually writes', () => {
@@ -67,5 +67,19 @@ describe('workbook references', () => {
 	it('still escapes hostile input inside a reference', () => {
 		const html = renderMarkdown('[[<img src=x onerror=alert(1)>!A1]]');
 		expect(html).not.toContain('<img');
+	});
+});
+
+describe('renderInline', () => {
+	it('renders references without wrapping in a block element', () => {
+		// Used inside an existing <p>; a nested <p> is invalid and brings margins
+		// that fight the surrounding layout.
+		const html = renderInline('See [[Revenue!D6]] for the total.');
+		expect(html).toContain('data-ref="Revenue!D6"');
+		expect(html).not.toContain('<p');
+	});
+
+	it('escapes hostile input the same way the block renderer does', () => {
+		expect(renderInline('<script>alert(1)</script>')).not.toContain('<script');
 	});
 });

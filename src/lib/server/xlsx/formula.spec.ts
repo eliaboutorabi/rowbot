@@ -30,7 +30,7 @@ function workbook(): WorkbookModel {
 							check: {
 								status: 'mismatch',
 								message: 'The page printed 3000, but B2:B4 adds up to 3000.',
-								printed: 3000
+								computed: 3000
 							}
 						}
 					]

@@ -48,6 +48,12 @@ const point = z.object({
 
 const schema = z.object({
 	sheet: z.string().describe('Sheet name.'),
+	onMismatch: z
+		.enum(['keep-printed', 'use-computed'])
+		.optional()
+		.describe(
+			"What to do when a total does not reconcile. Defaults to keep-printed: the cell keeps the document's figure and carries a flag for the reviewer. Pass use-computed only once the reviewer has explicitly said to trust the arithmetic over the page."
+		),
 	totals: z
 		.array(
 			z.object({
@@ -62,7 +68,10 @@ const schema = z.object({
 });
 
 export const checkTotalsTool = tool(
-	async ({ sheet: sheetName, totals }, runtime: ToolRuntime<RowbotState, RowbotContext>) => {
+	async (
+		{ sheet: sheetName, totals, onMismatch = 'keep-printed' },
+		runtime: ToolRuntime<RowbotState, RowbotContext>
+	) => {
 		const wanted = sheetName.trim().toLowerCase();
 		const sheet = currentWorkbook(runtime.state).sheets.find(
 			(candidate) => candidate.name.toLowerCase() === wanted || candidate.id === sheetName
@@ -112,32 +121,50 @@ export const checkTotalsTool = tool(
 				target.fmt ??
 				sheet.rows.find((row, index) => index !== at.row && row[at.column]?.fmt)?.[at.column]?.fmt;
 
-			const next: Cell = {
+			const base: Cell = {
 				...target,
-				v: sum,
 				t: target.t === 'blank' || target.t === 'text' ? 'number' : target.t,
-				fmt: columnFormat,
-				f: `SUM(${range})`
+				fmt: columnFormat
 			};
 
+			let next: Cell;
+
 			if (printed === null) {
+				// Nothing to contradict, so the formula simply fills the gap.
+				next = { ...base, v: sum, f: `SUM(${range})` };
 				next.check = {
 					status: 'ok',
 					message: `Computed as SUM(${range}); the page left it blank.`
 				};
 				verified.push(`${ref} filled in from ${range} (${sum})`);
 			} else if (agrees(sum, printed)) {
+				next = { ...base, v: sum, f: `SUM(${range})` };
 				next.check = { status: 'ok', message: `Matches SUM(${range}).` };
 				verified.push(`${ref} ✓ ${sum}`);
+			} else if (onMismatch === 'use-computed') {
+				// Only on an explicit instruction: the reviewer has decided the
+				// arithmetic beats the page.
+				next = { ...base, v: sum, f: `SUM(${range})`, raw: target.raw ?? String(printed) };
+				next.check = {
+					status: 'ok',
+					message: `The page printed ${printed}; replaced with SUM(${range}) = ${sum} at the reviewer's request.`
+				};
+				mismatched.push(`${ref} — replaced ${printed} with ${sum}`);
 			} else {
+				/*
+				 * The default, and the case that matters. The cell keeps the number
+				 * the document printed: Rowbot does not overwrite a document's own
+				 * figure on its own authority, and a workbook that silently
+				 * disagrees with its source is worse than one that flags the
+				 * disagreement. No formula either — a SUM here would render a value
+				 * contradicting the flag sitting on the same cell.
+				 */
+				next = { ...base, v: printed, raw: target.raw ?? String(printed) };
 				next.check = {
 					status: 'mismatch',
 					message: `The page printed ${printed}, but ${range} adds up to ${sum}.`,
-					printed
+					computed: sum
 				};
-				// Keep the arithmetic as the value and the formula behind it; the
-				// printed figure is preserved in `check.printed` and in `raw`.
-				next.raw = target.raw ?? String(printed);
 				mismatched.push(`${ref} — page says ${printed}, ${range} sums to ${sum}`);
 			}
 
@@ -162,7 +189,7 @@ export const checkTotalsTool = tool(
 				? `\nReconciled (${verified.length}):\n${verified.map((l) => `- ${l}`).join('\n')}`
 				: '',
 			mismatched.length
-				? `\nDID NOT RECONCILE (${mismatched.length}):\n${mismatched.map((l) => `- ${l}`).join('\n')}\n\nThese are flagged in the sheet for the reviewer. Do not silently overwrite the page's figure — if you can see which cell was misread, correct that cell instead and check again.`
+				? `\nDID NOT RECONCILE (${mismatched.length}):\n${mismatched.map((l) => `- ${l}`).join('\n')}\n\nEach keeps the figure the page printed and carries a flag. If you can see which cell was misread, correct it and run this again — the flag clears once the arithmetic agrees. If the page's own total is simply wrong and the reviewer has said to trust the arithmetic, run this again with onMismatch "use-computed".`
 				: '',
 			skipped.length ? `\nSkipped:\n${skipped.map((l) => `- ${l}`).join('\n')}` : ''
 		];

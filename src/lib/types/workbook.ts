@@ -38,8 +38,13 @@ export interface Cell {
 	check?: {
 		status: 'ok' | 'mismatch';
 		message: string;
-		/** What the page printed, when it disagrees with the arithmetic. */
-		printed?: number;
+		/**
+		 * What the range actually adds up to, when that disagrees with the cell.
+		 * The cell keeps the figure the page printed — Rowbot does not overwrite
+		 * a document's own number on its own authority — so this is the other
+		 * side of the discrepancy, for the reviewer to judge.
+		 */
+		computed?: number;
 	};
 }
 

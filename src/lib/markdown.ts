@@ -136,3 +136,13 @@ export function renderMarkdown(source: string): string {
 		})
 		.join('');
 }
+
+/**
+ * Inline-only rendering, for places that already have their own block element
+ * — an interrupt's question, an option's consequence. `renderMarkdown` wraps
+ * everything in `<p>`, which nests badly inside a `<p>` and brings margins
+ * that fight the surrounding layout.
+ */
+export function renderInline(source: string): string {
+	return inline(escapeHtml(source));
+}
