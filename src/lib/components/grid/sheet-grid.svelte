@@ -483,8 +483,17 @@
 	}
 </script>
 
+<!--
+	The direction belongs on the scroll container, not only on the table.
+	A right-to-left table inside a left-to-right scroller lays its first
+	column out at its far right — which is the far end of the scrollable
+	content, so the sheet opened showing its *last* columns and column A was
+	off-screen. Making the scroller itself right-to-left puts its start edge
+	on the right, where the reader already is.
+-->
 <div
 	bind:this={scroller}
+	dir={rtl ? 'rtl' : 'ltr'}
 	class="scroll-slim h-full overflow-auto"
 	role="grid"
 	tabindex="0"
@@ -507,12 +516,12 @@
 		entire purpose is to avoid measuring what is offscreen — and makes the
 		columns jump as data streams in.
 	-->
-	<!-- The sheet's own direction, so a Persian table's first column is its
-	     rightmost one, as it is on the page. Logical properties below (`start`,
-	     `border-e`) then put the frozen row gutter and every vertical rule on
-	     the correct side without a second set of rules. -->
+	<!-- Direction is inherited from the scroller above, so a Persian table's
+	     first column is its rightmost one, as it is on the page. Logical
+	     properties below (`start`, `border-e`) then put the frozen row gutter
+	     and every vertical rule on the correct side without a second set of
+	     rules. -->
 	<table
-		dir={rtl ? 'rtl' : 'ltr'}
 		class="w-full table-fixed border-separate border-spacing-0 text-[13px] leading-5"
 		style:min-width="{tableWidth}px"
 	>
