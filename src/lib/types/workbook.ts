@@ -66,6 +66,12 @@ export interface Sheet {
 	headerRows: number;
 	freeze?: { rows: number; cols: number };
 	source?: SheetSource;
+	/**
+	 * Extra OCR table paths appended into this sheet, when one table continued
+	 * across page breaks. `source` stays the first page; this is the rest, in
+	 * order, so provenance survives stitching.
+	 */
+	continuedFrom?: string[];
 	/** Agent commentary about how this sheet was derived. */
 	notes?: string;
 }

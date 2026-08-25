@@ -8,6 +8,7 @@
  * calls compose, and the op log doubles as the revision history the UI shows.
  */
 import {
+	blankCell,
 	normalizeSheet,
 	safeSheetName,
 	type Cell,
@@ -19,6 +20,12 @@ export type WorkbookOp =
 	| { op: 'addSheet'; sheet: Sheet }
 	| { op: 'updateSheet'; id: string; patch: Partial<Omit<Sheet, 'id'>> }
 	| { op: 'editCells'; id: string; edits: Array<{ row: number; column: number; cell: Cell }> }
+	/**
+	 * Extends a sheet with more data rows. A table that continues over a page
+	 * break is one table, and this is what lets it land as one sheet instead of
+	 * a sheet per page.
+	 */
+	| { op: 'appendRows'; id: string; rows: Cell[][]; sourcePath?: string }
 	| { op: 'removeSheet'; id: string }
 	| { op: 'setMeta'; title?: string; notes?: string; order?: string[] };
 
@@ -77,6 +84,26 @@ export function applyOp(wb: WorkbookModel, op: WorkbookOp): WorkbookModel {
 				return normalizeSheet({ ...sheet, rows });
 			});
 
+		case 'appendRows':
+			return withSheet(wb, op.id, (sheet) => {
+				if (!op.rows.length) return sheet;
+				// A continuation page can carry a stray extra column; padding here
+				// keeps the sheet rectangular, which the grid and exporter assume.
+				const width = Math.max(sheet.columns.length, ...op.rows.map((row) => row.length));
+				const pad = (row: Cell[]) =>
+					row.length >= width
+						? row.slice(0, width)
+						: [...row, ...Array.from({ length: width - row.length }, () => blankCell())];
+
+				return normalizeSheet({
+					...sheet,
+					rows: [...sheet.rows.map(pad), ...op.rows.map(pad)],
+					continuedFrom: op.sourcePath
+						? [...(sheet.continuedFrom ?? []), op.sourcePath]
+						: sheet.continuedFrom
+				});
+			});
+
 		case 'removeSheet':
 			return withSheet(wb, op.id, () => null);
 
@@ -133,6 +160,8 @@ export function describeOp(op: WorkbookOp, wb: WorkbookModel): string {
 			return op.patch.name ? `Renamed to “${op.patch.name}”` : `Updated “${nameOf(op.id)}”`;
 		case 'editCells':
 			return `Corrected ${op.edits.length} cell${op.edits.length === 1 ? '' : 's'} in “${nameOf(op.id)}”`;
+		case 'appendRows':
+			return `Added ${op.rows.length} row${op.rows.length === 1 ? '' : 's'} to “${nameOf(op.id)}”`;
 		case 'removeSheet':
 			return `Removed “${nameOf(op.id)}”`;
 		case 'setMeta':

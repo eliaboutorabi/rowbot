@@ -128,7 +128,7 @@ function commit(runtime: { toolCallId: string }, ops: WorkbookOp[], content: str
 
 export const importTableTool = tool(
 	async (
-		{ path, name, headerRows, dropRows, notes },
+		{ path, name, appendTo, headerRows, dropRows, notes },
 		runtime: ToolRuntime<RowbotState, RowbotContext>
 	) => {
 		const html = readFile(runtime.state, path);
@@ -151,6 +151,46 @@ export const importTableTool = tool(
 
 		const labels = headerLabels(rows, resolvedHeaderRows, parsed.width);
 		const pageMatch = /page-(\d+)-/.exec(path);
+
+		// ── Continuation of a table already imported ──────────────────────
+		if (appendTo) {
+			const wanted = appendTo.trim().toLowerCase();
+			const target = currentWorkbook(runtime.state).sheets.find(
+				(candidate) => candidate.name.toLowerCase() === wanted || candidate.id === appendTo
+			);
+
+			if (!target) {
+				return `No sheet called “${appendTo}”. Import this table on its own, or check the name with \`read_sheet\`.`;
+			}
+
+			// The repeated header at the top of a continuation page is noise once
+			// the rows join the sheet that already has one.
+			const body = rows.slice(resolvedHeaderRows);
+			if (!body.length) return `${path} had no data rows beneath its header.`;
+
+			if (body[0].length !== target.columns.length) {
+				return (
+					`${path} has ${body[0].length} columns but “${target.name}” has ${target.columns.length}. ` +
+					'Import it as its own sheet, or set `headerRows` so the shapes line up.'
+				);
+			}
+
+			emitProgress(runtime)({
+				kind: 'sheet:written',
+				name: target.name,
+				rows: target.rows.length + body.length,
+				columns: target.columns.length
+			});
+
+			return commit(
+				runtime,
+				[{ op: 'appendRows', id: target.id, rows: body, sourcePath: path }],
+				[
+					`Appended ${body.length} row${body.length === 1 ? '' : 's'} from ${path} to “${target.name}”.`,
+					`That sheet now has ${target.rows.length + body.length - target.headerRows} data rows.`
+				].join('\n')
+			);
+		}
 
 		const sheet = normalizeSheet({
 			id: crypto.randomUUID(),
@@ -183,10 +223,16 @@ export const importTableTool = tool(
 	{
 		name: 'import_table',
 		description:
-			'Turn one OCR table file (from /source/tables/) into a new sheet. Merged cells, thousands separators, percentages, currencies and accounting negatives are all handled for you.',
+			'Turn one OCR table file (from /source/tables/) into a sheet. Merged cells, thousands separators, percentages, currencies and accounting negatives are all handled for you. When a table continues onto later pages, import the first page normally and pass `appendTo` for each continuation so the whole thing lands as one sheet.',
 		schema: z.object({
 			path: z.string().describe('Path to the table HTML, e.g. /source/tables/page-1-tbl-0.html'),
 			name: z.string().describe('Sheet name. Short and descriptive; 31 characters max.'),
+			appendTo: z
+				.string()
+				.optional()
+				.describe(
+					'Name of an existing sheet this table continues. Its repeated header rows are dropped and the data rows are appended. Use this for a table that runs across a page break instead of creating a second sheet.'
+				),
 			headerRows: z
 				.number()
 				.int()

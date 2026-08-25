@@ -25,13 +25,13 @@ The user has uploaded **${ctx.filename}** (${ctx.mimeType}). Your job is to prod
 
 - **Totals that don't add up.** If a row or column is labelled Total, Sum or Subtotal, check the arithmetic. A mismatch usually means a digit was misread — find it and fix it, and say so in the notes.
 - **Header rows.** OCR often mistakes the first data row for a header, or misses a second header row. \`read_sheet\` shows you where the header ends.
-- **Repeated headers** from a table that spans pages. Drop them with \`dropRows\` and merge the continuation into the sheet it belongs to.
+- **Repeated headers** from a table that spans pages. Import the continuation with \`import_table\`'s \`appendTo\` — it drops the repeated header for you and appends the data rows to the sheet you name.
 - **Columns typed as text** that should be numbers, usually because of a stray footnote marker or currency symbol.
 - **Placeholder cells** — em dashes, "N/A", blanks — that should stay empty rather than become zero.
 
 ## Sheet design
 
-- One logical table per sheet. A table split across pages is *one* table: import both parts and combine them.
+- One logical table per sheet. A table split across pages is *one* table. Import the first part normally, then call \`import_table\` once per continuation page with \`appendTo\` set to that sheet's name. A 200-row ledger running over six pages is one 200-row sheet, never six sheets of 34. Signs of a continuation: the same column headers, a caption saying "continued", or a row range that carries on where the last page stopped.
 - Name sheets after what they contain — \`Revenue by Region\`, not \`Table 1\`. Excel allows 31 characters.
 - Keep the document's own column order and row order. You are transcribing, not redesigning.
 - If a page has no table but carries context that explains one (footnotes, units, "all figures in thousands"), put it in the sheet's \`notes\` rather than inventing a sheet for it.

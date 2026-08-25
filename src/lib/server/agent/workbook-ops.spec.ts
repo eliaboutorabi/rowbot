@@ -104,6 +104,81 @@ describe('workbook operations', () => {
 		expect(applyOps(wb, 'nonsense' as never)).toBe(wb);
 	});
 
+	describe('appendRows — a table that continues over a page break', () => {
+		const cells = (region: string, value: number) => [
+			{ v: region, t: 'text' as const },
+			{ v: value, t: 'number' as const }
+		];
+
+		it('extends the sheet instead of creating a second one', () => {
+			const wb = { title: 'Ledger', sheets: [sheet('a', 'Ledger')] };
+			const next = applyOps(wb, [
+				{ op: 'appendRows', id: 'a', rows: [cells('APAC', 200), cells('LATAM', 300)] }
+			]);
+
+			expect(next.sheets).toHaveLength(1);
+			expect(next.sheets[0].rows).toHaveLength(4);
+			// Header, then the original row, then the continuation, in order.
+			expect(next.sheets[0].rows.map((row) => row[0].v)).toEqual([
+				'Region',
+				'EMEA',
+				'APAC',
+				'LATAM'
+			]);
+			expect(next.sheets[0].headerRows).toBe(1);
+		});
+
+		it('records where each continuation came from', () => {
+			const wb = { title: 'Ledger', sheets: [sheet('a', 'Ledger')] };
+			const next = applyOps(wb, [
+				{
+					op: 'appendRows',
+					id: 'a',
+					rows: [cells('APAC', 200)],
+					sourcePath: '/source/tables/page-3-tbl-1.html'
+				},
+				{
+					op: 'appendRows',
+					id: 'a',
+					rows: [cells('LATAM', 300)],
+					sourcePath: '/source/tables/page-4-tbl-2.html'
+				}
+			]);
+
+			expect(next.sheets[0].continuedFrom).toEqual([
+				'/source/tables/page-3-tbl-1.html',
+				'/source/tables/page-4-tbl-2.html'
+			]);
+		});
+
+		it('keeps the sheet rectangular when a continuation page is short a column', () => {
+			// OCR drops a trailing empty column often enough that a ragged append
+			// would otherwise corrupt every row index after it.
+			const wb = { title: 'Ledger', sheets: [sheet('a', 'Ledger')] };
+			const next = applyOps(wb, [{ op: 'appendRows', id: 'a', rows: [[{ v: 'MEA', t: 'text' }]] }]);
+
+			expect(next.sheets[0].rows.at(-1)).toHaveLength(2);
+			expect(next.sheets[0].rows.at(-1)![1].v).toBeNull();
+		});
+
+		it('is a no-op against an unknown sheet, and for no rows', () => {
+			const wb = { title: 'Ledger', sheets: [sheet('a', 'Ledger')] };
+			expect(applyOps(wb, [{ op: 'appendRows', id: 'missing', rows: [cells('X', 1)] }])).toEqual(
+				wb
+			);
+			expect(applyOps(wb, [{ op: 'appendRows', id: 'a', rows: [] }]).sheets[0].rows).toHaveLength(
+				2
+			);
+		});
+
+		it('describes itself for the revision rail', () => {
+			const wb = { title: 'x', sheets: [sheet('a', 'Ledger')] };
+			expect(
+				describeOp({ op: 'appendRows', id: 'a', rows: [cells('X', 1), cells('Y', 2)] }, wb)
+			).toBe('Added 2 rows to “Ledger”');
+		});
+	});
+
 	it('describes each op for the revision rail', () => {
 		const wb = { title: 'x', sheets: [sheet('a', 'Revenue')] };
 		const ops: WorkbookOp[] = [
