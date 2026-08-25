@@ -19,6 +19,17 @@ const PADDING = 30;
 /** Narrow enough to still be clickable and to show two or three characters. */
 const TEXT_FLOOR = 84;
 
+/**
+ * The floor for a column of figures.
+ *
+ * Lower than the text floor on purpose. A text column squeezed to its floor is
+ * showing you a fragment, so it wants enough room to be worth reading; a
+ * numeric column squeezed to its floor is showing you the whole number, and
+ * anything past that is space taken from the columns that could use it. On a
+ * transcript of two-digit grades the difference is eleven columns' worth.
+ */
+const FIGURE_FLOOR = 52;
+
 /** Past this a column is a wall of prose, and the inspector is the better place for it. */
 const TEXT_CEILING = 360;
 
@@ -110,7 +121,7 @@ export function measureColumns(sheet: Sheet, options: MeasureOptions): ColumnDem
 			// 550px so a label fits is how one stray row takes half the pane.
 			// The label clips; every number stays whole.
 			const widest = figureWidths.length ? Math.max(...figureWidths) : 0;
-			const floor = Math.max(widest, TEXT_FLOOR);
+			const floor = Math.max(widest, FIGURE_FLOOR);
 			return {
 				// Room for the header when there is room to spare, and the figures
 				// alone when there is not.

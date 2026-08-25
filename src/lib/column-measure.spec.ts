@@ -34,7 +34,7 @@ describe('measureColumns', () => {
 		const [column] = measureColumns(grades, FONT);
 
 		expect(column.demand).toBeGreaterThan(column.min);
-		expect(column.min).toBeLessThan(120);
+		expect(column.min).toBeLessThan(90);
 	});
 
 	it('keeps a numeric column wide enough for its widest figure', () => {
@@ -82,7 +82,7 @@ describe('measureColumns', () => {
 
 		const [column] = measureColumns(sheet(rows), FONT);
 
-		expect(column.min).toBeLessThan(120);
+		expect(column.min).toBeLessThan(90);
 		expect(column.demand).toBeLessThan(120);
 	});
 
