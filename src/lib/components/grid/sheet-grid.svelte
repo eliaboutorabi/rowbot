@@ -207,19 +207,25 @@
 						<button
 							type="button"
 							class={cn(
-								'flex w-full cursor-pointer items-baseline gap-1.5 px-3 py-1.5 text-[13px] font-semibold transition-colors hover:text-foreground',
+								'flex w-full cursor-pointer items-baseline gap-1.5 px-3 py-1.5 text-[13px] font-medium transition-colors hover:text-foreground',
 								numericColumn(c) ? 'justify-end' : 'justify-start'
 							)}
 							onclick={() => takeColumn(c)}
 							aria-label="Select column {columnLetter(c)}"
 						>
-							{#if column.label}
+							<!--
+								When the sheet has its own header row the labels are already
+								on screen a few pixels below, so the strip stays an address
+								bar and shows only the letter. A sheet with no header row has
+								nowhere else to show them, and there the label leads.
+							-->
+							{#if column.label && sheet.headerRows === 0}
 								<span class="truncate text-foreground/90">{column.label}</span>
 								<span class="shrink-0 text-[10px] font-normal text-muted-foreground/50">
 									{columnLetter(c)}
 								</span>
 							{:else}
-								<span class="text-muted-foreground/70">{columnLetter(c)}</span>
+								<span class="text-muted-foreground/60">{columnLetter(c)}</span>
 							{/if}
 						</button>
 					</th>
@@ -266,10 +272,11 @@
 								rowspan={cell.merge?.rs ?? 1}
 								colspan={cell.merge?.cs ?? 1}
 								class={cn(
-									// Horizontal rules only. Alignment and padding separate the
-									// columns; a full lattice is what makes a grid look like a
-									// spreadsheet from 1997.
-									'truncate border-b border-[var(--grid-line)] px-3 py-1.5 align-middle transition-colors',
+									// The vertical rule is roughly half the weight of the
+									// horizontal. A lattice of equal lines is what makes a grid
+									// look like a spreadsheet from 1997; dropping the verticals
+									// entirely loses column separation that a wide sheet needs.
+									'truncate border-r border-b border-r-[var(--grid-line-vertical)] border-b-[var(--grid-line)] px-3 py-1.5 align-middle transition-colors',
 									isHeader
 										? 'sticky z-15 bg-[var(--grid-header-bg)] font-semibold text-foreground'
 										: 'bg-background group-hover:bg-[var(--grid-row-hover)]',
@@ -291,6 +298,7 @@
 								)}
 								style:top={isHeader ? `${stickyTops[r] ?? 0}px` : undefined}
 								style:border-bottom-width="var(--grid-hairline)"
+								style:border-right-width="var(--grid-hairline)"
 								title={cell.raw && cell.raw !== formatCell(cell, sheet.columns[c]?.fmt)
 									? `Source text: ${cell.raw}`
 									: undefined}

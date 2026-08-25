@@ -260,7 +260,11 @@
 		--grid-hairline: 1px;
 		--grid-line: oklch(0.145 0.008 326 / 0.1);
 		--grid-line-strong: oklch(0.145 0.008 326 / 0.17);
-		--grid-header-bg: oklch(0.145 0.008 326 / 0.022);
+		/* Opaque, not alpha: these cells are sticky and rows scroll beneath
+		   them. Barely off the page white, which is how Airtable and Linear
+		   separate a header — by a darker rule under it, not by a grey bar. */
+		--grid-header-bg: oklch(0.982 0.002 326);
+		--grid-line-vertical: oklch(0.145 0.008 326 / 0.055);
 		--grid-row-hover: oklch(0.525 0.168 3.958 / 0.05);
 		--grid-range: oklch(0.525 0.168 3.958 / 0.11);
 	}
@@ -268,7 +272,8 @@
 	.dark {
 		--grid-line: oklch(1 0 0 / 0.09);
 		--grid-line-strong: oklch(1 0 0 / 0.15);
-		--grid-header-bg: oklch(1 0 0 / 0.03);
+		--grid-header-bg: oklch(0.178 0.011 324);
+		--grid-line-vertical: oklch(1 0 0 / 0.05);
 		--grid-row-hover: oklch(0.656 0.181 354.308 / 0.07);
 		--grid-range: oklch(0.656 0.181 354.308 / 0.15);
 	}
