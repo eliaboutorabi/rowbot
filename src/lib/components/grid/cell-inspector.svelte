@@ -13,6 +13,7 @@
 	import { TYPE_LABEL, formatCell } from '$lib/cell-format';
 	import { cn } from '$lib/utils';
 	import { contains, refLabel, type SheetRef } from '$lib/sheet-ref';
+	import { renderInline } from '$lib/markdown';
 
 	let {
 		sheet,
@@ -207,7 +208,14 @@
 		{#if cell.note}
 			<p class="mt-1.5 flex items-start gap-1.5 text-xs leading-relaxed text-foreground">
 				<HugeiconsIcon icon={Note01Icon} size={13} class="mt-0.5 shrink-0 text-accent-ink" />
-				<span class="min-w-0">{cell.note}</span>
+				<span class="min-w-0">
+					<!--
+						Safe by construction: `renderInline` escapes the model's output
+						before generating any markup. See markdown.spec.ts.
+					-->
+					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+					{@html renderInline(cell.note)}
+				</span>
 			</p>
 		{/if}
 	{:else}

@@ -393,13 +393,19 @@
 				</div>
 
 				{#if active}
-					<CellInspector
-						sheet={active}
-						{selected}
-						{range}
-						onshowsource={showOnPage}
-						onattach={onattach ? () => onattach(attachable()) : undefined}
-					/>
+					<!-- A cell's note is the agent's prose too, and it writes references
+					     there. Same delegated handler as the workbook notes. -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
+					<div onclick={onNoteClick}>
+						<CellInspector
+							sheet={active}
+							{selected}
+							{range}
+							onshowsource={showOnPage}
+							onattach={onattach ? () => onattach(attachable()) : undefined}
+						/>
+					</div>
 				{/if}
 			</div>
 		</div>
