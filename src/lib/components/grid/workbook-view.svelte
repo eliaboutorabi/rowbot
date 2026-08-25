@@ -170,9 +170,26 @@
 		return { sheet: active?.name ?? '', ...shape, raw: formatRef(active?.name ?? '', shape) };
 	}
 
+	/**
+	 * The reverse crossing: from the sheet to the block on the page.
+	 *
+	 * A sheet stitched from five pages has five blocks, so it shows the one the
+	 * selected row actually came from. Asking "where did this come from?" on
+	 * row 100 and being shown page 2 is the kind of near-miss that makes a
+	 * reviewer stop trusting the link.
+	 */
 	function showOnPage() {
-		const path = active?.source?.tablePath;
-		if (!path) return;
+		if (!active?.source?.tablePath) return;
+		let path = active.source.tablePath;
+
+		const starts = active.continuedAt ?? [];
+		const row = selected?.row ?? range?.from.row;
+		if (row !== undefined) {
+			for (let i = 0; i < starts.length; i++) {
+				if (row >= starts[i] && active.continuedFrom?.[i]) path = active.continuedFrom[i];
+			}
+		}
+
 		focus = { tablePath: path, nonce: ++nonce };
 		view = 'source';
 	}
@@ -183,12 +200,26 @@
 	 * than a guess.
 	 */
 	function openTable(path: string) {
-		const match = sheets.find((sheet) => sheet.source?.tablePath === path);
-		if (!match) return;
-		activeId = match.id;
-		selected = null;
+		const first = sheets.find((sheet) => sheet.source?.tablePath === path);
+		if (first) {
+			activeId = first.id;
+			selected = null;
+			range = null;
+			view = 'workbook';
+			return;
+		}
+
+		// A table that continued across a page break is not a sheet of its own —
+		// its rows were appended to the sheet the first page made. Landing at the
+		// top of a 130-row ledger would be true but useless, so this selects the
+		// first row that page contributed and the grid scrolls there.
+		const stitched = sheets.find((sheet) => sheet.continuedFrom?.includes(path));
+		if (!stitched) return;
+		activeId = stitched.id;
 		range = null;
 		view = 'workbook';
+		const at = stitched.continuedAt?.[stitched.continuedFrom?.indexOf(path) ?? -1];
+		selected = at === undefined ? null : { row: at, column: 0 };
 	}
 
 	const sheets = $derived(workbook?.sheets ?? []);
@@ -214,9 +245,17 @@
 		}
 	});
 
-	/** Paths of OCR tables that made it into the workbook, for the overlay. */
+	/**
+	 * Paths of OCR tables that made it into the workbook, for the overlay.
+	 *
+	 * Continuations count. A ledger running over five pages is one sheet built
+	 * from five tables, and marking only the first page's block as linked left
+	 * the other four looking like tables Rowbot had skipped.
+	 */
 	const linkedPaths = $derived(
-		sheets.map((sheet) => sheet.source?.tablePath).filter((path): path is string => Boolean(path))
+		sheets
+			.flatMap((sheet) => [sheet.source?.tablePath, ...(sheet.continuedFrom ?? [])])
+			.filter((path): path is string => Boolean(path))
 	);
 
 	/** Totals whose arithmetic did not agree with the page. */

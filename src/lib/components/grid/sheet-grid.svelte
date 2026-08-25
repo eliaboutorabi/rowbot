@@ -216,14 +216,49 @@
 
 	const cellId = (row: number, column: number) => `${sheet.id}-cell-${row}-${column}`;
 
-	function reveal(row: number, column: number) {
+	/**
+	 * Bring a cell into view.
+	 *
+	 * `nearest` is right for a step of one row and wrong for a jump from the
+	 * other end of the sheet, which it parks flush against whichever edge it
+	 * came from. A jump gets centred instead, so the reviewer arrives looking
+	 * at the row and its neighbours rather than at the bottom rule.
+	 *
+	 * The frozen header sits over the top of the scroller, so a row scrolled
+	 * to from below ends up underneath it. The nudge afterwards puts it back.
+	 */
+	async function reveal(row: number, column: number) {
 		// After the state change lands, so the cell exists and is laid out.
-		requestAnimationFrame(() => {
-			document
-				.getElementById(cellId(row, column))
-				?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-		});
+		await tick();
+		const cell = document.getElementById(cellId(row, column));
+		if (!cell || !scroller) return;
+
+		const port = scroller.getBoundingClientRect();
+		const box = cell.getBoundingClientRect();
+		const ceiling = port.top + stickyHeight;
+		const far = box.bottom < ceiling - port.height || box.top > port.bottom + port.height;
+
+		cell.scrollIntoView({ block: far ? 'center' : 'nearest', inline: 'nearest' });
+
+		const landed = cell.getBoundingClientRect();
+		if (landed.top < ceiling) scroller.scrollTop -= ceiling - landed.top;
 	}
+
+	/**
+	 * Every selection is revealed, not just the ones the arrows made.
+	 *
+	 * Following `[[Ledger!B120]]` out of the conversation switched sheets and
+	 * selected the cell without moving the viewport, which left the reviewer
+	 * reading row 1 of a 130-row ledger with no sign that anything had
+	 * happened. The keyboard already revealed what it moved to; this makes
+	 * that true whoever made the selection.
+	 */
+	$effect(() => {
+		const at = selected;
+		if (!at || editing) return;
+		void sheet.id;
+		reveal(at.row, at.column);
+	});
 
 	/** How many rows one PageUp/PageDown covers, from the viewport itself. */
 	function pageRows(): number {
@@ -299,7 +334,6 @@
 		}
 
 		selected = to;
-		reveal(to.row, to.column);
 	}
 
 	/* ── Editing ──────────────────────────────────────────────────────
@@ -340,10 +374,7 @@
 		// Move on before the save resolves. Correcting a column means typing,
 		// Enter, typing, Enter, and waiting for a round trip between each one
 		// would make the grid feel broken.
-		if (next) {
-			pick(next.row, next.column);
-			reveal(next.row, next.column);
-		}
+		if (next) pick(next.row, next.column);
 		scroller?.focus({ preventScroll: true });
 
 		saving = true;

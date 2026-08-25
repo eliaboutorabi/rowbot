@@ -91,6 +91,13 @@ export interface Sheet {
 	 * order, so provenance survives stitching.
 	 */
 	continuedFrom?: string[];
+	/**
+	 * Where each of those continuations starts, as a zero-based row index into
+	 * `rows`. Parallel to `continuedFrom`; absent on workbooks built before it
+	 * was recorded, in which case following a continuation lands at the top of
+	 * the sheet rather than at the rows that page contributed.
+	 */
+	continuedAt?: number[];
 	/** Agent commentary about how this sheet was derived. */
 	notes?: string;
 }

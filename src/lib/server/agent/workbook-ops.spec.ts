@@ -149,6 +149,13 @@ describe('workbook operations', () => {
 				'/source/tables/page-3-tbl-1.html',
 				'/source/tables/page-4-tbl-2.html'
 			]);
+			// Where, as well as which: clicking the page-4 block in the source
+			// overlay has to land on the rows page 4 contributed, not on row 1 of
+			// the sheet the first page made.
+			expect(next.sheets[0].continuedAt).toEqual([
+				sheet('a', 'Ledger').rows.length,
+				sheet('a', 'Ledger').rows.length + 1
+			]);
 		});
 
 		it('keeps the sheet rectangular when a continuation page is short a column', () => {

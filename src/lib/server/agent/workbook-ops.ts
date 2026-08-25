@@ -100,7 +100,12 @@ export function applyOp(wb: WorkbookModel, op: WorkbookOp): WorkbookModel {
 					rows: [...sheet.rows.map(pad), ...op.rows.map(pad)],
 					continuedFrom: op.sourcePath
 						? [...(sheet.continuedFrom ?? []), op.sourcePath]
-						: sheet.continuedFrom
+						: sheet.continuedFrom,
+					// Recorded before the append, so it points at the first row this
+					// page contributed rather than at the end of the sheet.
+					continuedAt: op.sourcePath
+						? [...(sheet.continuedAt ?? []), sheet.rows.length]
+						: sheet.continuedAt
 				});
 			});
 
