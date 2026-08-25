@@ -102,6 +102,16 @@
 			<Button
 				variant="ghost"
 				size="icon"
+				href={resolve('/settings')}
+				aria-label="Settings"
+				title="Settings"
+			>
+				<HugeiconsIcon icon={Settings01Icon} size={18} />
+			</Button>
+
+			<Button
+				variant="ghost"
+				size="icon"
 				onclick={() => theme.toggle()}
 				aria-label={theme.current === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
 			>
@@ -125,15 +135,6 @@
 						<div class="truncate text-sm font-medium">{data.user.name}</div>
 						<div class="truncate text-xs text-muted-foreground">{data.user.email}</div>
 					</DropdownMenu.Label>
-					<DropdownMenu.Separator />
-					<DropdownMenu.Item class="cursor-pointer">
-						{#snippet child({ props })}
-							<a {...props} href={resolve('/settings')}>
-								<HugeiconsIcon icon={Settings01Icon} size={16} />
-								Settings
-							</a>
-						{/snippet}
-					</DropdownMenu.Item>
 					<DropdownMenu.Separator />
 					<form method="post" action="/documents?/signOut" class="contents">
 						<button type="submit" class="w-full">

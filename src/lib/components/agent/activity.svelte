@@ -5,10 +5,34 @@
 	import Logo from '$lib/components/brand/logo.svelte';
 	import { renderMarkdown } from '$lib/markdown';
 	import PlanPanel from './plan-panel.svelte';
-	import ToolCall from './tool-call.svelte';
-	import type { RunState } from '$lib/stores/run.svelte';
+	import ToolGroup from './tool-group.svelte';
+	import type { RunState, TimelineItem } from '$lib/stores/run.svelte';
+	import type { ToolCallView } from '$lib/types/events';
 
 	let { run, empty }: { run: RunState; empty?: import('svelte').Snippet } = $props();
+
+	type Block =
+		| { kind: 'entry'; id: string; item: TimelineItem }
+		| { kind: 'tools'; id: string; calls: ToolCallView[] };
+
+	/**
+	 * Consecutive tool calls collapse into one group. The break is a message —
+	 * anything the agent or the user actually said — because that is where the
+	 * reader's attention resets.
+	 */
+	const blocks = $derived.by<Block[]>(() => {
+		const out: Block[] = [];
+		for (const item of run.timeline) {
+			if (item.kind !== 'tool') {
+				out.push({ kind: 'entry', id: item.id, item });
+				continue;
+			}
+			const last = out.at(-1);
+			if (last?.kind === 'tools') last.calls.push(item.call);
+			else out.push({ kind: 'tools', id: item.id, calls: [item.call] });
+		}
+		return out;
+	});
 
 	let viewport = $state<HTMLDivElement>();
 	let pinned = $state(true);
@@ -37,40 +61,43 @@
 
 		<PlanPanel todos={run.todos} />
 
-		{#each run.timeline as item (item.id)}
-			{#if item.kind === 'user'}
-				<div class="flex justify-end" in:fly={{ y: 6, duration: 150 }}>
-					<p
-						class="max-w-[85%] rounded-xl rounded-br-sm bg-primary px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap text-primary-foreground"
-					>
-						{item.text}
-					</p>
+		{#each blocks as block (block.id)}
+			{#if block.kind === 'tools'}
+				<div in:fly={{ y: 6, duration: 150 }}>
+					<ToolGroup calls={block.calls} />
 				</div>
-			{:else if item.kind === 'assistant'}
-				<div class="flex gap-2.5" in:fly={{ y: 6, duration: 150 }}>
-					<Logo class="mt-0.5 size-5 shrink-0 text-muted-foreground" />
-					<div class="min-w-0 flex-1 text-sm leading-relaxed text-foreground/90">
-						<!--
+			{:else}
+				{@const item = block.item}
+				{#if item.kind === 'user'}
+					<div class="flex justify-end" in:fly={{ y: 6, duration: 150 }}>
+						<p
+							class="max-w-[85%] rounded-xl rounded-br-sm bg-primary px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap text-primary-foreground"
+						>
+							{item.text}
+						</p>
+					</div>
+				{:else if item.kind === 'assistant'}
+					<div class="flex gap-2.5" in:fly={{ y: 6, duration: 150 }}>
+						<Logo class="mt-0.5 size-5 shrink-0 text-muted-foreground" />
+						<div class="min-w-0 flex-1 text-sm leading-relaxed text-foreground/90">
+							<!--
 							Safe by construction: `renderMarkdown` HTML-escapes the model's
 							output before generating any markup, so no tag in the text can
 							survive into the DOM. See markdown.spec.ts.
 						-->
-						<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-						{@html renderMarkdown(item.text)}
+							<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+							{@html renderMarkdown(item.text)}
+						</div>
 					</div>
-				</div>
-			{:else if item.kind === 'tool'}
-				<div in:fly={{ y: 6, duration: 150 }}>
-					<ToolCall call={item.call} />
-				</div>
-			{:else}
-				<p
-					class="flex items-start gap-2 rounded-xl border border-destructive/30 bg-destructive/8 px-3 py-2.5 text-sm text-destructive"
-					in:fly={{ y: 6, duration: 150 }}
-				>
-					<HugeiconsIcon icon={Alert01Icon} size={15} class="mt-0.5 shrink-0" />
-					{item.text}
-				</p>
+				{:else if item.kind === 'notice'}
+					<p
+						class="flex items-start gap-2 rounded-xl bg-destructive/10 px-3 py-2.5 text-sm text-destructive"
+						in:fly={{ y: 6, duration: 150 }}
+					>
+						<HugeiconsIcon icon={Alert01Icon} size={15} class="mt-0.5 shrink-0" />
+						{item.text}
+					</p>
+				{/if}
 			{/if}
 		{/each}
 

@@ -1,7 +1,13 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import { HugeiconsIcon } from '@hugeicons/svelte';
-	import { Alert01Icon, Key01Icon, PlayIcon, RefreshIcon } from '@hugeicons/core-free-icons';
+	import {
+		Alert01Icon,
+		Key01Icon,
+		PlayIcon,
+		RefreshIcon,
+		SidebarLeft01Icon
+	} from '@hugeicons/core-free-icons';
 	import { Button } from '$lib/components/ui/button';
 	import Activity from '$lib/components/agent/activity.svelte';
 	import Composer from '$lib/components/agent/composer.svelte';
@@ -9,6 +15,7 @@
 	import Logo from '$lib/components/brand/logo.svelte';
 	import { RunState, type TimelineItem } from '$lib/stores/run.svelte';
 	import { fileSize } from '$lib/format';
+	import { cn } from '$lib/utils';
 	import type { TodoItem } from '$lib/types/events';
 	import type { WorkbookModel } from '$lib/types/workbook';
 
@@ -65,13 +72,67 @@
 	});
 
 	const canStart = $derived(!run.busy && run.timeline.length === 0 && !run.workbook);
+
+	/**
+	 * The agent column is the point of the app, but a wide workbook needs the
+	 * whole screen sometimes. Collapsed it becomes a rail rather than
+	 * disappearing, so the way back is always visible.
+	 */
+	let collapsed = $state(false);
 </script>
 
 <svelte:head><title>{data.document.name} · Rowbot</title></svelte:head>
 
-<div class="grid h-full min-h-0 grid-cols-1 lg:grid-cols-[minmax(22rem,32rem)_1fr]">
+<div
+	class={cn(
+		'grid h-full min-h-0 grid-cols-1 transition-[grid-template-columns] duration-200',
+		collapsed ? 'lg:grid-cols-[3rem_1fr]' : 'lg:grid-cols-[minmax(22rem,32rem)_1fr]'
+	)}
+>
+	{#if collapsed}
+		<!-- Collapsed rail -->
+		<section
+			class="hidden min-h-0 flex-col items-center gap-3 border-r py-3 lg:flex"
+			aria-label="Agent activity, collapsed"
+		>
+			<Button
+				variant="ghost"
+				size="icon-sm"
+				onclick={() => (collapsed = false)}
+				aria-label="Show the agent panel"
+				title="Show the agent panel"
+			>
+				<HugeiconsIcon icon={SidebarLeft01Icon} size={16} />
+			</Button>
+			{#if run.busy}
+				<span class="size-1.5 animate-pulse rounded-full bg-primary" title="Rowbot is working"
+				></span>
+			{/if}
+			<span
+				class="mt-1 text-[11px] font-medium tracking-wide text-muted-foreground/70 [writing-mode:vertical-rl]"
+			>
+				Agent
+			</span>
+		</section>
+	{/if}
+
 	<!-- Harness -->
-	<section class="flex min-h-0 flex-col border-r" aria-label="Agent activity">
+	<section
+		class={cn('flex min-h-0 flex-col border-r', collapsed && 'hidden')}
+		aria-label="Agent activity"
+	>
+		<div class="flex h-9 shrink-0 items-center justify-end px-2">
+			<Button
+				variant="ghost"
+				size="icon-sm"
+				onclick={() => (collapsed = true)}
+				aria-label="Collapse the agent panel"
+				title="Collapse the agent panel"
+			>
+				<HugeiconsIcon icon={SidebarLeft01Icon} size={16} />
+			</Button>
+		</div>
+
 		<Activity {run}>
 			{#snippet empty()}
 				<div class="flex flex-col items-center gap-4 px-4 py-14 text-center">

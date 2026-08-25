@@ -3,6 +3,7 @@
 	import {
 		Download04Icon,
 		FileSpreadsheetIcon,
+		File01Icon,
 		Note01Icon,
 		ThermometerIcon
 	} from '@hugeicons/core-free-icons';
@@ -78,11 +79,11 @@
 	     a button on the other. -->
 	<div class="flex h-11 shrink-0 items-center gap-2 border-b px-3">
 		<div class="flex items-center gap-0.5 rounded-lg bg-muted/60 p-0.5">
-			{#each [{ id: 'workbook', label: 'Workbook' }, { id: 'source', label: 'Source' }] as const as tab (tab.id)}
+			{#each [{ id: 'workbook', label: 'Workbook', icon: FileSpreadsheetIcon }, { id: 'source', label: 'Source', icon: File01Icon }] as const as tab (tab.id)}
 				<button
 					type="button"
 					class={cn(
-						'rounded-[0.4rem] px-2.5 py-1 text-[0.8125rem] font-medium transition-colors',
+						'flex items-center gap-1.5 rounded-[0.4rem] px-2.5 py-1 text-[0.8125rem] font-medium transition-colors',
 						view === tab.id
 							? 'bg-background text-foreground shadow-sm'
 							: 'text-muted-foreground hover:text-foreground'
@@ -90,6 +91,7 @@
 					aria-pressed={view === tab.id}
 					onclick={() => (view = tab.id)}
 				>
+					<HugeiconsIcon icon={tab.icon} size={14} />
 					{tab.label}
 				</button>
 			{/each}
@@ -175,29 +177,36 @@
 			<CellInspector sheet={active} {selected} />
 		{/if}
 
-		<!-- Sheet tabs, at the bottom where a spreadsheet puts them -->
-		<div class="flex h-10 shrink-0 items-center gap-1 overflow-x-auto border-t bg-muted/30 px-2">
-			{#each sheets as sheet (sheet.id)}
-				<button
-					type="button"
-					class={cn(
-						'shrink-0 rounded-md px-3 py-1.5 text-xs font-medium whitespace-nowrap transition',
-						sheet.id === active?.id
-							? 'bg-background text-foreground shadow-sm ring-1 ring-border'
-							: 'text-muted-foreground hover:bg-accent hover:text-foreground'
-					)}
-					aria-current={sheet.id === active?.id ? 'true' : undefined}
-					onclick={() => {
-						activeId = sheet.id;
-						selected = null;
-					}}
-				>
-					{sheet.name}
-					<span class="ml-1.5 text-[10px] text-muted-foreground/70">
-						{Math.max(sheet.rows.length - sheet.headerRows, 0)}
-					</span>
-				</button>
-			{/each}
+		<!-- Sheet tabs, at the bottom where a spreadsheet puts them.
+		     The wrapper's padding is the composer's exactly, so the agent column
+		     and the workbook column finish on the same line instead of one
+		     floating above the edge while the other runs into it. -->
+		<div class="shrink-0 px-3 pt-2 pb-3">
+			<div
+				class="flex h-10 items-center gap-1 overflow-x-auto rounded-xl border bg-card px-1.5 shadow-sm"
+			>
+				{#each sheets as sheet (sheet.id)}
+					<button
+						type="button"
+						class={cn(
+							'flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[0.8125rem] font-medium whitespace-nowrap transition-colors',
+							sheet.id === active?.id
+								? 'bg-secondary text-foreground'
+								: 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
+						)}
+						aria-current={sheet.id === active?.id ? 'true' : undefined}
+						onclick={() => {
+							activeId = sheet.id;
+							selected = null;
+						}}
+					>
+						{sheet.name}
+						<span class="text-[11px] text-muted-foreground/60 tabular-nums">
+							{Math.max(sheet.rows.length - sheet.headerRows, 0)}
+						</span>
+					</button>
+				{/each}
+			</div>
 		</div>
 	{/if}
 </div>

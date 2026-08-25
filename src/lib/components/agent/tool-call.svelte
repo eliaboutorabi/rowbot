@@ -60,8 +60,10 @@
 <div
 	class={cn(
 		'rounded-lg transition-colors',
-		running && 'bg-primary/[0.06] ring-1 ring-primary/25',
-		failed && 'bg-destructive/[0.05] ring-1 ring-destructive/25'
+		// Tint, never a border: a column of outlined rows reads as a stack of
+		// boxes rather than a sequence of steps.
+		running && 'bg-primary/[0.07]',
+		failed && 'bg-destructive/[0.07]'
 	)}
 >
 	<button
