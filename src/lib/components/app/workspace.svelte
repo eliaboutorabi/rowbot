@@ -191,12 +191,12 @@
 
 	<div
 		class={cn(
-			'grid min-h-0 flex-1 grid-cols-1',
-			// One track, not a zero-width one. The conversation is `display: none`
-			// when it is hidden, so it leaves the grid entirely — and a leftover
-			// empty first track is where the workbook then landed, nought pixels
-			// wide, which looked exactly like the app had crashed.
-			collapsed ? 'lg:grid-cols-1' : 'lg:grid-cols-[minmax(22rem,32rem)_1fr]'
+			'grid min-h-0 flex-1 grid-cols-1 lg:transition-[grid-template-columns] lg:duration-200 lg:ease-out',
+			// Two length tracks, so the browser can interpolate between them and
+			// the column slides rather than vanishing between frames. `0fr` or a
+			// dropped track would both be instant, and the conversation appearing
+			// out of nowhere is most of what made this feel abrupt.
+			collapsed ? 'lg:grid-cols-[0px_1fr]' : 'lg:grid-cols-[clamp(21rem,26vw,30rem)_1fr]'
 		)}
 	>
 		<!-- Harness -->
@@ -206,10 +206,13 @@
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<section
 			class={cn(
-				'min-h-0 flex-col border-r bg-rail lg:flex',
-				collapsed && 'lg:hidden',
+				'min-h-0 min-w-0 flex-col overflow-hidden bg-rail lg:flex',
+				// The rule goes with the column: at zero width a border is a stray
+				// vertical line beside the rail.
+				collapsed ? 'lg:border-r-0' : 'border-r',
 				pane === 'chat' ? 'flex' : 'hidden'
 			)}
+			inert={collapsed && pane !== 'chat'}
 			aria-label="Agent activity"
 			onclick={onFeedClick}
 		>

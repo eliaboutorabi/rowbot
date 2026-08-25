@@ -15,7 +15,7 @@
  * preference you want to find again tomorrow having forgotten you set it. The
  * conversation is open to begin with because in a workspace it is the point.
  */
-export type SidebarPanel = 'chat' | 'settings' | 'account';
+export type SidebarPanel = 'chat' | 'projects' | 'settings' | 'account';
 
 class Sidebar {
 	open = $state<SidebarPanel | null>('chat');
