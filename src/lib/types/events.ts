@@ -31,8 +31,6 @@ export interface ToolCallView {
 	name: string;
 	/** Parsed arguments once they finish streaming. */
 	args?: Record<string, unknown>;
-	/** Raw argument text while it is still streaming in. */
-	argsText?: string;
 	status: ToolStatus;
 	/** Short human-facing result summary. */
 	result?: string;

@@ -94,10 +94,6 @@
 			<span class={cn('shrink-0 font-medium', failed && 'text-destructive')}>{title}</span>
 			{#if subtitle}
 				<span class="truncate text-muted-foreground">{subtitle}</span>
-			{:else if running && call.argsText}
-				<span class="truncate font-mono text-[11px] text-muted-foreground">
-					{call.argsText.slice(-56)}
-				</span>
 			{/if}
 		</span>
 

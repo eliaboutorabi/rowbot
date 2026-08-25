@@ -3,6 +3,8 @@ import type { IconSvgElement } from '@hugeicons/svelte';
 import {
 	AiBrain01Icon,
 	CheckListIcon,
+	Calculator01Icon,
+	HelpCircleIcon,
 	Edit02Icon,
 	FileSearchIcon,
 	FileSpreadsheetIcon,
@@ -37,6 +39,12 @@ const TOOLS: Record<string, ToolMeta> = {
 		running: 'Finishing the workbook',
 		done: 'Finished the workbook'
 	},
+	check_totals: {
+		icon: Calculator01Icon,
+		running: 'Checking the totals',
+		done: 'Checked the totals'
+	},
+	ask_user: { icon: HelpCircleIcon, running: 'Waiting on you', done: 'Asked you' },
 	write_todos: { icon: CheckListIcon, running: 'Planning', done: 'Updated the plan' },
 	task: { icon: AiBrain01Icon, running: 'Delegating to a subagent', done: 'Subagent finished' },
 	read_file: { icon: TextIcon, running: 'Reading a file', done: 'Read a file' },
@@ -79,13 +87,32 @@ export function toolDetail(name: string, args: Record<string, unknown> | undefin
 			return str('rename') ? `${str('sheet')} → ${str('rename')}` : str('sheet');
 		case 'set_workbook_title':
 			return str('title');
+		case 'check_totals': {
+			const totals = Array.isArray(args.totals) ? args.totals.length : 0;
+			const sheet = str('sheet');
+			if (!totals) return sheet;
+			return `${totals} total${totals === 1 ? '' : 's'}${sheet ? ` on ${sheet}` : ''}`;
+		}
+		case 'ask_user':
+			return str('question');
 		case 'task':
 			return str('subagent_type') ?? str('description');
 		case 'read_file':
 		case 'write_file':
 		case 'edit_file':
 			return str('file_path')?.split('/').pop() ?? null;
-		default:
+		default: {
+			/*
+			 * An unmapped tool still deserves a readable line. The first
+			 * string-valued argument is almost always the interesting one — a
+			 * path, a name, a query — and printing a slice of raw JSON instead,
+			 * which is what the feed used to fall back to, looks like a bug
+			 * rather than transparency.
+			 */
+			for (const value of Object.values(args)) {
+				if (typeof value === 'string' && value.trim()) return value.trim();
+			}
 			return null;
+		}
 	}
 }

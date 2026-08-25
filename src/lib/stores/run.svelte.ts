@@ -276,7 +276,6 @@ export class RunState {
 						status: 'running',
 						startedAt: Date.now(),
 						subagent: event.subagent,
-						argsText: '',
 						progress: []
 					}
 				});
@@ -284,10 +283,14 @@ export class RunState {
 			}
 
 			case 'tool:args': {
-				const call = this.#tool(event.id);
-				if (!call) break;
-				call.argsText = (call.argsText ?? '') + event.delta;
-				this.timeline = [...this.timeline];
+				/*
+				 * Deliberately dropped. The feed showed the tail of this raw JSON
+				 * while a call was in flight, which read as a bug rather than as
+				 * transparency — and accumulating it reallocated the whole timeline
+				 * on every token, re-rendering the feed for text nobody wanted to
+				 * see. The row shows the tool's own label until `tool:ready`
+				 * delivers arguments worth describing.
+				 */
 				break;
 			}
 
