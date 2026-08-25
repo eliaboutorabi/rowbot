@@ -103,6 +103,26 @@ export class RunState {
 		if (initialWorkbook) this.workbook = initialWorkbook;
 	}
 
+	/**
+	 * Seeds the feed from a previous run's checkpoint, so reopening a document
+	 * shows the conversation that produced its workbook.
+	 *
+	 * Restored tool calls are re-registered in the id index: a follow-up turn
+	 * can then stream updates into the same cards rather than duplicating them.
+	 */
+	restore(items: TimelineItem[], todos: TodoItem[] = []) {
+		if (this.timeline.length || !items.length) return;
+
+		this.timeline = items;
+		this.todos = todos;
+		this.status = 'done';
+
+		this.#toolIndex.clear();
+		items.forEach((item, index) => {
+			if (item.kind === 'tool') this.#toolIndex.set(item.call.id, index);
+		});
+	}
+
 	reset() {
 		this.timeline = [];
 		this.todos = [];

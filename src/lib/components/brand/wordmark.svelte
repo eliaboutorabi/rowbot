@@ -8,7 +8,7 @@
 	const words = { sm: 'text-base', md: 'text-lg', lg: 'text-2xl' };
 </script>
 
-<span class={cn('inline-flex items-center gap-2.5 text-foreground', className)}>
+<span class={cn('inline-flex items-center gap-2 text-foreground', className)}>
 	<Logo class={marks[size]} />
 	<span class={cn('font-semibold tracking-tight', words[size])}>
 		Row<span class="text-primary">bot</span>

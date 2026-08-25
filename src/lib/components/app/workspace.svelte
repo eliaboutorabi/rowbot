@@ -7,8 +7,9 @@
 	import Composer from '$lib/components/agent/composer.svelte';
 	import WorkbookView from '$lib/components/grid/workbook-view.svelte';
 	import Logo from '$lib/components/brand/logo.svelte';
-	import { RunState } from '$lib/stores/run.svelte';
+	import { RunState, type TimelineItem } from '$lib/stores/run.svelte';
 	import { fileSize } from '$lib/format';
+	import type { TodoItem } from '$lib/types/events';
 	import type { WorkbookModel } from '$lib/types/workbook';
 
 	/**
@@ -23,6 +24,8 @@
 			sizeBytes: number;
 		};
 		workbook: WorkbookModel | null;
+		/** The previous run, rebuilt from its checkpoint. */
+		transcript: { items: TimelineItem[]; todos: TodoItem[] } | null;
 		autoStart: boolean;
 		preferences: { model: string; effort: string };
 	}
@@ -34,6 +37,8 @@
 	// be reverted by an unrelated `invalidate`.
 	/* svelte-ignore state_referenced_locally */
 	const run = new RunState(data.workbook);
+	/* svelte-ignore state_referenced_locally */
+	if (data.transcript) run.restore(data.transcript.items, data.transcript.todos);
 	/* svelte-ignore state_referenced_locally */
 	let model = $state(data.preferences.model);
 	/* svelte-ignore state_referenced_locally */
