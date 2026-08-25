@@ -11,7 +11,7 @@
 	} from '@hugeicons/core-free-icons';
 	import { toast } from 'svelte-sonner';
 	import Dropzone from '$lib/components/app/dropzone.svelte';
-	import { Badge } from '$lib/components/ui/badge';
+	import DocumentDeck from '$lib/components/app/document-deck.svelte';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { fileSize, timeAgo } from '$lib/format';
 	import type { PageData } from './$types';
@@ -31,7 +31,7 @@
 
 <svelte:head><title>Documents · Rowbot</title></svelte:head>
 
-<div class="mx-auto w-full max-w-5xl px-6 py-12">
+<div class="mx-auto w-full max-w-6xl px-6 py-12">
 	<header class="mb-8">
 		<h1 class="text-3xl font-semibold tracking-tight">Documents</h1>
 		<p class="mt-2 text-muted-foreground">
@@ -43,47 +43,67 @@
 	<Dropzone />
 
 	{#if data.documents.length}
-		<h2 class="mt-12 mb-3 text-sm font-medium text-muted-foreground">
+		<h2 class="mt-12 mb-5 text-sm font-medium text-muted-foreground">
 			{data.documents.length}
 			{data.documents.length === 1 ? 'document' : 'documents'}
 		</h2>
 
-		<ul class="divide-y overflow-hidden rounded-xl border bg-card">
+		<!--
+			Each entry is a deck of its own pages rather than a row with a file
+			icon. A library of documents should look like the documents: you can
+			see at a glance which one is the scanned receipt and which is the
+			seven-page report, without reading a single line of metadata.
+		-->
+		<ul class="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
 			{#each data.documents as doc (doc.id)}
-				<li
-					class="group relative flex items-center gap-4 px-4 py-3.5 transition-colors hover:bg-accent/50"
-				>
-					<span
-						class="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-background text-muted-foreground"
+				<li class="group relative">
+					<a
+						href={resolve('/(app)/d/[documentId]', { documentId: doc.id })}
+						class="deck block rounded-xl focus-visible:outline-none"
+						aria-label={doc.name}
 					>
-						<HugeiconsIcon
-							icon={doc.mimeType === 'application/pdf' ? Pdf01Icon : Image01Icon}
-							size={18}
+						<DocumentDeck
+							documentId={doc.id}
+							mimeType={doc.mimeType}
+							pageCount={doc.pageCount}
+							name={doc.name}
 						/>
-					</span>
 
-					<div class="min-w-0 flex-1">
-						<a
-							href={resolve('/(app)/d/[documentId]', { documentId: doc.id })}
-							class="block truncate font-medium after:absolute after:inset-0"
-						>
-							{doc.name}
-						</a>
-						<p class="mt-0.5 truncate text-xs text-muted-foreground">
-							{fileSize(doc.sizeBytes)}
-							{#if doc.pageCount}· {doc.pageCount} {doc.pageCount === 1 ? 'page' : 'pages'}{/if}
-							· {timeAgo(doc.createdAt)}
-						</p>
-					</div>
+						<div class="mt-1 px-1">
+							<p
+								class="truncate text-sm font-medium transition-colors group-focus-within:text-primary group-hover:text-primary"
+							>
+								{doc.name}
+							</p>
+							<p class="mt-0.5 flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+								<HugeiconsIcon
+									icon={doc.mimeType === 'application/pdf' ? Pdf01Icon : Image01Icon}
+									size={12}
+									class="shrink-0"
+								/>
+								{#if doc.pageCount}
+									{doc.pageCount}
+									{doc.pageCount === 1 ? 'page' : 'pages'} ·
+								{/if}
+								{fileSize(doc.sizeBytes)} · {timeAgo(doc.createdAt)}
+							</p>
+						</div>
+					</a>
 
+					<!-- Status rides on the deck itself, where the eye already is. -->
 					{#if doc.sheetCount}
-						<Badge variant="secondary" class="relative gap-1.5">
-							<HugeiconsIcon icon={FileSpreadsheetIcon} size={13} />
+						<span
+							class="pointer-events-none absolute top-1 right-1 flex items-center gap-1 rounded-full bg-background/90 px-2 py-0.5 text-[11px] font-medium text-foreground shadow-sm ring-1 ring-border backdrop-blur-sm"
+						>
+							<HugeiconsIcon icon={FileSpreadsheetIcon} size={11} class="text-primary" />
 							{doc.sheetCount}
-							{doc.sheetCount === 1 ? 'sheet' : 'sheets'}
-						</Badge>
+						</span>
 					{:else if doc.status === 'pending'}
-						<Badge variant="outline" class="relative">Not started</Badge>
+						<span
+							class="pointer-events-none absolute top-1 right-1 rounded-full bg-background/90 px-2 py-0.5 text-[11px] text-muted-foreground shadow-sm ring-1 ring-border backdrop-blur-sm"
+						>
+							Not started
+						</span>
 					{/if}
 
 					<DropdownMenu.Root>
@@ -91,14 +111,14 @@
 							{#snippet child({ props })}
 								<button
 									{...props}
-									class="relative flex size-8 items-center justify-center rounded-md text-muted-foreground opacity-0 transition group-hover:opacity-100 hover:bg-accent hover:text-foreground focus-visible:opacity-100"
+									class="absolute top-1 left-1 flex size-7 items-center justify-center rounded-md bg-background/90 text-muted-foreground opacity-0 shadow-sm ring-1 ring-border backdrop-blur-sm transition group-hover:opacity-100 hover:text-foreground focus-visible:opacity-100"
 									aria-label="Actions for {doc.name}"
 								>
-									<HugeiconsIcon icon={More01Icon} size={16} />
+									<HugeiconsIcon icon={More01Icon} size={15} />
 								</button>
 							{/snippet}
 						</DropdownMenu.Trigger>
-						<DropdownMenu.Content align="end">
+						<DropdownMenu.Content align="start">
 							<DropdownMenu.Item variant="destructive" onSelect={() => remove(doc.id, doc.name)}>
 								<HugeiconsIcon icon={Delete02Icon} size={16} />
 								Delete

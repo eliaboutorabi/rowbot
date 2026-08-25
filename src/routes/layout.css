@@ -200,3 +200,25 @@
 		scrollbar-gutter: stable;
 	}
 }
+
+/*
+ * Deck-of-pages tokens, shared by every library card so hover state can be
+ * driven from the card while the geometry lives in the deck component.
+ */
+@layer base {
+	.deck {
+		--fan: 5deg;
+		--deck-ease: cubic-bezier(0.25, 0, 0, 1);
+		--deck-shadow: drop-shadow(0 1px 2px oklch(0.16 0.01 326 / 0.16))
+			drop-shadow(0 10px 18px oklch(0.16 0.01 326 / 0.14));
+		--deck-shadow-lift: drop-shadow(0 2px 5px oklch(0.16 0.01 326 / 0.2))
+			drop-shadow(0 18px 34px oklch(0.16 0.01 326 / 0.2));
+	}
+
+	.dark .deck {
+		--deck-shadow: drop-shadow(0 2px 3px oklch(0 0 0 / 0.55))
+			drop-shadow(0 12px 22px oklch(0 0 0 / 0.45));
+		--deck-shadow-lift: drop-shadow(0 3px 6px oklch(0 0 0 / 0.6))
+			drop-shadow(0 20px 38px oklch(0 0 0 / 0.55));
+	}
+}

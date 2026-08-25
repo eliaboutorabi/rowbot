@@ -142,7 +142,7 @@
 		canvas.style.height = `${unscaled.height * scale}px`;
 
 		const context = canvas.getContext('2d');
-		if (context) await pdfPage.render({ canvasContext: context, viewport }).promise;
+		if (context) await pdfPage.render({ canvas, canvasContext: context, viewport }).promise;
 	}
 
 	async function renderPage(index: number) {
