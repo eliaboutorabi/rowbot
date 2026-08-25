@@ -106,3 +106,53 @@ describe('coerce', () => {
 		expect(coerce('03/04/2025')).toMatchObject({ t: 'text' });
 	});
 });
+
+describe('per-word confidence', () => {
+	// Verbatim from mistral-ocr-4-1 with confidence_scores_granularity: 'word'.
+	const HTML = `<table><thead><tr><th>Item</th><th>Qty</th></tr></thead><tr><td>Marine rope</td><td>40</td></tr></table>`;
+
+	// `start_index` is an offset into HTML above.
+	const words = [
+		{ text: 'Item', confidence: 0.99, start_index: HTML.indexOf('Item') },
+		{ text: 'Qty', confidence: 0.99, start_index: HTML.indexOf('Qty') },
+		{ text: 'Marine', confidence: 0.95, start_index: HTML.indexOf('Marine') },
+		{ text: ' rope', confidence: 0.42, start_index: HTML.indexOf(' rope') },
+		{ text: '40', confidence: 0.88, start_index: HTML.indexOf('>40<') + 1 }
+	];
+
+	it('lands each word in the cell it belongs to', () => {
+		const { rows } = parseTableHtml(HTML, { wordConfidences: words });
+		expect(rows[0][0].conf).toBeCloseTo(0.99, 5);
+		expect(rows[1][1].conf).toBeCloseTo(0.88, 5);
+	});
+
+	it('takes the lowest word in a cell, not the average', () => {
+		// One badly-read word makes the whole value wrong; averaging would hide it.
+		const { rows } = parseTableHtml(HTML, { wordConfidences: words });
+		expect(rows[1][0].conf).toBeCloseTo(0.42, 5);
+	});
+
+	it('leaves confidence unset when none was requested', () => {
+		const { rows } = parseTableHtml(HTML);
+		expect(rows[1][0].conf).toBeUndefined();
+	});
+});
+
+describe('real OCR output with word confidence', () => {
+	it('scores every populated cell of a scanned receipt', async () => {
+		const fixture = (await import('./__fixtures__/receipt-ocr.json', { with: { type: 'json' } }))
+			.default as unknown as {
+			pages: Array<{ tables?: Array<{ content: string; word_confidence_scores?: unknown[] }> }>;
+		};
+
+		const table = fixture.pages[0].tables![0];
+		const { rows } = parseTableHtml(table.content, {
+			wordConfidences: table.word_confidence_scores as never
+		});
+
+		const scored = rows.flat().filter((c) => c.conf !== undefined);
+		expect(scored.length).toBeGreaterThan(20);
+		// A clean synthetic render should read with high confidence throughout.
+		expect(Math.min(...scored.map((c) => c.conf!))).toBeGreaterThan(0.9);
+	});
+});

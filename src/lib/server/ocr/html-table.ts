@@ -16,6 +16,9 @@ interface RawCell {
 	rowspan: number;
 	colspan: number;
 	header: boolean;
+	/** Offsets of this cell's content within the source HTML. */
+	start: number;
+	end: number;
 }
 
 interface RawRow {
@@ -82,16 +85,25 @@ function attr(tag: string, name: string): number {
 	return Number.isFinite(n) && n > 0 ? Math.min(n, 1000) : 1;
 }
 
+export interface TableSource {
+	/** Everything between `<table>` and `</table>`. */
+	inner: string;
+	/** Where `inner` begins in the original string. */
+	offset: number;
+}
+
 /** Splits a document into the raw source of each `<table>`. */
-export function splitTables(html: string): string[] {
-	const out: string[] = [];
+export function splitTables(html: string): TableSource[] {
+	const out: TableSource[] = [];
 	const re = /<table\b[^>]*>([\s\S]*?)<\/table\s*>/gi;
 	let m: RegExpExecArray | null;
-	while ((m = re.exec(html)) !== null) out.push(m[1]);
+	while ((m = re.exec(html)) !== null) {
+		out.push({ inner: m[1], offset: m.index + m[0].indexOf('>') + 1 });
+	}
 	return out;
 }
 
-function parseRows(tableInner: string): RawRow[] {
+function parseRows(tableInner: string, baseOffset: number): RawRow[] {
 	const rows: RawRow[] = [];
 
 	// Track thead regions so header rows can be detected even without <th>.
@@ -107,14 +119,19 @@ function parseRows(tableInner: string): RawRow[] {
 	let rm: RegExpExecArray | null;
 	while ((rm = rowRe.exec(tableInner)) !== null) {
 		const cells: RawCell[] = [];
+		// Where this row's inner HTML starts, in the original string.
+		const rowOffset = baseOffset + rm.index + rm[0].indexOf('>') + 1;
 		const cellRe = /<(th|td)\b([^>]*)>([\s\S]*?)(?:<\/\1\s*>|(?=<(?:th|td)\b)|$)/gi;
 		let cm: RegExpExecArray | null;
 		while ((cm = cellRe.exec(rm[1])) !== null) {
+			const start = rowOffset + cm.index + cm[0].indexOf('>') + 1;
 			cells.push({
 				text: cellText(cm[3]),
 				rowspan: attr(cm[2], 'rowspan'),
 				colspan: attr(cm[2], 'colspan'),
-				header: cm[1].toLowerCase() === 'th'
+				header: cm[1].toLowerCase() === 'th',
+				start,
+				end: start + cm[3].length
 			});
 		}
 		if (cells.length) rows.push({ cells, inHead: inHead(rm.index) });
@@ -131,13 +148,54 @@ export interface ParsedTable {
 	width: number;
 }
 
+/** A per-word OCR confidence, as Mistral reports it. */
+export interface WordConfidence {
+	text: string;
+	confidence: number;
+	/** Offset of the word within the table's HTML. */
+	start_index: number;
+}
+
+export interface ParseOptions {
+	/**
+	 * Per-word confidence scores for this table. Each word's `start_index` is
+	 * an offset into the same HTML, so words land in cells exactly rather than
+	 * by fuzzy text matching.
+	 */
+	wordConfidences?: readonly WordConfidence[];
+}
+
+/**
+ * A cell's confidence is the *lowest* of the words in it: one badly-read digit
+ * makes the whole value wrong, so an average would hide exactly the cells a
+ * reviewer needs to see.
+ */
+function confidenceFor(
+	words: readonly WordConfidence[],
+	start: number,
+	end: number
+): number | undefined {
+	let lowest: number | undefined;
+	for (const word of words) {
+		if (word.start_index < start || word.start_index >= end) continue;
+		if (lowest === undefined || word.confidence < lowest) lowest = word.confidence;
+	}
+	return lowest;
+}
+
 /**
  * Expands a parsed HTML table using the standard table layout algorithm:
  * walk rows left to right, skipping slots already claimed by a span above.
  */
-export function parseTableHtml(html: string): ParsedTable {
-	const raw = parseRows(html.includes('<table') ? (splitTables(html)[0] ?? '') : html);
+export function parseTableHtml(html: string, options: ParseOptions = {}): ParsedTable {
+	const source: TableSource = html.includes('<table')
+		? (splitTables(html)[0] ?? { inner: '', offset: 0 })
+		: { inner: html, offset: 0 };
+
+	const raw = parseRows(source.inner, source.offset);
 	if (!raw.length) return { rows: [], headerRows: 0, width: 0 };
+
+	const words = options.wordConfidences ?? [];
 
 	/** `r:c` slots claimed by a rowspan/colspan from an earlier cell. */
 	const covered = new Set<string>();
@@ -157,6 +215,10 @@ export function parseTableHtml(html: string): ParsedTable {
 			if (cell.rowspan > 1 || cell.colspan > 1) {
 				anchor.merge = { rs: cell.rowspan, cs: cell.colspan };
 			}
+			if (words.length) {
+				const conf = confidenceFor(words, cell.start, cell.end);
+				if (conf !== undefined) anchor.conf = conf;
+			}
 			grid[r][c] = anchor;
 			if (cell.header) headerCells++;
 
@@ -169,7 +231,13 @@ export function parseTableHtml(html: string): ParsedTable {
 					if (!grid[rr]) grid[rr] = [];
 					// A cell covered by a vertical merge repeats the anchor's value so
 					// the data stays usable if the reviewer unmerges it.
-					grid[rr][cc] = { ...blankCell(), v: anchor.v, t: anchor.t, covered: true };
+					grid[rr][cc] = {
+						...blankCell(),
+						v: anchor.v,
+						t: anchor.t,
+						covered: true,
+						...(anchor.conf !== undefined ? { conf: anchor.conf } : {})
+					};
 				}
 			}
 
@@ -216,9 +284,17 @@ export function headerLabels(rows: Cell[][], headerRows: number, width: number):
 /** Convenience: a whole `Sheet` from one HTML table. */
 export function sheetFromHtml(
 	html: string,
-	options: { id: string; name: string; source?: Sheet['source']; notes?: string }
+	options: {
+		id: string;
+		name: string;
+		source?: Sheet['source'];
+		notes?: string;
+		wordConfidences?: readonly WordConfidence[];
+	}
 ): Sheet {
-	const { rows, headerRows, width } = parseTableHtml(html);
+	const { rows, headerRows, width } = parseTableHtml(html, {
+		wordConfidences: options.wordConfidences
+	});
 	const labels = headerLabels(rows, headerRows, width);
 	return {
 		id: options.id,

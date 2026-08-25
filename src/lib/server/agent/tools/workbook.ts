@@ -14,7 +14,11 @@ import { tool, type ToolRuntime } from '@langchain/core/tools';
 import { Command } from '@langchain/langgraph';
 import { z } from 'zod';
 import { toCell } from '$lib/coerce';
-import { headerLabels, parseTableHtml } from '$lib/server/ocr/html-table';
+import { headerLabels, parseTableHtml, type WordConfidence } from '$lib/server/ocr/html-table';
+import { and, eq } from 'drizzle-orm';
+import { db } from '$lib/server/db';
+import { documentPage } from '$lib/server/db/schema';
+import type { OcrTable } from '$lib/server/ocr/mistral';
 import {
 	blankCell,
 	normalizeSheet,
@@ -78,6 +82,36 @@ function sheetSummary(sheet: Sheet): string {
 	return `"${sheet.name}" — ${sheet.rows.length} rows (${sheet.headerRows} header, ${body} data) × ${sheet.columns.length} columns`;
 }
 
+/**
+ * Per-word OCR confidence for one table, read back from the stored OCR result.
+ *
+ * The agent's virtual filesystem holds only the table HTML — keeping the
+ * confidence scores out of it avoids cluttering what the agent sees with data
+ * it never needs to read.
+ */
+async function wordConfidences(
+	documentId: string,
+	path: string
+): Promise<WordConfidence[] | undefined> {
+	const match = /page-(\d+)-(.+)\.html$/.exec(path);
+	if (!match) return undefined;
+
+	const pageIndex = Number(match[1]) - 1;
+	const tableStem = match[2];
+
+	const [page] = await db
+		.select({ tablesJson: documentPage.tablesJson })
+		.from(documentPage)
+		.where(and(eq(documentPage.documentId, documentId), eq(documentPage.pageIndex, pageIndex)))
+		.limit(1);
+	if (!page) return undefined;
+
+	const tables = (page.tablesJson ?? []) as OcrTable[];
+	// The path stem is the table id with its extension stripped.
+	const table = tables.find((t) => t.id.replace(/\.(html|md)$/, '') === tableStem);
+	return (table?.word_confidence_scores as WordConfidence[] | undefined) ?? undefined;
+}
+
 /** Wraps ops plus the tool's reply into the single update LangGraph expects. */
 function commit(runtime: { toolCallId: string }, ops: WorkbookOp[], content: string) {
 	return new Command({
@@ -102,7 +136,9 @@ export const importTableTool = tool(
 			return `No file at ${path}. Use \`ls\` to see what OCR produced, or run \`ocr_document\` first.`;
 		}
 
-		const parsed = parseTableHtml(html);
+		const parsed = parseTableHtml(html, {
+			wordConfidences: await wordConfidences(runtime.context.documentId, path)
+		});
 		if (!parsed.rows.length) return `${path} did not contain a readable table.`;
 
 		const resolvedHeaderRows = headerRows ?? parsed.headerRows;

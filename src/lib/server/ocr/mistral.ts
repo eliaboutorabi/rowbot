@@ -41,10 +41,19 @@ export interface OcrBlock extends OcrBBox {
 	} | null;
 }
 
+export interface OcrWordConfidence {
+	text: string;
+	confidence: number;
+	/** Offset of the word within `content`. */
+	start_index: number;
+}
+
 export interface OcrTable {
 	id: string;
 	content: string;
 	format: 'markdown' | 'html';
+	/** Present when `confidence_scores_granularity` is `'word'`. */
+	word_confidence_scores?: OcrWordConfidence[] | null;
 }
 
 export interface OcrPage {
@@ -123,7 +132,10 @@ export async function runOcr(
 		document: documentChunk(bytes, mimeType, filename),
 		table_format: 'html',
 		include_blocks: true,
-		confidence_scores_granularity: 'block',
+		// Per-word rather than per-block: word offsets index into the table HTML,
+		// which is what lets the reviewer see confidence cell by cell instead of
+		// for a whole table at once.
+		confidence_scores_granularity: 'word',
 		include_image_base64: false,
 		...(options.pages !== undefined ? { pages: options.pages } : {})
 	};

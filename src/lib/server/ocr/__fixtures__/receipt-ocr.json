@@ -1,0 +1,378 @@
+{
+ "pages": [
+  {
+   "index": 0,
+   "markdown": "# HARBOUR SUPPLY CO.\n\nInvoice 2291-B \u00b7 14 March 2026 \u00b7 Terms: Net 30\n\n[tbl-0.html](tbl-0.html)",
+   "images": [],
+   "tables": [
+    {
+     "id": "tbl-0.html",
+     "content": "<table><thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Discount</th><th>Amount</th></tr></thead><tr><td>Marine rope, 12mm</td><td>40</td><td>$18.50</td><td>\u2014</td><td>$740.00</td></tr><tr><td>Stainless shackle</td><td>120</td><td>$4.25</td><td>5.0%</td><td>$484.50</td></tr><tr><td>Deck cleat (pair)</td><td>16</td><td>$31.00</td><td>\u2014</td><td>$496.00</td></tr><tr><td>Bilge pump 800GPH</td><td>3</td><td>$129.95</td><td>10.0%</td><td>$350.87</td></tr><tr><td>Freight &amp; handling</td><td>1</td><td>$85.00</td><td>\u2014</td><td>$85.00</td></tr><tr><td><b>Subtotal</b></td><td></td><td></td><td></td><td><b>$2,156.37</b></td></tr><tr><td><b>Tax (8.25%)</b></td><td></td><td></td><td></td><td><b>$177.90</b></td></tr><tr><td><b>Total due</b></td><td></td><td></td><td></td><td><b>$2,334.27</b></td></tr></table>",
+     "format": "html",
+     "word_confidence_scores": [
+      {
+       "text": "Item",
+       "confidence": 0.999541339966272,
+       "start_index": 22
+      },
+      {
+       "text": "Qty",
+       "confidence": 0.999541339966272,
+       "start_index": 35
+      },
+      {
+       "text": "Unit",
+       "confidence": 0.999541339966272,
+       "start_index": 47
+      },
+      {
+       "text": "Discount",
+       "confidence": 0.999541339966272,
+       "start_index": 60
+      },
+      {
+       "text": "Amount",
+       "confidence": 0.999541339966272,
+       "start_index": 77
+      },
+      {
+       "text": "Marine",
+       "confidence": 0.999541339966272,
+       "start_index": 109
+      },
+      {
+       "text": " rope,",
+       "confidence": 0.9999828142906197,
+       "start_index": 115
+      },
+      {
+       "text": " 12mm",
+       "confidence": 0.9979091070176431,
+       "start_index": 121
+      },
+      {
+       "text": "40",
+       "confidence": 0.9979091070176431,
+       "start_index": 135
+      },
+      {
+       "text": "$18.50",
+       "confidence": 0.9979091070176431,
+       "start_index": 146
+      },
+      {
+       "text": "\u2014",
+       "confidence": 0.9979091070176431,
+       "start_index": 161
+      },
+      {
+       "text": "$740.00",
+       "confidence": 0.9979091070176431,
+       "start_index": 171
+      },
+      {
+       "text": "Stainless",
+       "confidence": 0.9979091070176431,
+       "start_index": 196
+      },
+      {
+       "text": " shackle",
+       "confidence": 0.9999694927212576,
+       "start_index": 205
+      },
+      {
+       "text": "120",
+       "confidence": 0.9999694927212576,
+       "start_index": 222
+      },
+      {
+       "text": "$4.25",
+       "confidence": 0.9999694927212576,
+       "start_index": 234
+      },
+      {
+       "text": "5.0%",
+       "confidence": 0.9999694927212576,
+       "start_index": 248
+      },
+      {
+       "text": "$484.50",
+       "confidence": 0.9999694927212576,
+       "start_index": 261
+      },
+      {
+       "text": "Deck",
+       "confidence": 0.9999694927212576,
+       "start_index": 286
+      },
+      {
+       "text": " cleat",
+       "confidence": 0.9998996764554491,
+       "start_index": 290
+      },
+      {
+       "text": " (pair)",
+       "confidence": 0.9999812651468658,
+       "start_index": 296
+      },
+      {
+       "text": "16",
+       "confidence": 0.9999812651468658,
+       "start_index": 312
+      },
+      {
+       "text": "$31.00",
+       "confidence": 0.9999812651468658,
+       "start_index": 323
+      },
+      {
+       "text": "\u2014",
+       "confidence": 0.9999812651468658,
+       "start_index": 338
+      },
+      {
+       "text": "$496.00",
+       "confidence": 0.9999812651468658,
+       "start_index": 348
+      },
+      {
+       "text": "Bilge",
+       "confidence": 0.9999812651468658,
+       "start_index": 373
+      },
+      {
+       "text": " pump",
+       "confidence": 0.9999365846769599,
+       "start_index": 378
+      },
+      {
+       "text": " 800GPH",
+       "confidence": 0.999476088169693,
+       "start_index": 383
+      },
+      {
+       "text": "3",
+       "confidence": 0.999476088169693,
+       "start_index": 399
+      },
+      {
+       "text": "$129.95",
+       "confidence": 0.999476088169693,
+       "start_index": 409
+      },
+      {
+       "text": "10.0%",
+       "confidence": 0.999476088169693,
+       "start_index": 425
+      },
+      {
+       "text": "$350.87",
+       "confidence": 0.999476088169693,
+       "start_index": 439
+      },
+      {
+       "text": "Freight",
+       "confidence": 0.999476088169693,
+       "start_index": 464
+      },
+      {
+       "text": " &amp;",
+       "confidence": 0.9999953906096024,
+       "start_index": 471
+      },
+      {
+       "text": " handling",
+       "confidence": 0.9975499007779839,
+       "start_index": 477
+      },
+      {
+       "text": "1",
+       "confidence": 0.9975499007779839,
+       "start_index": 495
+      },
+      {
+       "text": "$85.00",
+       "confidence": 0.9975499007779839,
+       "start_index": 505
+      },
+      {
+       "text": "\u2014",
+       "confidence": 0.9975499007779839,
+       "start_index": 520
+      },
+      {
+       "text": "$85.00",
+       "confidence": 0.9975499007779839,
+       "start_index": 530
+      },
+      {
+       "text": "Subtotal",
+       "confidence": 0.9975499007779839,
+       "start_index": 557
+      },
+      {
+       "text": "$2,156.37",
+       "confidence": 0.9975499007779839,
+       "start_index": 608
+      },
+      {
+       "text": "Tax",
+       "confidence": 0.9975499007779839,
+       "start_index": 642
+      },
+      {
+       "text": " (8.25%)",
+       "confidence": 0.9999432448423882,
+       "start_index": 645
+      },
+      {
+       "text": "$177.90",
+       "confidence": 0.9999432448423882,
+       "start_index": 696
+      },
+      {
+       "text": "Total",
+       "confidence": 0.9999432448423882,
+       "start_index": 728
+      },
+      {
+       "text": " due",
+       "confidence": 0.9999836786442624,
+       "start_index": 733
+      },
+      {
+       "text": "$2,334.27",
+       "confidence": 0.9999836786442624,
+       "start_index": 780
+      }
+     ]
+    }
+   ],
+   "hyperlinks": [],
+   "header": null,
+   "footer": null,
+   "dimensions": {
+    "dpi": 200,
+    "height": 520,
+    "width": 580
+   },
+   "confidence_scores": {
+    "word_confidence_scores": [
+     {
+      "text": "#",
+      "confidence": 0.9740425099517731,
+      "start_index": 0
+     },
+     {
+      "text": " HARBOUR",
+      "confidence": 0.9023084354042309,
+      "start_index": 1
+     },
+     {
+      "text": " SUPPLY",
+      "confidence": 0.9999948229380272,
+      "start_index": 9
+     },
+     {
+      "text": " CO.",
+      "confidence": 0.999944992149935,
+      "start_index": 16
+     },
+     {
+      "text": "Invoice",
+      "confidence": 0.9999550601190241,
+      "start_index": 22
+     },
+     {
+      "text": " 2291-B",
+      "confidence": 0.9990863322584728,
+      "start_index": 29
+     },
+     {
+      "text": " \u00b7",
+      "confidence": 0.8989150708068356,
+      "start_index": 36
+     },
+     {
+      "text": " 14",
+      "confidence": 0.9997795518907998,
+      "start_index": 38
+     },
+     {
+      "text": " March",
+      "confidence": 0.9999816421070834,
+      "start_index": 41
+     },
+     {
+      "text": " 2026",
+      "confidence": 0.9999526050866219,
+      "start_index": 47
+     },
+     {
+      "text": " \u00b7",
+      "confidence": 0.9995522120977137,
+      "start_index": 52
+     },
+     {
+      "text": " Terms:",
+      "confidence": 0.9997555615894623,
+      "start_index": 54
+     },
+     {
+      "text": " Net",
+      "confidence": 0.9999860527077029,
+      "start_index": 61
+     },
+     {
+      "text": " 30",
+      "confidence": 0.9999770729394339,
+      "start_index": 65
+     },
+     {
+      "text": "[tbl-0.html](tbl-0.html)",
+      "confidence": 0.9991398908637348,
+      "start_index": 70
+     }
+    ],
+    "average_page_confidence_score": 0.9848247875273901,
+    "minimum_page_confidence_score": 0.8989150708068356
+   },
+   "blocks": [
+    {
+     "top_left_x": 31,
+     "top_left_y": 35,
+     "bottom_right_x": 235,
+     "bottom_right_y": 51,
+     "content": "# HARBOUR SUPPLY CO.",
+     "confidence_scores": null,
+     "type": "title"
+    },
+    {
+     "top_left_x": 31,
+     "top_left_y": 56,
+     "bottom_right_x": 366,
+     "bottom_right_y": 69,
+     "content": "Invoice 2291-B \u00b7 14 March 2026 \u00b7 Terms: Net 30",
+     "confidence_scores": null,
+     "type": "text"
+    },
+    {
+     "top_left_x": 31,
+     "top_left_y": 86,
+     "bottom_right_x": 554,
+     "bottom_right_y": 324,
+     "content": "<table><thead><tr><th>Item</th><th>Qty</th><th>Unit</th><th>Discount</th><th>Amount</th></tr></thead><tr><td>Marine rope, 12mm</td><td>40</td><td>$18.50</td><td>\u2014</td><td>$740.00</td></tr><tr><td>Stainless shackle</td><td>120</td><td>$4.25</td><td>5.0%</td><td>$484.50</td></tr><tr><td>Deck cleat (pair)</td><td>16</td><td>$31.00</td><td>\u2014</td><td>$496.00</td></tr><tr><td>Bilge pump 800GPH</td><td>3</td><td>$129.95</td><td>10.0%</td><td>$350.87</td></tr><tr><td>Freight &amp; handling</td><td>1</td><td>$85.00</td><td>\u2014</td><td>$85.00</td></tr><tr><td><b>Subtotal</b></td><td></td><td></td><td></td><td><b>$2,156.37</b></td></tr><tr><td><b>Tax (8.25%)</b></td><td></td><td></td><td></td><td><b>$177.90</b></td></tr><tr><td><b>Total due</b></td><td></td><td></td><td></td><td><b>$2,334.27</b></td></tr></table>",
+     "confidence_scores": null,
+     "type": "table",
+     "table_id": "tbl-0.html"
+    }
+   ]
+  }
+ ],
+ "model": "mistral-ocr-4-1",
+ "document_annotation": null,
+ "usage_info": {
+  "pages_processed": 1,
+  "doc_size_bytes": 34373
+ }
+}
