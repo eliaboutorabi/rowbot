@@ -48,6 +48,8 @@
 	--sidebar-ring: oklch(0.711 0.019 323.02);
 	--scrollbar-thumb: oklch(0.78 0.012 324 / 0.85);
 	--scrollbar-thumb-hover: oklch(0.66 0.02 324 / 0.95);
+	/* See the note above `--color-rail`. */
+	--rail: oklch(0.977 0.003 326);
 }
 
 .dark {
@@ -84,9 +86,27 @@
 	--sidebar-ring: oklch(0.542 0.034 322.5);
 	--scrollbar-thumb: oklch(0.42 0.02 322 / 0.9);
 	--scrollbar-thumb-hover: oklch(0.55 0.025 322 / 0.95);
+	--rail: oklch(0.123 0.007 326);
 }
 
+/*
+ * Surface ramp.
+ *
+ * Dark mode had one value for everything: chrome, conversation, sheet and
+ * composer all sat on the same near-black plane, separated only by hairlines,
+ * and the result read as a wireframe with the lights off. Light mode survives
+ * that treatment because white-on-white with a rule between is a real look;
+ * dark does not, because a dark ground gives shadow nothing to bite on.
+ *
+ * So there is now a ramp, and it runs the way every editor's does: the chrome
+ * and the conversation are *sunken*, the document is the ground, and cards and
+ * the composer lift above it. Three steps is enough — a fourth starts to read
+ * as stripes.
+ *
+ *   rail  <  background  <  card
+ */
 @theme inline {
+	--color-rail: var(--rail);
 	--font-sans: 'Inter Variable', sans-serif;
 	--color-sidebar-ring: var(--sidebar-ring);
 	--color-sidebar-border: var(--sidebar-border);
@@ -241,6 +261,10 @@
 		--deck-shadow-lift: drop-shadow(0 2px 4px oklch(0 0 0 / 0.6));
 		--deck-rim: 0 0 0 1px oklch(1 0 0 / 0.14);
 		--deck-dim: 0.09;
+		/* Paper is white, and a grid of white rectangles on a near-black ground
+		   is a wall of headlights. Every page comes down a few percent — the
+		   front one included, which is what `--deck-dim` alone cannot do. */
+		--deck-paper: 0.9;
 	}
 }
 

@@ -78,9 +78,16 @@
 			{:else}
 				{@const item = block.item}
 				{#if item.kind === 'user'}
+					<!--
+						A tinted surface, not a filled brand block. At the length people
+						actually type, a solid crimson rectangle was the loudest thing on
+						the screen and it was the least interesting — the accent belongs on
+						the one control that exports the work, not on every line of input.
+						The tint plus the tail is enough to say who is speaking.
+					-->
 					<div class="flex justify-end" in:fly={{ y: 6, duration: 150 }}>
 						<p
-							class="max-w-[85%] rounded-xl rounded-br-sm bg-primary px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap text-primary-foreground"
+							class="max-w-[85%] rounded-xl rounded-br-sm bg-primary/[0.09] px-3.5 py-2 text-sm leading-relaxed whitespace-pre-wrap text-foreground ring-1 ring-primary/15 dark:bg-primary/20 dark:ring-primary/25"
 						>
 							{item.text}
 						</p>

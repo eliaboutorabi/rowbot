@@ -135,7 +135,7 @@
 	);
 </script>
 
-<div class="flex h-full min-w-0 flex-col bg-background">
+<div class="flex h-full min-w-0 flex-col bg-rail">
 	<!-- ── View switcher ───────────────────────────────────────────────
 	     The workbook and the page it came from are two readings of the same
 	     document, so they are peers here rather than one being buried behind
@@ -143,14 +143,14 @@
 	<div
 		class="scroll-slim scroll-quiet flex h-11 shrink-0 items-center gap-2 overflow-x-auto border-b px-3"
 	>
-		<div class="flex shrink-0 items-center gap-0.5 rounded-lg bg-muted/60 p-0.5">
+		<div class="flex shrink-0 items-center gap-0.5 rounded-lg bg-foreground/[0.045] p-0.5">
 			{#each [{ id: 'workbook', label: 'Workbook', icon: FileSpreadsheetIcon }, { id: 'source', label: 'Source', icon: File01Icon }] as const as tab (tab.id)}
 				<button
 					type="button"
 					class={cn(
 						'flex items-center gap-1.5 rounded-[0.4rem] px-2.5 py-1 text-[0.8125rem] font-medium transition-colors',
 						view === tab.id
-							? 'bg-background text-foreground shadow-sm'
+							? 'bg-card text-foreground shadow-sm'
 							: 'text-muted-foreground hover:text-foreground'
 					)}
 					aria-pressed={view === tab.id}

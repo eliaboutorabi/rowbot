@@ -133,15 +133,15 @@
 
 <div class="flex h-full min-h-0 flex-col">
 	<!-- Phone only: one pane at a time. -->
-	<div class="flex shrink-0 items-center gap-1 border-b px-3 py-2 lg:hidden">
-		<div class="flex flex-1 items-center gap-0.5 rounded-lg bg-muted/60 p-0.5">
+	<div class="flex shrink-0 items-center gap-1 border-b bg-rail px-3 py-2 lg:hidden">
+		<div class="flex flex-1 items-center gap-0.5 rounded-lg bg-foreground/[0.045] p-0.5">
 			{#each [{ id: 'chat', label: 'Rowbot', icon: Message01Icon }, { id: 'workbook', label: 'Workbook', icon: FileSpreadsheetIcon }] as const as tab (tab.id)}
 				<button
 					type="button"
 					class={cn(
 						'flex flex-1 items-center justify-center gap-1.5 rounded-[0.4rem] py-1.5 text-[0.8125rem] font-medium transition-colors',
 						pane === tab.id
-							? 'bg-background text-foreground shadow-sm'
+							? 'bg-card text-foreground shadow-sm'
 							: 'text-muted-foreground hover:text-foreground'
 					)}
 					aria-pressed={pane === tab.id}
@@ -175,7 +175,7 @@
 			working, how far through the plan it is, and what it last did.
 		-->
 			<section
-				class="hidden min-h-0 w-12 flex-col items-center gap-2 border-r py-2 lg:flex"
+				class="hidden min-h-0 w-12 flex-col items-center gap-2 border-r bg-rail py-2 lg:flex"
 				aria-label="Agent activity, collapsed"
 			>
 				<Button
@@ -263,7 +263,7 @@
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<section
 			class={cn(
-				'min-h-0 flex-col border-r lg:flex',
+				'min-h-0 flex-col border-r bg-rail lg:flex',
 				collapsed && 'lg:hidden',
 				pane === 'chat' ? 'flex' : 'hidden'
 			)}

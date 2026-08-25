@@ -174,7 +174,8 @@
 		   which rings every page in a halo. */
 		/* Back pages dim slightly so the deck has thickness. In dark mode they
 		   dim faster: the eye has less shadow to read depth from. */
-		filter: brightness(calc(1 - var(--i) * var(--deck-dim, 0.05))) var(--deck-shadow);
+		filter: brightness(calc(var(--deck-paper, 1) - var(--i) * var(--deck-dim, 0.05)))
+			var(--deck-shadow);
 		transition:
 			transform 420ms var(--deck-ease),
 			filter 480ms var(--deck-ease);

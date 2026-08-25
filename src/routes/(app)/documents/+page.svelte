@@ -3,11 +3,13 @@
 	import { invalidateAll } from '$app/navigation';
 	import { HugeiconsIcon } from '@hugeicons/svelte';
 	import {
+		CheckmarkBadge01Icon,
 		Delete02Icon,
 		FileSpreadsheetIcon,
 		Image01Icon,
 		More01Icon,
-		Pdf01Icon
+		Pdf01Icon,
+		ScanImageIcon
 	} from '@hugeicons/core-free-icons';
 	import { toast } from 'svelte-sonner';
 	import Dropzone from '$lib/components/app/dropzone.svelte';
@@ -17,6 +19,25 @@
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
+
+	/** The pipeline, in order — which doubles as an explanation of the product. */
+	const STEPS = [
+		{
+			icon: ScanImageIcon,
+			title: 'It reads the page',
+			body: 'OCR finds every table, header and footnote, and keeps track of where on the page each one came from.'
+		},
+		{
+			icon: FileSpreadsheetIcon,
+			title: 'It builds the workbook',
+			body: 'One sheet per table, stitched back together when a table runs across a page break.'
+		},
+		{
+			icon: CheckmarkBadge01Icon,
+			title: 'It checks its work',
+			body: 'Totals become real formulas, and anything that does not reconcile is flagged for you rather than quietly fixed.'
+		}
+	];
 
 	async function remove(id: string, name: string) {
 		const response = await fetch(`/api/documents?id=${id}`, { method: 'DELETE' });
@@ -42,7 +63,33 @@
 
 	<Dropzone />
 
-	{#if data.documents.length}
+	{#if !data.documents.length}
+		<!--
+			An empty library is the one screen every new account sees, so it says
+			what happens next rather than "No documents yet".
+		-->
+		<div class="mt-12 border-t pt-10">
+			<h2 class="text-sm font-medium">Nothing here yet — here is what happens when there is</h2>
+			<ol class="mt-5 grid gap-5 sm:grid-cols-3">
+				{#each STEPS as step, i (step.title)}
+					<li class="flex gap-3">
+						<span
+							class="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg border bg-card text-muted-foreground"
+						>
+							<HugeiconsIcon icon={step.icon} size={15} />
+						</span>
+						<div class="min-w-0">
+							<p class="text-sm font-medium">
+								<span class="text-muted-foreground/60 tabular-nums">{i + 1}.</span>
+								{step.title}
+							</p>
+							<p class="mt-1 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
+						</div>
+					</li>
+				{/each}
+			</ol>
+		</div>
+	{:else}
 		<h2 class="mt-12 mb-5 text-sm font-medium text-muted-foreground">
 			{data.documents.length}
 			{data.documents.length === 1 ? 'document' : 'documents'}

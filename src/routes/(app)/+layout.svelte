@@ -56,9 +56,7 @@
 </script>
 
 <div class="flex h-dvh flex-col bg-background">
-	<header
-		class="flex h-14 shrink-0 items-center gap-2 border-b bg-background/80 px-3 backdrop-blur-xl"
-	>
+	<header class="flex h-14 shrink-0 items-center gap-2 border-b bg-rail/85 px-3 backdrop-blur-xl">
 		<!--
 			`flex` rather than the default inline anchor: an inline-flex child of an
 			inline parent sits on the text baseline, which left the wordmark 3.2px
