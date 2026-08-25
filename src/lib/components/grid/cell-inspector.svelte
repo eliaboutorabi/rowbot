@@ -205,10 +205,18 @@
 			</p>
 		{/if}
 	{:else}
-		<p class="text-xs text-muted-foreground">
-			Select a cell to see what the page said, how it was typed, and how sure the reader was.
-			<span class="text-muted-foreground">
-				Arrow keys move; hold shift to take a block and read its sum.
+		<!--
+			Two facts on one line, not a wrapped paragraph. This strip sits between
+			the sheet and its tabs, and a second line of placeholder text pushes
+			the tabs down every time nothing is selected — which is most of the
+			time. The keyboard hint is the half that goes when there is no room.
+		-->
+		<p class="flex items-baseline gap-x-4 text-xs text-muted-foreground">
+			<span class="min-w-0 truncate">
+				Select a cell to see what the page said, how it was typed, and how sure the reader was.
+			</span>
+			<span class="hidden shrink-0 lg:inline">
+				Arrows move · shift to take a block and read its sum
 			</span>
 		</p>
 	{/if}

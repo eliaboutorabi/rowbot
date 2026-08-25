@@ -23,18 +23,32 @@
 		range?: SheetRef | null;
 	} = $props();
 
-	/** A column reads as numeric when most of its data cells are. */
-	function numericColumn(index: number): boolean {
-		let numeric = 0;
-		let seen = 0;
-		for (let r = sheet.headerRows; r < Math.min(sheet.rows.length, sheet.headerRows + 12); r++) {
-			const cell = sheet.rows[r]?.[index];
-			if (!cell || cell.t === 'blank') continue;
-			seen++;
-			if (isNumericCell(cell)) numeric++;
+	/**
+	 * A column reads as numeric when most of its data cells are.
+	 *
+	 * Computed once per sheet rather than per cell, because the header row and
+	 * the column strip both ask. A `Q1` heading has to sit over the right edge
+	 * of the figures it labels; aligning it by its own type — text, therefore
+	 * left — is what put every quarter's name at the far side of a column of
+	 * right-aligned numbers.
+	 */
+	const numericColumns = $derived.by(() => {
+		const flags: boolean[] = [];
+		for (let c = 0; c < sheet.columns.length; c++) {
+			let numeric = 0;
+			let seen = 0;
+			for (let r = sheet.headerRows; r < Math.min(sheet.rows.length, sheet.headerRows + 12); r++) {
+				const cell = sheet.rows[r]?.[c];
+				if (!cell || cell.t === 'blank') continue;
+				seen++;
+				if (isNumericCell(cell)) numeric++;
+			}
+			flags[c] = seen > 0 && numeric / seen >= 0.6;
 		}
-		return seen > 0 && numeric / seen >= 0.6;
-	}
+		return flags;
+	});
+
+	const numericColumn = (index: number) => numericColumns[index] ?? false;
 
 	const inRange = (row: number, column: number) => Boolean(range && contains(range, row, column));
 
@@ -346,7 +360,9 @@
 										: 'bg-background group-hover:bg-[var(--grid-row-hover)]',
 									// Tabular figures keep digits on a shared grid; the slight
 									// negative tracking stops long currency strings sprawling.
-									isNumericCell(cell) && 'text-right tracking-[-0.01em] tabular-nums',
+									// A header cell follows its column, not its own type.
+									(isHeader ? numericColumn(c) : isNumericCell(cell)) &&
+										'text-right tracking-[-0.01em] tabular-nums',
 									!isHeader && confidenceClass(cell),
 									// Correctness, not confidence — so it does not wait for the
 									// heat map to be switched on.
