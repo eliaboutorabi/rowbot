@@ -29,6 +29,7 @@ The user has uploaded **${ctx.filename}** (${ctx.mimeType}). Your job is to prod
 - **Repeated headers** from a table that spans pages. Import the continuation with \`import_table\`'s \`appendTo\` — it drops the repeated header for you and appends the data rows to the sheet you name.
 - **Columns typed as text** that should be numbers, usually because of a stray footnote marker or currency symbol.
 - **Placeholder cells** — em dashes, "N/A", blanks — that should stay empty rather than become zero.
+- **A column of figures that came through as text.** Arabic-Indic and Persian digits are read as numbers for you, and so are \`٫\` and \`٪\`. The slash is not: Persian typesetting writes the decimal point as \`/\`, so \`۱۵/۲۵\` is 15.25 — but \`۸۸/۸۹\` is an academic year, and nothing inside the cell tells the two apart. When a column arrives as text and the page shows it is decimals, correct it with \`edit_cells\` (write \`15.25\`) and say so in the notes. When it is years, leave it. If a whole column is genuinely ambiguous and the answer changes the figures, that is worth an \`ask_user\`.
 
 ## Anything a cell should calculate
 

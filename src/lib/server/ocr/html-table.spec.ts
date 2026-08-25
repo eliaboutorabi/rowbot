@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { headerLabels, parseTableHtml, splitTables } from './html-table';
-import { coerce, parseNumeric } from '$lib/coerce';
+import { coerce, parseNumeric, toCell } from '$lib/coerce';
 
 // Verbatim output from mistral-ocr-4-1 on a two-page report.
 const REVENUE = `<table><thead><tr><th>Region</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Total</th></tr></thead><tr><td>North America</td><td>12,430</td><td>13,905</td><td>15,220</td><td>16,880</td><td>58,435</td></tr><tr><td>EMEA</td><td>8,120</td><td>8,640</td><td>9,310</td><td>10,050</td><td>36,120</td></tr></table>`;
@@ -104,6 +104,36 @@ describe('coerce', () => {
 		expect(coerce('Jan 31, 2025')).toMatchObject({ v: '2025-01-31', t: 'date' });
 		// Ambiguous day/month order stays text rather than silently guessing.
 		expect(coerce('03/04/2025')).toMatchObject({ t: 'text' });
+	});
+
+	describe('figures that are not written in Western digits', () => {
+		it('reads Arabic-Indic and Persian digits as the numbers they are', () => {
+			// A transcript printed in Tehran is full of figures. Every one of them
+			// used to arrive as text, which cannot be summed, cannot carry a
+			// formula and is not even right-aligned.
+			expect(coerce('١٤')).toMatchObject({ v: 14, t: 'number' });
+			expect(coerce('۱۸')).toMatchObject({ v: 18, t: 'number' });
+			expect(coerce('۲٬۰۲۴٬۶۷۰')).toMatchObject({ v: 2024670, t: 'number' });
+		});
+
+		it('reads the Arabic decimal separator and percent sign', () => {
+			expect(coerce('۱۶٫۵')).toMatchObject({ v: 16.5, t: 'number' });
+			// A fraction, like every other percentage here, so Excel arithmetic works.
+			expect(coerce('۳۱٪')).toMatchObject({ v: 0.31, t: 'percent' });
+		});
+
+		it('keeps what the page actually printed', () => {
+			expect(coerce('١٤')).toMatchObject({ v: 14 });
+			expect(toCell('١٤').raw).toBe('١٤');
+		});
+
+		it('leaves the slash decimal alone, because nothing in the cell settles it', () => {
+			// Persian typesetting writes the decimal point as a slash, so ۱۵/۲۵ is
+			// 15.25 — and ۸۸/۸۹ is an academic year. Identical shape, and guessing
+			// wrong silently corrupts a grade.
+			expect(coerce('۱۵/۲۵')).toMatchObject({ t: 'text' });
+			expect(coerce('۸۸/۸۹')).toMatchObject({ t: 'text' });
+		});
 	});
 });
 

@@ -61,6 +61,36 @@ export function cleanText(input: string): string {
 	);
 }
 
+/*
+ * Arabic-Indic (٠-٩) and Eastern Arabic-Indic, or Persian, digits (۰-۹).
+ *
+ * A transcript printed in Tehran is full of figures; they are simply not
+ * written with the glyphs `Number()` understands, so every grade on it came
+ * through as text. A text column cannot be summed, cannot carry a formula,
+ * cannot be reconciled against a printed total, and is not even right-aligned
+ * — which is a poor showing for a workbook whose whole promise is the figures.
+ *
+ * The folding happens here rather than in `cleanText`, so the cell's `raw`
+ * still holds what the page actually said and the inspector can show it.
+ */
+const EASTERN_DIGITS = /[\u0660-\u0669\u06f0-\u06f9]/;
+
+function foldEasternDigits(input: string): string {
+	return (
+		input
+			.replace(/[\u0660-\u0669]/g, (d) => String(d.charCodeAt(0) - 0x0660))
+			.replace(/[\u06f0-\u06f9]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
+			// The Arabic decimal separator, thousands separator and percent sign.
+			// Unambiguous, unlike the slash that Persian typesetting also uses for
+			// a decimal point — `۱۵/۲۵` is 15.25 and `۸۸/۸۹` is an academic year,
+			// and nothing in the cell itself says which. That one is left as text
+			// for the agent to judge with the page in front of it.
+			.replace(/\u066b/g, '.')
+			.replace(/\u066c/g, ',')
+			.replace(/\u066a/g, '%')
+	);
+}
+
 export interface NumericAnalysis {
 	value: number;
 	/** Digits after the decimal separator, used to pick a number format. */
@@ -81,6 +111,7 @@ export interface NumericAnalysis {
 export function analyzeNumeric(input: string): NumericAnalysis | null {
 	let s = input.trim();
 	if (!s) return null;
+	if (EASTERN_DIGITS.test(s)) s = foldEasternDigits(s);
 
 	let negative = false;
 
@@ -216,8 +247,9 @@ export function coerce(input: string): Coerced {
 
 	if (s.startsWith('=')) return { v: s, t: 'formula' };
 
-	// Percentages become real fractions so Excel arithmetic works.
-	if (/%\s*$/.test(s)) {
+	// Percentages become real fractions so Excel arithmetic works. `٪` is the
+	// Arabic percent sign and means exactly the same thing.
+	if (/[%\u066a]\s*$/.test(s)) {
 		const n = analyzeNumeric(s);
 		if (n) {
 			// `41.2 / 100` is 0.41200000000000003 in binary floating point, which
