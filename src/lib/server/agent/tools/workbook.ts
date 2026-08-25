@@ -21,6 +21,7 @@ import { documentPage } from '$lib/server/db/schema';
 import type { OcrTable } from '$lib/server/ocr/mistral';
 import {
 	blankCell,
+	cellRef,
 	normalizeSheet,
 	type Cell,
 	type CellType,
@@ -253,6 +254,9 @@ export const importTableTool = tool(
 /* read_sheet                                                          */
 /* ------------------------------------------------------------------ */
 
+/** Below this, the OCR is telling you it had trouble. Matches the grid's own band. */
+const LOW_CONFIDENCE = 0.85;
+
 export const readSheetTool = tool(
 	async ({ name, startRow, maxRows }, runtime: ToolRuntime<RowbotState, RowbotContext>) => {
 		const wb = currentWorkbook(runtime.state);
@@ -288,12 +292,48 @@ export const readSheetTool = tool(
 			`Column types: ${sheet.rows[sheet.headerRows]?.map((c) => c.t).join(' | ') ?? '(no data rows)'}`
 		);
 
+		/*
+		 * Where the reader was unsure.
+		 *
+		 * The OCR knows which words it struggled with, and the reviewer already
+		 * sees that as a heat map over the grid. Without this the agent — the one
+		 * thing here whose job is finding misreads — was the only party working
+		 * blind, checking cells in reading order instead of starting with the
+		 * ones most likely to be wrong.
+		 *
+		 * The whole sheet is scanned, not just the rows on this page: a weak cell
+		 * forty rows down is exactly what you would want to be told about.
+		 */
+		const shaky: Array<{ ref: string; conf: number }> = [];
+		for (let r = 0; r < sheet.rows.length; r++) {
+			const row = sheet.rows[r];
+			for (let c = 0; c < row.length; c++) {
+				const cell = row[c];
+				if (!cell || cell.covered || cell.conf === undefined) continue;
+				if (cell.conf < LOW_CONFIDENCE) shaky.push({ ref: cellRef(r, c), conf: cell.conf });
+			}
+		}
+		if (shaky.length) {
+			shaky.sort((a, b) => a.conf - b.conf);
+			const worst = shaky
+				.slice(0, 12)
+				.map(({ ref, conf }) => `${ref} ${(conf * 100).toFixed(0)}%`)
+				.join(', ');
+			lines.push(
+				'',
+				`Least confident cells (${shaky.length} under ${LOW_CONFIDENCE * 100}%): ${worst}${
+					shaky.length > 12 ? ', …' : ''
+				}`,
+				'Check these against the page before anything else — this is where a misread will be.'
+			);
+		}
+
 		return lines.join('\n');
 	},
 	{
 		name: 'read_sheet',
 		description:
-			'Inspect the workbook. Omit `name` to list every sheet; pass one to page through its rows. Values in «guillemets» show the original OCR text where it differs from the typed value.',
+			'Inspect the workbook. Omit `name` to list every sheet; pass one to page through its rows. Values in «guillemets» show the original OCR text where it differs from the typed value, and any cells the OCR was unsure about are listed at the end, worst first.',
 		schema: z.object({
 			name: z.string().optional().describe('Sheet name. Omit to list all sheets.'),
 			startRow: z.number().int().min(0).optional(),
