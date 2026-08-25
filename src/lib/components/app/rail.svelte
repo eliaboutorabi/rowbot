@@ -92,7 +92,12 @@
 	</a>
 
 	{#if isWorkspace}
-		<div class="relative">
+		<!--
+			Desktop only. Below `lg` the workspace shows one pane at a time through
+			its own Rowbot/Workbook switcher, and this button would be a control
+			that visibly does nothing — worse than no control at all.
+		-->
+		<div class="relative hidden lg:block">
 			{@render railButton('chat', Message01Icon, {
 				on: 'Hide the conversation',
 				off: 'Show the conversation'
