@@ -55,7 +55,11 @@
 	</button>
 {/snippet}
 
+<!-- `data-rail` names this for the view transition: identical on both sides
+     of a navigation, so the browser carries it across rather than fading it
+     out and drawing it again. -->
 <nav
+	data-rail
 	class="flex w-13 shrink-0 flex-col items-center gap-1.5 border-r bg-rail py-3"
 	aria-label="Rowbot"
 >

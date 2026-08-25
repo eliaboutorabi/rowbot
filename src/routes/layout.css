@@ -363,3 +363,64 @@
 		}
 	}
 }
+
+/* ── Page transitions ──────────────────────────────────────────────────
+   The rail is the same object on both sides of a navigation, so naming it
+   hands it to the browser to carry across rather than fading it out and
+   drawing it again — the flicker of which was most of what made opening a
+   project feel like a jolt. Only the part that actually changed moves. */
+::view-transition-old(root),
+::view-transition-new(root) {
+	animation-duration: 180ms;
+	animation-timing-function: cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+/* Both at once, briefly. A sequential fade reads as a flash of empty page
+   between the two. */
+::view-transition-old(root) {
+	animation-name: rowbot-fade-out;
+}
+
+::view-transition-new(root) {
+	animation-name: rowbot-fade-in;
+}
+
+@keyframes rowbot-fade-out {
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes rowbot-fade-in {
+	from {
+		opacity: 0;
+	}
+}
+
+[data-rail] {
+	view-transition-name: rowbot-rail;
+}
+
+/* Asked for less motion: no cross-fade between pages, no sliding panels, no
+   smooth scrolling.
+
+   Deliberately *not* the usual blanket `animation: none` on everything. The
+   spinner beside a running tool is not decoration — it is the only thing on
+   screen saying the agent has not stopped — and freezing it after one
+   revolution says the opposite. Reduced motion means less of the movement
+   that is there for polish, not less of the movement that is there for
+   information. */
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-group(*),
+	::view-transition-old(*),
+	::view-transition-new(*) {
+		animation: none !important;
+	}
+
+	*,
+	*::before,
+	*::after {
+		transition-duration: 0.01ms !important;
+		scroll-behavior: auto !important;
+	}
+}
