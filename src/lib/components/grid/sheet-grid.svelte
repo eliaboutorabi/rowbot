@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { columnLetter, type Cell, type Sheet } from '$lib/types/workbook';
+	import { tick } from 'svelte';
+	import { cellRef, columnLetter, type Cell, type Sheet } from '$lib/types/workbook';
 	import { contains, formatRef, type SheetRef } from '$lib/sheet-ref';
 	import { nextCell, spanBetween } from '$lib/grid-keys';
 	import { blockSize, selectionToTsv } from '$lib/grid-clipboard';
@@ -10,12 +11,19 @@
 	let {
 		sheet,
 		heat = false,
+		onedit,
 		selected = $bindable(),
 		range = $bindable(null)
 	}: {
 		sheet: Sheet;
 		/** Tint cells by OCR confidence so weak reads are easy to find. */
 		heat?: boolean;
+		/**
+		 * Commit a reviewer's own edit. Absent means the sheet is read-only, so
+		 * double-click does nothing rather than opening an editor that cannot
+		 * save.
+		 */
+		onedit?: (edit: { row: number; column: number; value: string }) => Promise<void> | void;
 		selected: { row: number; column: number } | null;
 		/**
 		 * A highlighted region — a whole row or column you clicked, or the place
@@ -272,6 +280,59 @@
 		reveal(to.row, to.column);
 	}
 
+	/* ── Editing ──────────────────────────────────────────────────────
+	   A single click selects and a double click edits, which is the division
+	   every spreadsheet makes: selecting is what you do constantly and editing
+	   is what you mean deliberately. Typing over a selection would make an
+	   accidental keystroke destructive in a grid whose whole point is that you
+	   can trust the numbers in it. */
+
+	let editing = $state<{ row: number; column: number } | null>(null);
+	let draft = $state('');
+	let saving = $state(false);
+	let editor = $state<HTMLInputElement>();
+
+	function beginEdit(row: number, column: number) {
+		if (!onedit || saving) return;
+		const cell = sheet.rows[row]?.[column];
+		if (!cell || cell.covered) return;
+		// The formula, if there is one — editing a computed cell should show you
+		// what computes it, not the number it produced.
+		draft = cell.f ? `=${cell.f}` : formatCell(cell, sheet.columns[column]?.fmt);
+		editing = { row, column };
+		selected = { row, column };
+		tick().then(() => editor?.select());
+	}
+
+	async function commitEdit() {
+		if (!editing || !onedit) return;
+		const at = editing;
+		const value = draft;
+		editing = null;
+		saving = true;
+		try {
+			await onedit({ ...at, value });
+		} finally {
+			saving = false;
+		}
+	}
+
+	function onEditorKey(event: KeyboardEvent) {
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			event.stopPropagation();
+			void commitEdit();
+		} else if (event.key === 'Escape') {
+			event.preventDefault();
+			event.stopPropagation();
+			editing = null;
+		} else if (event.key === 'Tab') {
+			// Let the browser move focus, but save first — losing an edit to a Tab
+			// is the classic way a grid earns distrust.
+			void commitEdit();
+		}
+	}
+
 	/**
 	 * Clicking a cell. With shift held it extends from wherever the selection
 	 * started instead of moving it, which is what shift-click means in every
@@ -446,19 +507,34 @@
 									? `Source text: ${cell.raw}`
 									: undefined}
 								onclick={(event) => pick(r, c, event.shiftKey)}
+								ondblclick={() => beginEdit(r, c)}
 							>
-								{formatCell(cell, sheet.columns[c]?.fmt)}
-								{#if cell.check?.status === 'mismatch'}
-									<span
-										class="ml-1 align-super text-[9px] text-red-600 dark:text-red-400"
-										aria-label="This total does not reconcile">▲</span
-									>
-								{/if}
-								{#if cell.note}
-									<span
-										class="ml-0.5 align-super text-[9px] text-accent-ink"
-										aria-label="Has a note">●</span
-									>
+								{#if editing?.row === r && editing?.column === c}
+									<!-- svelte-ignore a11y_autofocus -->
+									<input
+										bind:this={editor}
+										bind:value={draft}
+										autofocus
+										class="-my-1.5 w-full bg-transparent px-0 py-1.5 text-inherit outline-none"
+										aria-label="Edit {cellRef(r, c)}"
+										onkeydown={onEditorKey}
+										onblur={commitEdit}
+										onclick={(event) => event.stopPropagation()}
+									/>
+								{:else}
+									{formatCell(cell, sheet.columns[c]?.fmt)}
+									{#if cell.check?.status === 'mismatch'}
+										<span
+											class="ml-1 align-super text-[9px] text-red-600 dark:text-red-400"
+											aria-label="This total does not reconcile">▲</span
+										>
+									{/if}
+									{#if cell.note}
+										<span
+											class="ml-0.5 align-super text-[9px] text-accent-ink"
+											aria-label="Has a note">●</span
+										>
+									{/if}
 								{/if}
 							</td>
 						{/if}

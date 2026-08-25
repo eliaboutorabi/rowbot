@@ -17,6 +17,7 @@
 	import type { WorkbookModel } from '$lib/types/workbook';
 	import { formatRef, parseRef, type SheetRef } from '$lib/sheet-ref';
 	import { renderMarkdown } from '$lib/markdown';
+	import { toast } from 'svelte-sonner';
 
 	let {
 		workbook,
@@ -25,7 +26,8 @@
 		busy = false,
 		finished = false,
 		reveal = null,
-		onattach
+		onattach,
+		onedited
 	}: {
 		workbook: WorkbookModel | null;
 		documentId: string;
@@ -37,9 +39,39 @@
 		reveal?: { ref: SheetRef; nonce: number } | null;
 		/** Send the current selection to the composer. */
 		onattach?: (ref: SheetRef) => void;
+		/** A reviewer's own correction, already persisted. */
+		onedited?: (workbook: WorkbookModel) => void;
 	} = $props();
 
 	let range = $state<SheetRef | null>(null);
+
+	/**
+	 * Persist a cell the reviewer typed.
+	 *
+	 * The server appends a workbook revision, exactly as an agent turn does, so
+	 * an edit is part of the same history and the next run starts from it. The
+	 * new model comes back rather than being patched locally, because the server
+	 * is the one that decides how a typed string becomes a cell.
+	 */
+	async function saveCell(edit: { row: number; column: number; value: string }) {
+		if (!active) return;
+		try {
+			const response = await fetch(`/api/workbook/${documentId}`, {
+				method: 'PATCH',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ sheetId: active.id, ...edit })
+			});
+			if (!response.ok) {
+				const detail = await response.json().catch(() => null);
+				toast.error('Could not save that edit', { description: detail?.message });
+				return;
+			}
+			const { workbook: next } = await response.json();
+			onedited?.(next as WorkbookModel);
+		} catch {
+			toast.error('Could not save that edit', { description: 'The change was not stored.' });
+		}
+	}
 
 	/** Select what a reference points at, wherever the reference was written. */
 	function focusRef(ref: SheetRef) {
@@ -403,7 +435,7 @@
 				<div class="min-h-0 flex-1">
 					{#if active}
 						{#key active.id}
-							<SheetGrid sheet={active} {heat} bind:selected bind:range />
+							<SheetGrid sheet={active} {heat} onedit={saveCell} bind:selected bind:range />
 						{/key}
 					{/if}
 				</div>

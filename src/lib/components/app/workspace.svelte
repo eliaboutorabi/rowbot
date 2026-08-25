@@ -367,6 +367,7 @@
 				finished={!run.busy && run.timeline.some((item) => item.kind === 'assistant')}
 				{reveal}
 				onattach={attach}
+				onedited={(next) => (run.workbook = next)}
 			/>
 		</section>
 	</div>
