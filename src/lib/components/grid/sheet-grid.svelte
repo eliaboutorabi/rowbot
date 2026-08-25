@@ -355,6 +355,25 @@
 		}
 	}
 
+	/** Put the sheet back to nothing selected. */
+	export function clearSelection() {
+		if (editing) return;
+		selected = null;
+		range = null;
+		anchor = null;
+		lineAnchor = null;
+	}
+
+	/**
+	 * Clicking past the last row, or in the gutter beside the table, means you
+	 * are done with the cell you had — the same as clicking away from it. Only
+	 * a click that lands on the scroller itself counts; anything on a cell has
+	 * already been handled by the time it bubbles here.
+	 */
+	function onSurfaceClick(event: MouseEvent) {
+		if (event.target === event.currentTarget) clearSelection();
+	}
+
 	/**
 	 * Clicking a cell. With shift held it extends from wherever the selection
 	 * started instead of moving it, which is what shift-click means in every
@@ -384,6 +403,7 @@
 	aria-activedescendant={selected ? cellId(selected.row, selected.column) : undefined}
 	style:--sticky-top="{stickyHeight}px"
 	onkeydown={move}
+	onclick={onSurfaceClick}
 >
 	<!--
 		Sans, not mono. A monospaced grid reads as a terminal dump; a spreadsheet

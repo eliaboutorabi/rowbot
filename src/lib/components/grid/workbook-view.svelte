@@ -44,6 +44,7 @@
 	} = $props();
 
 	let range = $state<SheetRef | null>(null);
+	let grid = $state<ReturnType<typeof SheetGrid>>();
 
 	/**
 	 * Persist a cell the reviewer typed.
@@ -72,6 +73,32 @@
 			toast.error('Could not save that edit', { description: 'The change was not stored.' });
 		}
 	}
+
+	/**
+	 * Clicking away from the workbook clears the selection.
+	 *
+	 * A highlighted cell and an inspector describing it are a statement about
+	 * what you are looking at, and they were surviving every click that moved
+	 * you somewhere else — into the conversation, the nav bar, another pane —
+	 * leaving the sheet insisting on a cell you had finished with.
+	 *
+	 * The boundary is the whole workbook column rather than the grid alone, so
+	 * the toolbar, the sheet tabs and the inspector's own buttons all still act
+	 * on the selection they are about. And it fires on `pointerdown`, before
+	 * any click handler: a reference chip in the agent's prose clears the old
+	 * selection on the way down and sets the new one on the way up.
+	 */
+	let pane = $state<HTMLElement>();
+
+	$effect(() => {
+		function onPointerDown(event: PointerEvent) {
+			const target = event.target;
+			if (!(target instanceof Node) || !pane || pane.contains(target)) return;
+			grid?.clearSelection();
+		}
+		document.addEventListener('pointerdown', onPointerDown, true);
+		return () => document.removeEventListener('pointerdown', onPointerDown, true);
+	});
 
 	/** Select what a reference points at, wherever the reference was written. */
 	function focusRef(ref: SheetRef) {
@@ -208,7 +235,7 @@
 	);
 </script>
 
-<div class="flex h-full min-w-0 flex-col bg-rail">
+<div bind:this={pane} class="flex h-full min-w-0 flex-col bg-rail">
 	<!-- ── View switcher ───────────────────────────────────────────────
 	     The workbook and the page it came from are two readings of the same
 	     document, so they are peers here rather than one being buried behind
@@ -435,7 +462,14 @@
 				<div class="min-h-0 flex-1">
 					{#if active}
 						{#key active.id}
-							<SheetGrid sheet={active} {heat} onedit={saveCell} bind:selected bind:range />
+							<SheetGrid
+								bind:this={grid}
+								sheet={active}
+								{heat}
+								onedit={saveCell}
+								bind:selected
+								bind:range
+							/>
 						{/key}
 					{/if}
 				</div>
