@@ -77,6 +77,12 @@
 				: `${(range?.to.row ?? 0) - (range?.from.row ?? 0) + 1} × ${(range?.to.column ?? 0) - (range?.from.column ?? 0) + 1} block`
 	);
 
+	/** The modifier this reader actually presses. */
+	const copyKey =
+		typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform)
+			? '\u2318C'
+			: 'Ctrl+C';
+
 	const confidence = $derived(cell?.conf);
 	const band = $derived(
 		confidence === undefined
@@ -216,7 +222,7 @@
 				Select a cell to see what the page said, how it was typed, and how sure the reader was.
 			</span>
 			<span class="hidden shrink-0 lg:inline">
-				Arrows move · shift to take a block and read its sum
+				Arrows move · shift takes a block · {copyKey} copies it
 			</span>
 		</p>
 	{/if}

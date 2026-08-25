@@ -2,6 +2,8 @@
 	import { columnLetter, type Cell, type Sheet } from '$lib/types/workbook';
 	import { contains, formatRef, type SheetRef } from '$lib/sheet-ref';
 	import { nextCell, spanBetween } from '$lib/grid-keys';
+	import { blockSize, selectionToTsv } from '$lib/grid-clipboard';
+	import { toast } from 'svelte-sonner';
 	import { formatCell, isNumericCell } from '$lib/cell-format';
 	import { cn } from '$lib/utils';
 
@@ -198,8 +200,38 @@
 		return Math.max(1, Math.floor(height / ROW_HEIGHT) - 1);
 	}
 
+	/**
+	 * Cmd-C on a selection.
+	 *
+	 * The keyboard can now build a block, and the first thing anyone does with
+	 * a block in a spreadsheet is copy it. Tab-separated so it pastes into
+	 * Excel, Numbers or Sheets as cells rather than as one long string.
+	 *
+	 * With nothing selected the keystroke is left alone, so a plain Cmd-C still
+	 * copies whatever text the reader has highlighted with the mouse.
+	 */
+	async function copySelection(event: KeyboardEvent) {
+		const tsv = selectionToTsv(sheet, range ?? null, selected ?? null);
+		if (tsv === null) return;
+		event.preventDefault();
+		try {
+			await navigator.clipboard.writeText(tsv);
+			const count = range ? blockSize(sheet, range) : 1;
+			toast.success(count === 1 ? 'Copied the cell' : `Copied ${count} cells`);
+		} catch {
+			// Clipboard access can be refused outright; saying so beats a silent
+			// no-op that looks like the shortcut is not wired up.
+			toast.error('The browser would not let Rowbot use the clipboard');
+		}
+	}
+
 	function move(event: KeyboardEvent) {
 		const here = selected ?? { row: sheet.headerRows, column: 0 };
+
+		if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'c') {
+			void copySelection(event);
+			return;
+		}
 
 		if (event.key === 'Escape') {
 			event.preventDefault();
