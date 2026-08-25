@@ -65,6 +65,8 @@ export type AgentEvent =
 	| { type: 'usage'; usage: UsageTotals }
 	| { type: 'interrupt'; id: string; question: string; payload?: unknown }
 	| { type: 'error'; message: string; recoverable: boolean }
+	/** Something worth saying that is not a failure — e.g. a repaired thread. */
+	| { type: 'notice'; tone: 'info' | 'error'; text: string }
 	| { type: 'done'; status: 'complete' | 'interrupted' | 'cancelled' };
 
 export const SSE_EVENT = 'rowbot';

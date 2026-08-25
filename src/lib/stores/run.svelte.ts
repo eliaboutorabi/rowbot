@@ -355,6 +355,16 @@ export class RunState {
 				});
 				break;
 
+			case 'notice':
+				this.timeline.push({
+					kind: 'notice',
+					id: nextId(),
+					text: event.text,
+					tone: event.tone,
+					at: Date.now()
+				});
+				break;
+
 			case 'done':
 				this.status =
 					event.status === 'interrupted'

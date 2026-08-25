@@ -45,8 +45,62 @@ export const rowbotStateSchema = new StateSchema({
 				applyOps(current ?? emptyModel(), update)
 		}
 	),
-	ocrIndex: z.custom<OcrIndex | null>().default(() => null)
+	/**
+	 * Same lesson as `workbook`, learned the hard way a second time.
+	 *
+	 * `ocr_document` takes a page range, and the model quite reasonably calls it
+	 * twice in one step to read a long file in parallel. A last-value channel
+	 * treats that as a conflict and aborts the whole graph with
+	 * INVALID_CONCURRENT_GRAPH_UPDATE, which loses the run — including the
+	 * pages that read perfectly well. Merging is both the safe answer and the
+	 * right one: two calls over different ranges are two halves of one index.
+	 */
+	ocrIndex: new ReducedValue(
+		z.custom<OcrIndex | null>().default(() => null),
+		{
+			inputSchema: z.custom<OcrIndex>(),
+			reducer: mergeOcrIndex
+		}
+	)
 });
+
+/**
+ * Union of two passes over the same document.
+ *
+ * Tables are keyed by path, which is derived from page and table id, so a
+ * range read twice contributes its tables once. Confidence is averaged over
+ * the pages each pass actually read rather than over the two figures, so a
+ * one-page second look does not carry the same weight as a forty-page first
+ * one.
+ */
+export function mergeOcrIndex(current: OcrIndex | null, update: OcrIndex): OcrIndex {
+	if (!current) return update;
+
+	const tables = new Map(current.tables.map((table) => [table.path, table]));
+	for (const table of update.tables) tables.set(table.path, table);
+
+	const weigh = (index: OcrIndex) =>
+		index.averageConfidence === null ? 0 : Math.max(index.pagesProcessed, 1);
+	const [a, b] = [weigh(current), weigh(update)];
+
+	return {
+		model: update.model || current.model,
+		pageCount: Math.max(current.pageCount, update.pageCount),
+		pagesProcessed: Math.max(current.pagesProcessed, update.pagesProcessed),
+		tables: [...tables.values()].sort(
+			(x, y) => x.pageIndex - y.pageIndex || x.path.localeCompare(y.path)
+		),
+		pagesWithoutTables: [...new Set([...current.pagesWithoutTables, ...update.pagesWithoutTables])]
+			// A page that produced a table on the second look is no longer a page
+			// without one.
+			.filter((page) => ![...tables.values()].some((table) => table.pageIndex === page))
+			.sort((x, y) => x - y),
+		averageConfidence:
+			a + b === 0
+				? (update.averageConfidence ?? current.averageConfidence)
+				: ((current.averageConfidence ?? 0) * a + (update.averageConfidence ?? 0) * b) / (a + b)
+	};
+}
 
 /** Not persisted — supplied fresh on every invocation. */
 export const rowbotContextSchema = z.object({

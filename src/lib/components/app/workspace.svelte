@@ -3,6 +3,8 @@
 	import { HugeiconsIcon } from '@hugeicons/svelte';
 	import {
 		Alert01Icon,
+		ArrowRight01Icon,
+		Cancel01Icon,
 		Key01Icon,
 		Loading03Icon,
 		PlayIcon,
@@ -19,6 +21,7 @@
 	import { RunState, type TimelineItem } from '$lib/stores/run.svelte';
 	import { chatPanel } from '$lib/stores/panel.svelte';
 	import { compactNumber, fileSize } from '$lib/format';
+	import { describeRunFailure } from '$lib/run-error';
 	import { parseRef, type SheetRef } from '$lib/sheet-ref';
 	import { toolMeta } from '$lib/components/agent/tool-icon';
 	import { cn } from '$lib/utils';
@@ -62,7 +65,22 @@
 		'Convert every table in this document into a clean, well-named workbook. Verify what you build and tell me about anything you were unsure of.';
 
 	function send(message: string) {
+		lastSent = message;
 		run.send({ documentId: data.document.id, message, model, effort });
+	}
+
+	/**
+	 * Kept so a failed turn can be sent again without the reviewer retyping it.
+	 * The thread is checkpointed and repaired before each turn, so this really
+	 * does resume rather than start over.
+	 */
+	let lastSent = $state<string | null>(null);
+
+	function retry() {
+		if (!lastSent || run.busy) return;
+		run.error = null;
+		run.outOfAllowance = false;
+		send(lastSent);
 	}
 
 	function resume(value: unknown) {
@@ -78,6 +96,7 @@
 	});
 
 	const canStart = $derived(!run.busy && run.timeline.length === 0 && !run.workbook);
+	const failure = $derived(run.error ? describeRunFailure(run.error) : null);
 
 	/**
 	 * The agent column is the point of the app, but a wide workbook needs the
@@ -328,7 +347,15 @@
 				</div>
 			{/if}
 
-			{#if run.error}
+			<!-- ── Failure ─────────────────────────────────────────────────
+			     A run failure is a notice, not a wall. Printing the raw text of
+			     one straight into the column pushed the conversation off the top
+			     of the screen, spilled unbroken JSON out past the panel edge, and
+			     offered no way out — the reviewer was left with a broken-looking
+			     app and a workbook they could no longer see. So: a sentence they
+			     can act on, the original kept behind a disclosure that scrolls
+			     inside its own box, and a close button. -->
+			{#if failure}
 				<div class="shrink-0 border-t px-3 py-2.5">
 					<div
 						class="flex items-start gap-2.5 rounded-lg border border-destructive/30 bg-destructive/8 px-3 py-2.5 text-sm"
@@ -340,13 +367,56 @@
 							class="mt-0.5 shrink-0 text-destructive"
 						/>
 						<div class="min-w-0 flex-1 space-y-2">
-							<p class="text-destructive">{run.error}</p>
+							<p class="text-destructive">{failure.title}</p>
+							{#if failure.hint}
+								<p class="text-[0.8125rem] leading-relaxed text-muted-foreground">
+									{failure.hint}
+								</p>
+							{/if}
+
 							{#if run.outOfAllowance}
 								<Button href={resolve('/settings')} variant="outline" size="sm">
 									Add your API keys
 								</Button>
+							{:else if failure.retryable && lastSent}
+								<Button variant="outline" size="sm" class="gap-2" onclick={retry}>
+									<HugeiconsIcon icon={RefreshIcon} size={14} />
+									Try that again
+								</Button>
+							{/if}
+
+							{#if failure.detail}
+								<details class="group/detail">
+									<summary
+										class="inline-flex cursor-pointer list-none items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+									>
+										<HugeiconsIcon
+											icon={ArrowRight01Icon}
+											size={12}
+											class="transition-transform group-open/detail:rotate-90"
+										/>
+										What went wrong, in full
+									</summary>
+									<!-- `break-all` rather than `break-words`: the thing that
+									     overflowed was a 3,000-character line of JSON and a URL,
+									     neither of which contains a space to wrap at. -->
+									<pre
+										class="scroll-slim mt-1.5 max-h-40 overflow-auto rounded-md bg-foreground/[0.04] p-2 font-mono text-[11px] leading-relaxed break-all whitespace-pre-wrap text-muted-foreground">{failure.detail}</pre>
+								</details>
 							{/if}
 						</div>
+
+						<button
+							type="button"
+							class="-mr-1 flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+							aria-label="Dismiss this error"
+							onclick={() => {
+								run.error = null;
+								run.outOfAllowance = false;
+							}}
+						>
+							<HugeiconsIcon icon={Cancel01Icon} size={14} />
+						</button>
 					</div>
 				</div>
 			{/if}

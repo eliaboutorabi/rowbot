@@ -16,6 +16,7 @@ import type { WorkbookModel } from '$lib/types/workbook';
 import { applyOps, emptyModel, type WorkbookOp } from './workbook-ops';
 import { isProgressEnvelope } from './events';
 import { createRowbotAgent } from './index';
+import { healThread } from './heal';
 import type { RowbotContext } from './state';
 import type { Effort, ModelId } from './models';
 
@@ -134,6 +135,25 @@ export async function* streamRun(
 		model: options.model,
 		effort: options.effort
 	};
+
+	// A thread the last run crashed inside cannot take another message until
+	// the calls it left open are answered. Cheap to check, and the difference
+	// between a document that recovers and one that errors forever.
+	if (!('resume' in options.input)) {
+		const healed = await healThread(
+			agent as unknown as Parameters<typeof healThread>[0],
+			options.threadId
+		);
+		if (healed) {
+			yield {
+				type: 'notice',
+				tone: 'info',
+				text: `Picking up after an interrupted step — ${healed} unfinished tool call${
+					healed === 1 ? '' : 's'
+				} closed off.`
+			};
+		}
+	}
 
 	const input =
 		'resume' in options.input ? new Command({ resume: options.input.resume }) : options.input;
