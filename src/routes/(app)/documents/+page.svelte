@@ -80,7 +80,7 @@
 						</span>
 						<div class="min-w-0">
 							<p class="text-sm font-medium">
-								<span class="text-muted-foreground/60 tabular-nums">{i + 1}.</span>
+								<span class="text-muted-foreground tabular-nums">{i + 1}.</span>
 								{step.title}
 							</p>
 							<p class="mt-1 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
@@ -118,7 +118,7 @@
 
 						<div class="mt-1 px-1">
 							<p
-								class="truncate text-sm font-medium transition-colors group-focus-within:text-primary group-hover:text-primary"
+								class="truncate text-sm font-medium transition-colors group-focus-within:text-accent-ink group-hover:text-accent-ink"
 							>
 								{doc.name}
 							</p>
@@ -142,7 +142,7 @@
 						<span
 							class="pointer-events-none absolute top-1 right-1 flex items-center gap-1 rounded-full bg-background/90 px-2 py-0.5 text-[11px] font-medium text-foreground shadow-sm ring-1 ring-border backdrop-blur-sm"
 						>
-							<HugeiconsIcon icon={FileSpreadsheetIcon} size={11} class="text-primary" />
+							<HugeiconsIcon icon={FileSpreadsheetIcon} size={11} class="text-accent-ink" />
 							{doc.sheetCount}
 						</span>
 					{:else if doc.status === 'pending'}

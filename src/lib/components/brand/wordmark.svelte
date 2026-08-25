@@ -20,6 +20,6 @@
 <span class={cn('inline-flex items-center gap-2 text-foreground', className)}>
 	<Logo class={marks[size]} />
 	<span class={cn('font-semibold tracking-tight', words[size], hideText && 'hidden sm:inline')}>
-		Row<span class="text-primary">bot</span>
+		Row<span class="text-accent-ink">bot</span>
 	</span>
 </span>

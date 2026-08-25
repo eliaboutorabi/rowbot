@@ -152,7 +152,7 @@
 					{#if tab.id === 'chat' && run.busy}
 						<span class="size-1.5 animate-pulse rounded-full bg-primary"></span>
 					{:else if tab.id === 'workbook' && run.workbook?.sheets.length}
-						<span class="text-[11px] text-muted-foreground/60 tabular-nums">
+						<span class="text-[11px] text-muted-foreground tabular-nums">
 							{run.workbook.sheets.length}
 						</span>
 					{/if}
@@ -196,7 +196,7 @@
 					title={run.busy ? 'Rowbot is working' : 'Idle'}
 				>
 					{#if run.busy}
-						<HugeiconsIcon icon={Loading03Icon} size={15} class="animate-spin text-primary" />
+						<HugeiconsIcon icon={Loading03Icon} size={15} class="animate-spin text-accent-ink" />
 					{:else if run.error}
 						<HugeiconsIcon icon={Alert01Icon} size={15} class="text-destructive" />
 					{:else}
@@ -225,7 +225,7 @@
 				<!-- Last thing it did -->
 				{#if lastTool}
 					<span
-						class="flex size-8 items-center justify-center text-muted-foreground/70"
+						class="flex size-8 items-center justify-center text-muted-foreground"
 						title={`Last step: ${lastTool.name}`}
 					>
 						<HugeiconsIcon icon={toolMeta(lastTool.name).icon} size={15} />
@@ -235,7 +235,7 @@
 				<div class="mt-auto flex flex-col items-center gap-2">
 					{#if totalTokens > 0}
 						<span
-							class="text-[10px] text-muted-foreground/60 tabular-nums [writing-mode:vertical-rl]"
+							class="text-[10px] text-muted-foreground tabular-nums [writing-mode:vertical-rl]"
 							title="Tokens used on this run"
 						>
 							{compactNumber(totalTokens)}

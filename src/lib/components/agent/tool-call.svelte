@@ -80,9 +80,9 @@
 		<span
 			class={cn(
 				'flex size-5 shrink-0 items-center justify-center',
-				running && 'text-primary',
+				running && 'text-accent-ink',
 				failed && 'text-destructive',
-				!running && !failed && 'text-muted-foreground/70'
+				!running && !failed && 'text-muted-foreground'
 			)}
 		>
 			<HugeiconsIcon icon={meta.icon} size={15} />
@@ -95,7 +95,7 @@
 			{#if subtitle}
 				<span class="truncate text-muted-foreground">{subtitle}</span>
 			{:else if running && call.argsText}
-				<span class="truncate font-mono text-[11px] text-muted-foreground/60">
+				<span class="truncate font-mono text-[11px] text-muted-foreground">
 					{call.argsText.slice(-56)}
 				</span>
 			{/if}
@@ -110,14 +110,14 @@
 		{/if}
 
 		{#if elapsed !== null && elapsed > 400}
-			<span class="shrink-0 font-mono text-[11px] text-muted-foreground/60 tabular-nums">
+			<span class="shrink-0 font-mono text-[11px] text-muted-foreground tabular-nums">
 				{duration(elapsed)}
 			</span>
 		{/if}
 
 		<span class="flex size-4 shrink-0 items-center justify-center">
 			{#if running}
-				<HugeiconsIcon icon={Loading03Icon} size={13} class="animate-spin text-primary" />
+				<HugeiconsIcon icon={Loading03Icon} size={13} class="animate-spin text-accent-ink" />
 			{:else if failed}
 				<HugeiconsIcon icon={Alert01Icon} size={13} class="text-destructive" />
 			{:else if hasBody}
@@ -125,7 +125,7 @@
 					icon={ArrowRight01Icon}
 					size={13}
 					class={cn(
-						'text-muted-foreground/40 transition-transform',
+						'text-muted-foreground transition-transform',
 						open ? 'rotate-90 text-muted-foreground' : 'group-hover:text-muted-foreground'
 					)}
 				/>
@@ -143,7 +143,7 @@
 								{#if step.kind === 'ocr:page'}
 									Page {step.page + 1} — {step.tables} table{step.tables === 1 ? '' : 's'}
 									{#if step.confidence !== null}
-										<span class="text-muted-foreground/60">
+										<span class="text-muted-foreground">
 											({(step.confidence * 100).toFixed(0)}% confident)
 										</span>
 									{/if}

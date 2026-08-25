@@ -20,7 +20,7 @@
 				class="flex items-center gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-xs font-medium transition hover:bg-accent disabled:opacity-50"
 			>
 				<span>{modelLabel(model)}</span>
-				<span class="text-muted-foreground/50" aria-hidden="true">·</span>
+				<span class="text-muted-foreground" aria-hidden="true">·</span>
 				<span class="text-muted-foreground">{effortLabel(effort)}</span>
 				<HugeiconsIcon icon={ArrowDown01Icon} size={13} class="text-muted-foreground" />
 			</button>
@@ -37,7 +37,7 @@
 				<HugeiconsIcon
 					icon={CheckmarkCircle02Icon}
 					size={15}
-					class={cn('mt-0.5 shrink-0', model === option.id ? 'text-primary' : 'opacity-0')}
+					class={cn('mt-0.5 shrink-0', model === option.id ? 'text-accent-ink' : 'opacity-0')}
 				/>
 				<span class="min-w-0">
 					<span class="block text-sm font-medium">{option.label}</span>
@@ -56,7 +56,7 @@
 				<HugeiconsIcon
 					icon={CheckmarkCircle02Icon}
 					size={15}
-					class={cn('mt-0.5 shrink-0', effort === option.id ? 'text-primary' : 'opacity-0')}
+					class={cn('mt-0.5 shrink-0', effort === option.id ? 'text-accent-ink' : 'opacity-0')}
 				/>
 				<span class="min-w-0">
 					<span class="block text-sm font-medium">{option.label}</span>

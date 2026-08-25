@@ -48,7 +48,7 @@ function references(text: string): string {
 		return (
 			`<button type="button" data-ref="${ref.raw}" ` +
 			'class="mx-px inline-flex items-baseline gap-1 rounded-md bg-primary/10 px-1.5 py-px align-baseline ' +
-			'font-mono text-[0.82em] text-primary transition-colors hover:bg-primary/20 ' +
+			'font-mono text-[0.82em] text-accent-ink transition-colors hover:bg-primary/20 ' +
 			'focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none">' +
 			`${escapeHtml(refLabel(ref))}</button>`
 		);

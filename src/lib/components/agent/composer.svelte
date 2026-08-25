@@ -98,12 +98,12 @@
 		<div class="mb-2 overflow-hidden rounded-2xl border border-primary/35 bg-primary/[0.05]">
 			<div class="flex items-start gap-2.5 px-3.5 pt-3">
 				<span
-					class="mt-px flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/15 text-primary"
+					class="mt-px flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/15 text-accent-ink"
 				>
 					<HugeiconsIcon icon={HelpCircleIcon} size={15} />
 				</span>
 				<div class="min-w-0 flex-1">
-					<p class="text-[10px] font-semibold tracking-[0.09em] text-primary uppercase">
+					<p class="text-[10px] font-semibold tracking-[0.09em] text-accent-ink uppercase">
 						Paused for you
 					</p>
 					<!--
@@ -150,7 +150,7 @@
 							<HugeiconsIcon
 								icon={ArrowRight01Icon}
 								size={15}
-								class="shrink-0 text-muted-foreground/40"
+								class="shrink-0 text-muted-foreground"
 							/>
 						</button>
 					{/each}
@@ -170,7 +170,7 @@
 			<div class="flex flex-wrap items-center gap-1.5 px-3.5 pt-3">
 				{#each attachments as ref (ref.raw)}
 					<span
-						class="flex items-center gap-1 rounded-md bg-primary/10 py-0.5 pr-1 pl-2 font-mono text-[11px] text-primary"
+						class="flex items-center gap-1 rounded-md bg-primary/10 py-0.5 pr-1 pl-2 font-mono text-[11px] text-accent-ink"
 					>
 						{ref.sheet}!{refLabel(ref)}
 						<button
@@ -211,7 +211,7 @@
 
 			{#if totalTokens > 0}
 				<span
-					class="hidden font-mono text-[11px] text-muted-foreground/60 tabular-nums sm:inline"
+					class="hidden font-mono text-[11px] text-muted-foreground tabular-nums sm:inline"
 					title="Tokens used on this run"
 				>
 					{compactNumber(totalTokens)}
@@ -240,7 +240,7 @@
 						'ml-auto flex size-8 shrink-0 items-center justify-center rounded-full transition-all focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none',
 						canSend
 							? 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 active:scale-95'
-							: 'cursor-not-allowed bg-muted text-muted-foreground/50'
+							: 'cursor-not-allowed bg-muted text-muted-foreground'
 					)}
 				>
 					<HugeiconsIcon icon={ArrowUp01Icon} size={17} strokeWidth={2.4} />

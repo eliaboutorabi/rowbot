@@ -79,7 +79,7 @@
 						<HugeiconsIcon
 							icon={ArrowRight01Icon}
 							size={15}
-							class="hidden shrink-0 text-muted-foreground/50 sm:block"
+							class="hidden shrink-0 text-muted-foreground sm:block"
 						/>
 					{/if}
 					{#if crumb.toLibrary}

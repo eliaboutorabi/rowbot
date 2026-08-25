@@ -325,7 +325,7 @@
 						}}
 					>
 						{sheet.name}
-						<span class="text-[11px] text-muted-foreground/60 tabular-nums">
+						<span class="text-[11px] text-muted-foreground tabular-nums">
 							{Math.max(sheet.rows.length - sheet.headerRows, 0)}
 						</span>
 					</button>

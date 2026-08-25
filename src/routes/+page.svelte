@@ -71,7 +71,7 @@
 
 				<h1 class="text-5xl leading-[1.08] font-semibold tracking-tight text-balance sm:text-6xl">
 					Tables out of documents,
-					<span class="text-primary">with the working shown</span>
+					<span class="text-accent-ink">with the working shown</span>
 				</h1>
 
 				<p class="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground">
@@ -96,7 +96,7 @@
 				{#each steps as step (step.title)}
 					<li class="rounded-2xl border bg-card p-6">
 						<span
-							class="mb-4 flex size-10 items-center justify-center rounded-xl border bg-background text-primary"
+							class="mb-4 flex size-10 items-center justify-center rounded-xl border bg-background text-accent-ink"
 						>
 							<HugeiconsIcon icon={step.icon} size={19} />
 						</span>

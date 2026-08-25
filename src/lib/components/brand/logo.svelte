@@ -27,7 +27,7 @@
 	{...rest}
 >
 	<!-- antenna -->
-	<circle cx="16" cy="2.4" r="1.45" class="fill-primary" />
+	<circle cx="16" cy="2.4" r="1.45" class="fill-accent-ink" />
 	<g stroke="currentColor" stroke-width="2" stroke-linecap="round">
 		<path d="M16 3.85V7" />
 		<!-- head -->
@@ -35,8 +35,8 @@
 	</g>
 
 	<!-- eyes: true squares, centres at 11 and 21 -->
-	<rect x="9" y="10.5" width="4" height="4" rx="1.2" class="fill-primary" />
-	<rect x="19" y="10.5" width="4" height="4" rx="1.2" class="fill-primary" />
+	<rect x="9" y="10.5" width="4" height="4" rx="1.2" class="fill-accent-ink" />
+	<rect x="19" y="10.5" width="4" height="4" rx="1.2" class="fill-accent-ink" />
 
 	<!-- data rows, both centred on 16 -->
 	<g stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity="0.42">

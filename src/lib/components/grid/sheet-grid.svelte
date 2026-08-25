@@ -221,11 +221,11 @@
 							-->
 							{#if column.label && sheet.headerRows === 0}
 								<span class="truncate text-foreground/90">{column.label}</span>
-								<span class="shrink-0 text-[10px] font-normal text-muted-foreground/50">
+								<span class="shrink-0 text-[10px] font-normal text-muted-foreground">
 									{columnLetter(c)}
 								</span>
 							{:else}
-								<span class="text-muted-foreground/60">{columnLetter(c)}</span>
+								<span class="text-muted-foreground">{columnLetter(c)}</span>
 							{/if}
 						</button>
 					</th>
@@ -245,11 +245,11 @@
 				>
 					<th
 						class={cn(
-							'sticky left-0 border-r border-b border-[var(--grid-line)] bg-[var(--grid-header-bg)] px-1.5 text-right align-middle text-[11px] font-normal text-muted-foreground/60 tabular-nums',
+							'sticky left-0 border-r border-b border-[var(--grid-line)] bg-[var(--grid-header-bg)] px-1.5 text-right align-middle text-[11px] font-normal text-muted-foreground tabular-nums',
 							gutter,
 							isHeader ? 'z-25' : 'z-10',
-							range?.kind === 'row' && inRange(r, 0) && 'bg-[var(--grid-range)] text-primary',
-							selected?.row === r && 'font-medium text-primary'
+							range?.kind === 'row' && inRange(r, 0) && 'bg-[var(--grid-range)] text-accent-ink',
+							selected?.row === r && 'font-medium text-accent-ink'
 						)}
 						style:top={isHeader ? `${stickyTops[r] ?? 0}px` : undefined}
 						style:border-bottom-width="var(--grid-hairline)"
@@ -312,8 +312,9 @@
 									>
 								{/if}
 								{#if cell.note}
-									<span class="ml-0.5 align-super text-[9px] text-primary" aria-label="Has a note"
-										>●</span
+									<span
+										class="ml-0.5 align-super text-[9px] text-accent-ink"
+										aria-label="Has a note">●</span
 									>
 								{/if}
 							</td>

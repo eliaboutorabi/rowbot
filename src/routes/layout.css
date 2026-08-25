@@ -25,7 +25,9 @@
 	--secondary: oklch(0.967 0.001 286.375);
 	--secondary-foreground: oklch(0.21 0.006 285.885);
 	--muted: oklch(0.96 0.003 325.6);
-	--muted-foreground: oklch(0.542 0.034 322.5);
+	/* 0.542 measured 4.34:1 against the rail — under AA by a hair, and the rail
+	   is where most muted text actually sits. */
+	--muted-foreground: oklch(0.525 0.035 322.5);
 	--accent: oklch(0.96 0.003 325.6);
 	--accent-foreground: oklch(0.212 0.019 322.12);
 	--destructive: oklch(0.577 0.186 27.325);
@@ -48,8 +50,9 @@
 	--sidebar-ring: oklch(0.711 0.019 323.02);
 	--scrollbar-thumb: oklch(0.78 0.012 324 / 0.85);
 	--scrollbar-thumb-hover: oklch(0.66 0.02 324 / 0.95);
-	/* See the note above `--color-rail`. */
+	/* See the notes above `--color-rail` and `--color-accent-ink`. */
 	--rail: oklch(0.977 0.003 326);
+	--accent-ink: oklch(0.525 0.168 3.958);
 }
 
 .dark {
@@ -87,6 +90,7 @@
 	--scrollbar-thumb: oklch(0.42 0.02 322 / 0.9);
 	--scrollbar-thumb-hover: oklch(0.55 0.025 322 / 0.95);
 	--rail: oklch(0.123 0.007 326);
+	--accent-ink: oklch(0.735 0.132 356);
 }
 
 /*
@@ -105,8 +109,22 @@
  *
  *   rail  <  background  <  card
  */
+/*
+ * The accent, twice.
+ *
+ * A brand colour has two jobs and one value cannot do both on a dark ground.
+ * As a fill it wants to be dark enough that white sits on it; as ink it wants
+ * to be light enough to sit on the ground itself. Dark mode's `--primary` is
+ * the fill, and at 2.7:1 against the rail it was failing as ink everywhere it
+ * was used that way — the wordmark, every reference chip, every accent icon.
+ *
+ * So `--primary` stays the fill and `--accent-ink` is the accent used as a
+ * foreground. In light mode they are the same colour; in dark, ink is the
+ * lighter of the two.
+ */
 @theme inline {
 	--color-rail: var(--rail);
+	--color-accent-ink: var(--accent-ink);
 	--font-sans: 'Inter Variable', sans-serif;
 	--color-sidebar-ring: var(--sidebar-ring);
 	--color-sidebar-border: var(--sidebar-border);

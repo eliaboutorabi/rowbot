@@ -81,7 +81,11 @@
 							{#if todo.status === 'completed'}
 								<HugeiconsIcon icon={CheckmarkCircle02Icon} size={15} class="text-chart-2" />
 							{:else if todo.status === 'in_progress'}
-								<HugeiconsIcon icon={Loading03Icon} size={15} class="animate-spin text-primary" />
+								<HugeiconsIcon
+									icon={Loading03Icon}
+									size={15}
+									class="animate-spin text-accent-ink"
+								/>
 							{:else}
 								<span
 									class="mt-[3px] block size-[9px] rounded-full border border-muted-foreground/40"

@@ -115,11 +115,21 @@
 			}
 		}}
 	>
+		<!--
+			Hidden from the tab order and from assistive technology on purpose. The
+			drop zone around it is the control — it carries the role, the label and
+			the key handling — and a focusable descendant inside a `role="button"`
+			would give a screen-reader user two stops for one action, the second of
+			them unlabelled. This element exists only so a click can open the file
+			picker, which is the one thing script cannot do on its own.
+		-->
 		<input
 			bind:this={input}
 			type="file"
 			accept={ACCEPT}
 			class="sr-only"
+			tabindex="-1"
+			aria-hidden="true"
 			onchange={(e) => {
 				const file = e.currentTarget.files?.[0];
 				if (file) upload(file);
@@ -129,7 +139,7 @@
 
 		<span
 			class={cn(
-				'flex size-14 items-center justify-center rounded-2xl border bg-card text-primary shadow-sm transition-transform',
+				'flex size-14 items-center justify-center rounded-2xl border bg-card text-accent-ink shadow-sm transition-transform',
 				dragging ? 'scale-110' : 'group-hover:scale-105'
 			)}
 		>

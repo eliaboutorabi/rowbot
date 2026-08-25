@@ -56,9 +56,9 @@
 
 <div class="flex min-h-dvh flex-col items-center justify-center bg-background px-6 py-16">
 	<div class="w-full max-w-md text-center">
-		<Logo class="mx-auto size-12 text-muted-foreground/70" />
+		<Logo class="mx-auto size-12 text-muted-foreground" />
 
-		<p class="mt-6 font-mono text-xs tracking-widest text-muted-foreground/70 uppercase">
+		<p class="mt-6 font-mono text-xs tracking-widest text-muted-foreground uppercase">
 			Error {page.status}
 		</p>
 		<h1 class="mt-2 text-2xl font-semibold tracking-tight text-balance">{copy.title}</h1>

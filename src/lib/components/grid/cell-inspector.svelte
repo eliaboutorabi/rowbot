@@ -61,7 +61,7 @@
 			{#if onattach}
 				<button
 					type="button"
-					class="flex shrink-0 items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 font-medium text-primary transition-colors hover:bg-primary/20"
+					class="flex shrink-0 items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 font-medium text-accent-ink transition-colors hover:bg-primary/20"
 					onclick={onattach}
 				>
 					<HugeiconsIcon icon={PlusSignIcon} size={12} />
@@ -86,7 +86,7 @@
 			{#if onattach}
 				<button
 					type="button"
-					class="flex shrink-0 items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 font-medium text-primary transition-colors hover:bg-primary/20"
+					class="flex shrink-0 items-center gap-1 rounded-md bg-primary/10 px-2 py-0.5 font-medium text-accent-ink transition-colors hover:bg-primary/20"
 					onclick={onattach}
 				>
 					<HugeiconsIcon icon={PlusSignIcon} size={12} />
@@ -97,7 +97,7 @@
 			{#if onshowsource && sheet.source?.tablePath}
 				<button
 					type="button"
-					class="flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-primary transition-colors hover:bg-primary/10"
+					class="flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-accent-ink transition-colors hover:bg-primary/10"
 					onclick={onshowsource}
 				>
 					<HugeiconsIcon icon={ViewIcon} size={13} />
@@ -151,7 +151,7 @@
 
 		{#if cell.note}
 			<p class="mt-1.5 flex items-start gap-1.5 text-xs leading-relaxed text-foreground">
-				<HugeiconsIcon icon={Note01Icon} size={13} class="mt-0.5 shrink-0 text-primary" />
+				<HugeiconsIcon icon={Note01Icon} size={13} class="mt-0.5 shrink-0 text-accent-ink" />
 				<span class="min-w-0">{cell.note}</span>
 			</p>
 		{/if}

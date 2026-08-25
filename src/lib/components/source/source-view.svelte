@@ -317,7 +317,7 @@
 					<span class="flex items-center gap-1 text-[11px] whitespace-nowrap text-muted-foreground">
 						<span class={cn('size-2.5 rounded-[3px] border', tone(type))}></span>
 						{type.replace(/_/g, ' ')}
-						<span class="text-muted-foreground/50 tabular-nums">{count}</span>
+						<span class="text-muted-foreground tabular-nums">{count}</span>
 					</span>
 				{/each}
 			</div>
@@ -475,7 +475,7 @@
 								{/if}
 							</div>
 
-							<p class="mt-1.5 text-center text-[11px] text-muted-foreground/70">
+							<p class="mt-1.5 text-center text-[11px] text-muted-foreground">
 								Page {info.index + 1}
 								{#if info.averageConfidence !== null}
 									· {(info.averageConfidence * 100).toFixed(1)}% confident
@@ -507,9 +507,9 @@
 								</span>
 							{/if}
 							{#if canLink(hovered.block)}
-								<span class="ml-auto text-[11px] text-primary">Click to open its sheet</span>
+								<span class="ml-auto text-[11px] text-accent-ink">Click to open its sheet</span>
 							{:else if hovered.block.type === 'table'}
-								<span class="ml-auto text-[11px] text-muted-foreground/60">Not a sheet</span>
+								<span class="ml-auto text-[11px] text-muted-foreground">Not a sheet</span>
 							{/if}
 						</div>
 
@@ -537,7 +537,7 @@
 									</tbody>
 								</table>
 							</div>
-							<p class="mt-1.5 text-[11px] text-muted-foreground/70">
+							<p class="mt-1.5 text-[11px] text-muted-foreground">
 								{corner.totalRows} × {corner.totalColumns}{corner.clipped
 									? ' · top-left corner'
 									: ''}
