@@ -3,6 +3,11 @@
 Turns PDFs and images of tables into multi-sheet Excel workbooks — and shows its
 working, so you can check the output before you trust it.
 
+**Live at [rowbot-sigma.vercel.app](https://rowbot-sigma.vercel.app).** Sign-up
+is invite-only — it runs on my own OpenAI and Mistral keys, and an open sign-up
+form is an open invoice. See [Access and limits](#access-and-limits) for how
+that is enforced.
+
 Rowbot is built around two ideas. First, reading a table is a _structural_
 problem, not a text problem: [Mistral Document AI](https://docs.mistral.ai)
 returns tables as HTML with `rowspan`/`colspan`, bounding boxes and per-block
@@ -51,6 +56,20 @@ misread cells to correct, and what the reviewer needs warning about.
 - **Provenance is kept end to end.** Every cell remembers the text the page
   actually showed and how confident the OCR was, surfaced in the grid, the cell
   inspector and as comments in the exported file.
+- **The model names the range; the code does the arithmetic.** `check_totals`
+  (`src/lib/server/agent/tools/totals.ts`) asks the model only for the thing it
+  is good at — which cell is a total and what it covers — and adds the column
+  itself, which makes verification deterministic, free and auditable. A total
+  that reconciles becomes a real Excel `SUM`. One that does not keeps the figure
+  the document printed and carries a flag: Rowbot does not overwrite a source's
+  own number on its own authority, and a workbook that silently disagrees with
+  its source is worse than one that says so.
+- **The sheet and the conversation share a vocabulary.** A1 notation
+  (`src/lib/sheet-ref.ts`) runs in both directions: the agent writes
+  `[[Ledger!D2:D5]]` and it renders as something you can click, and a block you
+  select with shift-arrow attaches to your next message as the same reference.
+  Selecting a column and asking about it is one gesture, and the status bar
+  shows its sum so you can check the agent's arithmetic yourself.
 - **Spend is bounded in two places.** A public demo that calls paid APIs on
   every run needs both halves: `src/lib/server/invites.ts` bounds how many
   accounts exist, and `src/lib/server/entitlements.ts` bounds what each one may
