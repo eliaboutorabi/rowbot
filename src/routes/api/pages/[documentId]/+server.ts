@@ -6,6 +6,7 @@ import { documentPage } from '$lib/server/db/schema';
 import { ownedDocument } from '$lib/server/runs';
 import type { OcrBlock, OcrTable } from '$lib/server/ocr/mistral';
 import { tablePath } from '$lib/server/agent/tools/ocr';
+import { parseTableHtml } from '$lib/server/ocr/html-table';
 
 /**
  * Mistral's page segmentation, for the source viewer's overlay.
@@ -61,6 +62,32 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 		pages: rows.map((row) => {
 			const blocks = (row.blocksJson ?? []) as OcrBlock[];
 			const tables = (row.tablesJson ?? []) as OcrTable[];
+			const byId = new Map(tables.map((table) => [table.id, table]));
+
+			/**
+			 * A corner of the table, for the hover preview. Raw table HTML
+			 * truncated to a string is unreadable, and the whole grid is far too
+			 * much to show over a page — a few rows and columns says what the
+			 * model read there, and the sheet itself is one click away.
+			 */
+			function cornerOf(tableId: string | null | undefined) {
+				const table = tableId ? byId.get(tableId) : undefined;
+				if (!table) return null;
+
+				const parsed = parseTableHtml(table.content);
+				const ROWS = 4;
+				const COLS = 5;
+				return {
+					rows: parsed.rows
+						.slice(0, ROWS)
+						.map((cells) =>
+							cells.slice(0, COLS).map((cell) => (cell.v == null ? '' : String(cell.v)))
+						),
+					totalRows: parsed.rows.length,
+					totalColumns: parsed.width,
+					clipped: parsed.rows.length > ROWS || parsed.width > COLS
+				};
+			}
 
 			return {
 				index: row.pageIndex,
@@ -73,8 +100,8 @@ export const GET: RequestHandler = async ({ params, locals, url }) => {
 					type: block.type,
 					// Same helper the importer used, so a block joins to its sheet.
 					tablePath: block.table_id ? tablePath(row.pageIndex, block.table_id) : null,
-					// Trimmed hard: the overlay shows a label on hover, not the page.
-					preview: (block.content ?? '').replace(/\s+/g, ' ').trim().slice(0, 160),
+					preview: (block.content ?? '').replace(/\s+/g, ' ').trim().slice(0, 320),
+					table: block.type === 'table' ? cornerOf(block.table_id) : null,
 					confidence: block.confidence_scores?.average_confidence_score ?? null,
 					box: {
 						x: block.top_left_x,
