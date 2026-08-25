@@ -77,6 +77,7 @@ export function measureColumns(sheet: Sheet, options: MeasureOptions): ColumnDem
 		 */
 		let headerDemand = width(column.label ?? columnLetter(c), true) + PADDING;
 		const bodyWidths: number[] = [];
+		const figureWidths: number[] = [];
 		let numeric = 0;
 		let seen = 0;
 
@@ -92,14 +93,23 @@ export function measureColumns(sheet: Sheet, options: MeasureOptions): ColumnDem
 			}
 
 			seen++;
-			if (isNumericCell(cell)) numeric++;
-			bodyWidths.push(width(text) + PADDING);
+			const measured = width(text) + PADDING;
+			bodyWidths.push(measured);
+			if (isNumericCell(cell)) {
+				numeric++;
+				figureWidths.push(measured);
+			}
 		}
 
-		const widest = bodyWidths.length ? Math.max(...bodyWidths) : 0;
 		const isNumeric = seen > 0 && numeric / seen >= 0.6;
 
 		if (isNumeric) {
+			// The widest *figure*, not the widest cell. A column of row numbers
+			// with four section labels dropped into it — "1st Semester 2008-2009
+			// Status: Normal" — is still a column of row numbers, and giving it
+			// 550px so a label fits is how one stray row takes half the pane.
+			// The label clips; every number stays whole.
+			const widest = figureWidths.length ? Math.max(...figureWidths) : 0;
 			const floor = Math.max(widest, TEXT_FLOOR);
 			return {
 				// Room for the header when there is room to spare, and the figures

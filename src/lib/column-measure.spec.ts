@@ -70,6 +70,22 @@ describe('measureColumns', () => {
 		expect(column.demand).toBeLessThan(200);
 	});
 
+	it('does not let a section label widen a column of row numbers', () => {
+		// A transcript drops "1st Semester 2008-2009 Status: Normal" into the
+		// first column every few rows. The column is still a column of row
+		// numbers, and sizing it to the label gave it half the pane.
+		const rows: (string | number | null)[][] = [['No.']];
+		for (let i = 1; i <= 40; i++) {
+			if (i % 10 === 0) rows.push([`${i / 10}st Semester 2008-2009 Status: Normal`]);
+			else rows.push([i]);
+		}
+
+		const [column] = measureColumns(sheet(rows), FONT);
+
+		expect(column.min).toBeLessThan(120);
+		expect(column.demand).toBeLessThan(120);
+	});
+
 	it('sizes a column with no body rows from its header alone', () => {
 		const empty = sheet([['Status'], [null], [null]]);
 
