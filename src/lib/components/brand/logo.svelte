@@ -2,8 +2,18 @@
 	import { cn } from '$lib/utils';
 
 	/**
-	 * The Rowbot mark: a table that reads as a face. The top band holds two
-	 * square eyes, the bands below are data rows.
+	 * The Rowbot mark: a table that reads as a face. Two square cells for
+	 * eyes, two data rows below.
+	 *
+	 * Every element is centred on x=16. The rows taper — 11 units then 6 —
+	 * but both are centred rather than left-aligned, so the narrowing reads
+	 * as a table closing on a total row instead of a mouth pulling to one
+	 * side. An earlier draft started both rows at x=8.5 and the asymmetry
+	 * was the first thing anyone noticed.
+	 *
+	 * Vertical spacing is set from the stroke's inner edge (y=8 to y=27),
+	 * not the path, so the padding above the eyes and below the last row
+	 * read as equal: 2.5 above, 2.6 below.
 	 */
 	let { class: className, ...rest }: { class?: string } = $props();
 </script>
@@ -17,25 +27,20 @@
 	{...rest}
 >
 	<!-- antenna -->
-	<path d="M16 2.5v3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-	<circle cx="16" cy="2.5" r="1.75" class="fill-primary" />
+	<circle cx="16" cy="2.4" r="1.45" class="fill-primary" />
+	<g stroke="currentColor" stroke-width="2" stroke-linecap="round">
+		<path d="M16 3.85V7" />
+		<!-- head -->
+		<rect x="4" y="7" width="24" height="21" rx="6" />
+	</g>
 
-	<!-- head / table body -->
-	<rect x="3.5" y="6.5" width="25" height="23" rx="6.5" stroke="currentColor" stroke-width="2" />
+	<!-- eyes: true squares, centres at 11 and 21 -->
+	<rect x="9" y="10.5" width="4" height="4" rx="1.2" class="fill-primary" />
+	<rect x="19" y="10.5" width="4" height="4" rx="1.2" class="fill-primary" />
 
-	<!-- row divider -->
-	<path d="M4 16.5h24" stroke="currentColor" stroke-width="1.5" opacity="0.35" />
-
-	<!-- eyes -->
-	<rect x="8.5" y="10.5" width="4.5" height="3.5" rx="1.25" class="fill-primary" />
-	<rect x="19" y="10.5" width="4.5" height="3.5" rx="1.25" class="fill-primary" />
-
-	<!-- data rows -->
-	<path
-		d="M8.5 21h15M8.5 25h9"
-		stroke="currentColor"
-		stroke-width="2"
-		stroke-linecap="round"
-		opacity="0.55"
-	/>
+	<!-- data rows, both centred on 16 -->
+	<g stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity="0.42">
+		<path d="M10.5 19h11" />
+		<path d="M13 23.2h6" />
+	</g>
 </svg>
