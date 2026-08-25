@@ -20,25 +20,31 @@ export type SidebarPanel = 'chat' | 'projects' | 'settings' | 'account';
 class Sidebar {
 	open = $state<SidebarPanel | null>('chat');
 
-	/** What was showing before settings or the account took the space. */
-	#resume: SidebarPanel | null = 'chat';
+	/**
+	 * Whether the conversation should come back when an overlay panel closes.
+	 *
+	 * True to begin with, because it starts open. It only goes false when the
+	 * conversation is deliberately dismissed — so closing settings hands the
+	 * space back to what you were reading, and closing settings *after* you had
+	 * already hidden the conversation leaves the sheet at full width, which is
+	 * what you asked for both times.
+	 */
+	#restoreChat = true;
 
 	toggle(panel: SidebarPanel) {
-		if (this.open === panel) {
-			// Closing settings hands the space back to the conversation rather
-			// than to nothing — you were reading it a moment ago.
-			this.open = panel === 'chat' ? null : this.#resume;
-			if (panel === 'chat') this.#resume = null;
+		if (panel === 'chat') {
+			const closing = this.open === 'chat';
+			this.#restoreChat = !closing;
+			this.open = closing ? null : 'chat';
 			return;
 		}
-		if (panel !== 'chat') this.#resume = this.open === panel ? this.#resume : this.open;
-		else this.#resume = 'chat';
-		this.open = panel;
+
+		this.open = this.open === panel ? (this.#restoreChat ? 'chat' : null) : panel;
 	}
 
 	close() {
 		this.open = null;
-		this.#resume = null;
+		this.#restoreChat = false;
 	}
 }
 

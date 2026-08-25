@@ -35,6 +35,7 @@
 	let { initials }: { initials: string } = $props();
 
 	const isWorkspace = $derived(page.url.pathname.startsWith('/d/'));
+	const onLibrary = $derived(page.url.pathname.startsWith('/documents'));
 </script>
 
 {#snippet railButton(panel: SidebarPanel, icon: IconSvgElement, label: { on: string; off: string })}
@@ -67,12 +68,17 @@
 		<Logo class="size-[23px]" />
 	</a>
 
-	<div class="relative">
+	<!--
+		Not in the library, where the same list is already the page. The panel
+		exists to hop between projects while you are working on one; offering it
+		here would be the third door to the room you are standing in.
+	-->
+	{#if !onLibrary}
 		{@render railButton('projects', DashboardSquare01Icon, {
 			on: 'Close the project list',
 			off: 'Your projects'
 		})}
-	</div>
+	{/if}
 
 	{#if isWorkspace}
 		<!--

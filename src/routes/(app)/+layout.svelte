@@ -42,6 +42,14 @@
 	const showing = $derived(sidebar.open === 'chat' ? null : sidebar.open);
 
 	const TITLES = { projects: 'Projects', settings: 'Settings', account: 'Account' } as const;
+
+	// Arriving at the library with the project list open would show the same
+	// thing twice, in two sizes, side by side.
+	$effect(() => {
+		if (page.url.pathname.startsWith('/documents') && sidebar.open === 'projects') {
+			sidebar.toggle('projects');
+		}
+	});
 </script>
 
 <div class="flex h-dvh bg-background">
