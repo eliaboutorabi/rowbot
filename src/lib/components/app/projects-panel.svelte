@@ -19,7 +19,7 @@
 		Pdf01Icon,
 		Search01Icon
 	} from '@hugeicons/core-free-icons';
-	import { timeAgo } from '$lib/format';
+	import { secondaryName, timeAgo } from '$lib/format';
 	import { cn } from '$lib/utils';
 
 	interface Entry {
@@ -114,6 +114,9 @@
 									{entry.title ?? entry.name}
 								</span>
 								<span class="mt-0.5 block truncate text-[11px] text-muted-foreground">
+									{#if secondaryName(entry.title, entry.name)}
+										{entry.name} ·
+									{/if}
 									{#if entry.sheetCount}
 										{entry.sheetCount}
 										{entry.sheetCount === 1 ? 'sheet' : 'sheets'} ·

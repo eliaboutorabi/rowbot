@@ -19,7 +19,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
-	import { timeAgo } from '$lib/format';
+	import { secondaryName, timeAgo } from '$lib/format';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -227,7 +227,7 @@
 										size={12}
 										class="shrink-0"
 									/>
-									{#if doc.title}
+									{#if secondaryName(doc.title, doc.name)}
 										<span class="truncate">{doc.name}</span> ·
 									{/if}
 									<!-- No page count. The deck already shows how thick the

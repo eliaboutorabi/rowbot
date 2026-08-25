@@ -36,3 +36,30 @@ export function duration(ms: number): string {
 
 const COMPACT = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 });
 export const compactNumber = (n: number) => COMPACT.format(n);
+
+/**
+ * The filename, when it is worth saying as well as the title.
+ *
+ * A project shows what the agent called the workbook, with the file it came
+ * from underneath — which is useful when they differ ("Meridian Group —
+ * Global Sales Ledger FY2025", from `huge-ledger`) and is noise when they do
+ * not ("Elham Aboutorabi Diploma Transcript", from
+ * `Elham Aboutorabi Diploma-transcript`, truncated to look like a worse copy
+ * of the line above it).
+ *
+ * Compared on letters and digits alone, because the difference between the
+ * two is almost always punctuation: a hyphen for a space, a dropped capital,
+ * an ampersand written out.
+ */
+export function secondaryName(title: string | null, filename: string): string | null {
+	if (!title) return null;
+
+	const plain = (value: string) => value.toLowerCase().replace(/[^a-z0-9]+/g, '');
+	const a = plain(title);
+	const b = plain(filename);
+	if (!a || !b) return filename;
+
+	// Either containing the other covers a filename that is the title with the
+	// year lopped off, and a title that is the filename plus a few words.
+	return a.includes(b) || b.includes(a) ? null : filename;
+}
