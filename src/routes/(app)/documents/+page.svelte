@@ -230,10 +230,9 @@
 									{#if doc.title}
 										<span class="truncate">{doc.name}</span> ·
 									{/if}
-									{#if doc.pageCount}
-										{doc.pageCount}
-										{doc.pageCount === 1 ? 'page' : 'pages'} ·
-									{/if}
+									<!-- No page count. The deck already shows how thick the
+									     document is, which is the only thing the number was
+									     telling you and it says it without being read. -->
 									{timeAgo(doc.createdAt)}
 								</p>
 							</div>

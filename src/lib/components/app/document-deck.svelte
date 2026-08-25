@@ -170,9 +170,12 @@
 		object-fit: cover;
 		object-position: top center;
 		background: #fff;
-		border-radius: 6px;
-		/* Carries the dark-mode rim; unset in light mode, where the shadow is
-		   doing the separating and a rim would only muddy the paper edge. */
+		/* Rounder than paper, because these are not photographs of paper —
+		   they are cards, and every other card in the app is round. */
+		border-radius: 10px;
+		/* Carries the rim that does most of the separating now that the shadow
+		   has been cut back: one hairline per page rather than five stacked
+		   copies of an eighteen-pixel blur. */
 		box-shadow: var(--deck-rim, none);
 
 		transform-origin: 50% 100%;
