@@ -16,11 +16,21 @@
 	import {
 		Alert01Icon,
 		CheckmarkCircle02Icon,
+		DashboardSquare01Icon,
 		File01Icon,
 		FileSpreadsheetIcon,
+		Message01Icon,
+		Moon02Icon,
+		Settings01Icon,
 		TaskDaily01Icon
 	} from '@hugeicons/core-free-icons';
 	import Logo from '$lib/components/brand/logo.svelte';
+
+	/** The rail, in the order the real one has them. */
+	const RAIL = [
+		{ icon: Message01Icon, label: 'Conversation', active: true },
+		{ icon: DashboardSquare01Icon, label: 'Projects', active: false }
+	];
 
 	const plan = [
 		'OCR the page and find its tables',
@@ -48,17 +58,28 @@
 <div
 	class="overflow-hidden rounded-2xl border bg-rail shadow-2xl shadow-black/10 dark:shadow-black/40"
 >
-	<!-- Window chrome. Three dots and a title, which is all anyone reads. -->
-	<div class="flex h-9 items-center gap-2 border-b px-3.5">
-		<span class="flex gap-1.5" aria-hidden="true">
-			{#each [0, 1, 2] as dot (dot)}
-				<span class="size-2 rounded-full bg-muted-foreground/25"></span>
+	<!--
+		No title bar and no three dots. The app does not have a bar across the
+		top — that is rather the point of it — and a shot that invents one is
+		advertising an interface nobody will find when they arrive.
+	-->
+	<div class="grid md:grid-cols-[2.25rem_16rem_1fr]">
+		<!-- The rail: all the chrome there is. -->
+		<div class="hidden flex-col items-center gap-2 border-r py-2.5 md:flex" aria-hidden="true">
+			<Logo class="mb-0.5 size-4" />
+			{#each RAIL as item (item.label)}
+				<HugeiconsIcon
+					icon={item.icon}
+					size={13}
+					class={item.active ? 'text-accent-ink' : 'text-muted-foreground/60'}
+				/>
 			{/each}
-		</span>
-		<span class="ml-1 truncate text-xs text-muted-foreground"> calder-revenue.pdf — Rowbot </span>
-	</div>
+			<span class="flex-1"></span>
+			<HugeiconsIcon icon={Moon02Icon} size={13} class="text-muted-foreground/60" />
+			<HugeiconsIcon icon={Settings01Icon} size={13} class="text-muted-foreground/60" />
+			<span class="mt-0.5 size-4 rounded-full bg-foreground/10"></span>
+		</div>
 
-	<div class="grid md:grid-cols-[17rem_1fr]">
 		<!-- The conversation. Below `md` the sheet is the whole story. -->
 		<div class="hidden flex-col gap-2.5 border-r p-3 md:flex">
 			<div class="rounded-xl border bg-card p-2.5">
