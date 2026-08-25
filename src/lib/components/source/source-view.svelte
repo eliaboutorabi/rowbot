@@ -28,12 +28,18 @@
 		documentId,
 		mimeType,
 		linkedPaths = [],
+		focus = null,
 		onopentable
 	}: {
 		documentId: string;
 		mimeType: string;
 		/** Table paths that actually became sheets; only these are offered as links. */
 		linkedPaths?: string[];
+		/**
+		 * A region to reveal. The nonce is what makes the same request twice
+		 * scroll again — without it this effect sees no change on a repeat click.
+		 */
+		focus?: { tablePath: string; nonce: number } | null;
 		onopentable?: (tablePath: string) => void;
 	} = $props();
 
@@ -267,6 +273,33 @@
 		};
 	}
 
+	/**
+	 * Coming from a cell: scroll its page into view and pulse the block it was
+	 * read from. Region-level rather than cell-level — Mistral gives a bounding
+	 * box per block, not per cell, and dividing the box by the grid would be
+	 * inventing coordinates for a product whose whole argument is that it
+	 * doesn't invent things.
+	 */
+	let flashing = $state<string | null>(null);
+	let flashTimer: ReturnType<typeof setTimeout> | undefined;
+
+	$effect(() => {
+		const request = focus;
+		if (!request || loading || !pages.length) return;
+
+		const page = pages.find((info) =>
+			info.blocks.some((block) => block.tablePath === request.tablePath)
+		);
+		if (!page) return;
+
+		flashing = request.tablePath;
+		tick().then(() => pageEls[page.index]?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+
+		clearTimeout(flashTimer);
+		flashTimer = setTimeout(() => (flashing = null), 2600);
+		return () => clearTimeout(flashTimer);
+	});
+
 	const canLink = (block: Block) =>
 		Boolean(block.tablePath && onopentable && linked.has(block.tablePath));
 </script>
@@ -411,7 +444,10 @@
 												class={cn(
 													'absolute rounded-[3px] border transition-colors',
 													tone(block.type),
-													canLink(block) ? 'cursor-pointer' : 'cursor-default'
+													canLink(block) ? 'cursor-pointer' : 'cursor-default',
+													flashing !== null &&
+														block.tablePath === flashing &&
+														'animate-[pulse_0.9s_ease-in-out_3] border-2 border-primary bg-primary/25 ring-4 ring-primary/30'
 												)}
 												style:left={pos.left}
 												style:top={pos.top}

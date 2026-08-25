@@ -35,6 +35,21 @@
 	let selected = $state<{ row: number; column: number } | null>(null);
 
 	/**
+	 * A request to reveal a region on the page. The nonce is what makes
+	 * clicking the same cell twice scroll to it again — without it the effect
+	 * on the other side sees no change and does nothing.
+	 */
+	let focus = $state<{ tablePath: string; nonce: number } | null>(null);
+	let nonce = 0;
+
+	function showOnPage() {
+		const path = active?.source?.tablePath;
+		if (!path) return;
+		focus = { tablePath: path, nonce: ++nonce };
+		view = 'source';
+	}
+
+	/**
 	 * Crossing from a block on the page to the sheet it became. Both sides
 	 * name the table by the same workspace path, so this is a lookup rather
 	 * than a guess.
@@ -150,7 +165,7 @@
 
 	{#if view === 'source'}
 		<div class="min-h-0 flex-1">
-			<SourceView {documentId} {mimeType} {linkedPaths} onopentable={openTable} />
+			<SourceView {documentId} {mimeType} {linkedPaths} {focus} onopentable={openTable} />
 		</div>
 	{:else if !sheets.length}
 		<div class="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
@@ -215,7 +230,7 @@
 				</div>
 
 				{#if active}
-					<CellInspector sheet={active} {selected} />
+					<CellInspector sheet={active} {selected} onshowsource={showOnPage} />
 				{/if}
 			</div>
 		</div>

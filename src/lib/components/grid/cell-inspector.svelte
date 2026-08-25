@@ -8,13 +8,21 @@
 	 * a human — was truncated at 16rem and unreadable.
 	 */
 	import { HugeiconsIcon } from '@hugeicons/svelte';
-	import { Alert01Icon, Note01Icon } from '@hugeicons/core-free-icons';
+	import { Alert01Icon, Note01Icon, ViewIcon } from '@hugeicons/core-free-icons';
 	import { cellRef, type Sheet } from '$lib/types/workbook';
 	import { TYPE_LABEL, formatCell } from '$lib/cell-format';
 	import { cn } from '$lib/utils';
 
-	let { sheet, selected }: { sheet: Sheet; selected: { row: number; column: number } | null } =
-		$props();
+	let {
+		sheet,
+		selected,
+		onshowsource
+	}: {
+		sheet: Sheet;
+		selected: { row: number; column: number } | null;
+		/** Jump to the region of the page this sheet was read from. */
+		onshowsource?: () => void;
+	} = $props();
 
 	const cell = $derived(selected ? sheet.rows[selected.row]?.[selected.column] : undefined);
 	const columnFormat = $derived(selected ? sheet.columns[selected.column]?.fmt : undefined);
@@ -50,6 +58,17 @@
 			{/if}
 
 			<span class="text-muted-foreground">{TYPE_LABEL[cell.t]}</span>
+
+			{#if onshowsource && sheet.source?.tablePath}
+				<button
+					type="button"
+					class="flex shrink-0 items-center gap-1 rounded-md px-1.5 py-0.5 text-primary transition-colors hover:bg-primary/10"
+					onclick={onshowsource}
+				>
+					<HugeiconsIcon icon={ViewIcon} size={13} />
+					Show on page{sheet.source.pageIndex !== undefined ? ` ${sheet.source.pageIndex + 1}` : ''}
+				</button>
+			{/if}
 
 			{#if confidence !== undefined && band}
 				<span
