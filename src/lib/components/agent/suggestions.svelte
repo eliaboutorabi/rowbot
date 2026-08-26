@@ -23,26 +23,41 @@
 		items,
 		onpick,
 		disabled = false,
+		size = 'md',
 		class: className
 	}: {
 		items: Suggestion[];
 		onpick: (prompt: string) => void;
 		disabled?: boolean;
+		/**
+		 * `md` opens a document, where these two chips are the call to action
+		 * under a greeting and should carry that weight. `sm` closes a turn,
+		 * where they sit under the agent's own words and are an aside — at the
+		 * opening size they competed with the thing they are a footnote to.
+		 */
+		size?: 'sm' | 'md';
 		class?: string;
 	} = $props();
+
+	const small = $derived(size === 'sm');
 </script>
 
-<div class={cn('flex flex-wrap justify-center gap-2', className)}>
+<div class={cn('flex flex-wrap justify-center', small ? 'gap-1.5' : 'gap-2', className)}>
 	{#each items as item (item.label)}
 		<button
 			type="button"
 			{disabled}
 			onclick={() => onpick(item.prompt)}
-			class="group flex items-center gap-2 rounded-full border bg-card px-3.5 py-2 text-[0.8125rem] font-medium text-foreground/85 shadow-sm transition-all hover:-translate-y-px hover:border-primary/40 hover:bg-accent/50 hover:text-foreground hover:shadow focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 motion-reduce:hover:translate-y-0"
+			class={cn(
+				'group flex items-center rounded-full border transition-all hover:border-primary/40 hover:bg-accent/50 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 motion-reduce:hover:translate-y-0',
+				small
+					? 'gap-1.5 border-border/70 bg-card/60 px-2.5 py-1 text-xs text-muted-foreground'
+					: 'gap-2 bg-card px-3.5 py-2 text-[0.8125rem] font-medium text-foreground/85 shadow-sm hover:-translate-y-px hover:shadow'
+			)}
 		>
 			<Icon
 				icon={item.icon}
-				size={14}
+				size={small ? 12 : 14}
 				class="shrink-0 text-muted-foreground transition-colors group-hover:text-accent-ink"
 			/>
 			{item.label}

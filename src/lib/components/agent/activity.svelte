@@ -82,12 +82,32 @@
 		pinned = distance < 80;
 	}
 
+	const toBottom = () => viewport?.scrollTo({ top: viewport.scrollHeight });
+
 	$effect(() => {
 		// Reading these is what subscribes the effect to new activity.
 		const changed = run.timeline.length + run.todos.length;
-		if (changed >= 0 && pinned && viewport) {
-			viewport.scrollTo({ top: viewport.scrollHeight });
-		}
+		if (changed >= 0 && pinned) toBottom();
+	});
+
+	/**
+	 * Stay at the bottom when the viewport itself shrinks, not only when the
+	 * conversation grows.
+	 *
+	 * Everything below this column can change height under it — the suggestion
+	 * strip appears when a turn finishes, the composer grows with a long
+	 * message — and each of those takes rows away from the bottom of the
+	 * conversation without anything here changing. The effect above never fires,
+	 * so the last thing the agent said slides up out of view at the exact moment
+	 * the reviewer is being asked what to do about it.
+	 */
+	$effect(() => {
+		if (!viewport) return;
+		const observer = new ResizeObserver(() => {
+			if (pinned) toBottom();
+		});
+		observer.observe(viewport);
+		return () => observer.disconnect();
 	});
 </script>
 

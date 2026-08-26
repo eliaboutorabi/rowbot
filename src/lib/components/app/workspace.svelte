@@ -386,8 +386,8 @@
 			     on a failed turn: the thing to do there is the retry button, and
 			     three cheerful suggestions under an error read badly. -->
 			{#if !run.busy && !failure && run.workbook?.sheets.length}
-				<div class="shrink-0 border-t px-3 py-2.5">
-					<Suggestions items={followUp} onpick={send} class="justify-start" />
+				<div class="shrink-0 border-t px-3 py-2">
+					<Suggestions items={followUp} onpick={send} size="sm" class="justify-start" />
 				</div>
 			{/if}
 

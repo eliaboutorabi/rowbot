@@ -41,11 +41,19 @@
 		documentId,
 		mimeType,
 		linkedPaths = [],
+		reading = false,
 		focus = null,
 		onopentable
 	}: {
 		documentId: string;
 		mimeType: string;
+		/**
+		 * A run is in progress, so a read may be about to arrive. Watched rather
+		 * than acted on: the segmentation is fetched once when this pane opens,
+		 * and before this the pane a reviewer was watching during the very run
+		 * that read the document stayed blank until they reloaded the page.
+		 */
+		reading?: boolean;
 		/** Table paths that actually became sheets; only these are offered as links. */
 		linkedPaths?: string[];
 		/**
@@ -158,7 +166,7 @@
 
 	/* ── Segmentation ────────────────────────────────────────────────── */
 
-	onMount(async () => {
+	async function loadSegmentation() {
 		try {
 			const response = await fetch(`/api/pages/${documentId}`);
 			if (!response.ok) throw new Error(`Could not load the page data (${response.status}).`);
@@ -170,6 +178,24 @@
 		} finally {
 			loading = false;
 		}
+	}
+
+	onMount(loadSegmentation);
+
+	/**
+	 * Pick up a read that landed while this pane was open.
+	 *
+	 * Only when a run has just ended, and only when there is something to gain:
+	 * the blocks of a forty-page document are not a small payload, and fetching
+	 * them again after a turn that renamed a column would be paying for nothing.
+	 */
+	// Plain, not `$state`: the effect writes it, and a reactive flag it also
+	// reads would make it re-run itself.
+	let wasReading = false;
+	$effect(() => {
+		const ended = wasReading && !reading;
+		wasReading = reading;
+		if (ended && !loading && pages.length < (pageCount || 1)) void loadSegmentation();
 	});
 
 	/* ── Rendering ───────────────────────────────────────────────────── */

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import Icon from '$lib/components/ui/icon.svelte';
 	import {
 		BorderBottom01Icon,
@@ -140,7 +140,7 @@
 			return;
 		}
 
-		view = 'workbook';
+		show('workbook');
 		activeId = match.id;
 		selected = { row, column };
 
@@ -179,7 +179,36 @@
 	}
 
 	type View = 'workbook' | 'source' | 'split';
-	let view = $state<View>('workbook');
+
+	/**
+	 * Which pane opens, and the one time this changes it on the reviewer's
+	 * behalf.
+	 *
+	 * A document nobody has read yet has an empty workbook, so opening there
+	 * meant an empty grid beside a chat box while the file they had just
+	 * uploaded — and most likely wanted to check they had uploaded — sat behind
+	 * a tab. An unread document opens on the page instead.
+	 *
+	 * The moment the first table is imported the right answer changes, because
+	 * the workbook is what they came for, so it switches over. Once. After that,
+	 * or as soon as the reviewer picks a pane themselves, the choice is theirs:
+	 * a view that keeps sliding out from under you while a run is going is worse
+	 * than one that opened on the wrong thing.
+	 */
+	// `untrack` because this is the initial value and is meant to be: the store
+	// is constructed from the page's own data, so a document that already has
+	// sheets has them on the very first render and opens on them without a
+	// flash of the page it was read from.
+	let view = $state<View>(untrack(() => workbook?.sheets?.length) ? 'workbook' : 'source');
+	/** The reviewer has picked a pane, so stop picking one for them. */
+	let picked = $state(false);
+	/** The one automatic switch has been spent. */
+	let handedOver = $state(false);
+
+	function show(next: View) {
+		picked = true;
+		view = next;
+	}
 	/**
 	 * Once the source has been opened it stays mounted, hidden, so switching
 	 * back does not re-fetch the page data or throw away pages already drawn.
@@ -296,7 +325,9 @@
 		};
 		// Somebody who has docked the page wants to keep seeing the workbook;
 		// only the tabbed view needs to switch to show them the page at all.
-		if (view !== 'split') view = 'source';
+		// Either way this is the reviewer asking for a pane, so it counts.
+		if (view !== 'split') show('source');
+		else picked = true;
 	}
 
 	/**
@@ -304,13 +335,23 @@
 	 * name the table by the same workspace path, so this is a lookup rather
 	 * than a guess.
 	 */
+	/**
+	 * Show the workbook, unless both are already showing. The mirror of what
+	 * `focusCell` does going the other way: somebody in the split view can see
+	 * the sheet without the page being taken away from them.
+	 */
+	function toWorkbook() {
+		if (view !== 'split') show('workbook');
+		else picked = true;
+	}
+
 	function openTable(path: string) {
 		const first = sheets.find((sheet) => sheet.source?.tablePath === path);
 		if (first) {
 			activeId = first.id;
 			selected = null;
 			range = null;
-			view = 'workbook';
+			toWorkbook();
 			return;
 		}
 
@@ -322,12 +363,22 @@
 		if (!stitched) return;
 		activeId = stitched.id;
 		range = null;
-		view = 'workbook';
+		toWorkbook();
 		const at = stitched.continuedAt?.[stitched.continuedFrom?.indexOf(path) ?? -1];
 		selected = at === undefined ? null : { row: at, column: 0 };
 	}
 
 	const sheets = $derived(workbook?.sheets ?? []);
+
+	// The handover: an unread document opened on the page, and the first sheet
+	// to arrive means there is now something better to look at. Deliberately
+	// does not read `view`, so asking to see a cell on the page later cannot
+	// bounce straight back to the workbook.
+	$effect(() => {
+		if (picked || handedOver || !sheets.length) return;
+		handedOver = true;
+		view = 'workbook';
+	});
 
 	/* ── History ──────────────────────────────────────────────────────
 	   Loaded when the popover opens rather than with the page: it is a thing
@@ -506,7 +557,7 @@
 							: 'text-muted-foreground hover:text-foreground'
 					)}
 					aria-pressed={view === tab.id}
-					onclick={() => (view = tab.id)}
+					onclick={() => show(tab.id)}
 				>
 					<Icon icon={tab.icon} size={14} />
 					{tab.label}
@@ -526,7 +577,7 @@
 				)}
 				aria-pressed={view === 'split'}
 				title={view === 'split' ? 'Show one at a time' : 'Show the workbook and the page together'}
-				onclick={() => (view = view === 'split' ? 'workbook' : 'split')}
+				onclick={() => show(view === 'split' ? 'workbook' : 'split')}
 			>
 				<Icon icon={BorderBottom01Icon} size={14} />
 				<span class="sr-only">Split the view</span>
@@ -604,7 +655,7 @@
 											class="mb-1 block text-xs font-medium text-accent-ink"
 											onclick={() => {
 												activeId = sheet.id;
-												view = 'workbook';
+												show('workbook');
 											}}
 										>
 											<span dir="auto">{sheet.name}</span>
@@ -807,7 +858,7 @@
 					{/if}
 				</p>
 				{#if finished}
-					<Button variant="outline" size="sm" class="mt-1 gap-2" onclick={() => (view = 'source')}>
+					<Button variant="outline" size="sm" class="mt-1 gap-2" onclick={() => show('source')}>
 						<Icon icon={File01Icon} size={15} />
 						See what it read
 					</Button>
@@ -959,7 +1010,14 @@
 			class={cn('min-h-0', view === 'source' ? 'flex-1' : view === 'split' ? 'shrink-0' : 'hidden')}
 			style:height={view === 'split' ? `${dockHeight}px` : undefined}
 		>
-			<SourceView {documentId} {mimeType} {linkedPaths} {focus} onopentable={openTable} />
+			<SourceView
+				{documentId}
+				{mimeType}
+				{linkedPaths}
+				reading={busy}
+				{focus}
+				onopentable={openTable}
+			/>
 		</div>
 	{/if}
 </div>
