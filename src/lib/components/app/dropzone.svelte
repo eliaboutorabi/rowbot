@@ -114,16 +114,16 @@
 		aria-busy={uploading}
 		class={cn(
 			/*
-			 * A softer box than it was. Two dashed pixels and fourteen of padding
-			 * made the largest, loudest thing on the library the one part of it
-			 * with nothing in it — before any of the reader's own work. It keeps
-			 * the dashes, because that is what says "drop something here", but at
-			 * one pixel over a wash rather than a hard rectangle around a void.
+			 * A well rather than a card: lighter than the page in light, darker in
+			 * dark, so it reads as somewhere to put something into rather than
+			 * another panel sitting on top. The border is drawn as an SVG below,
+			 * not by `border-dashed` — CSS gives no control over how long a dash
+			 * is or where it starts, and both are the whole effect here.
 			 */
-			'group relative flex cursor-pointer flex-col items-center justify-center gap-3.5 overflow-hidden rounded-2xl border border-dashed px-8 py-10 text-center transition-colors',
+			'group relative flex cursor-pointer flex-col items-center justify-center gap-3.5 rounded-2xl px-8 py-10 text-center transition-colors',
 			dragging
-				? 'border-primary bg-primary/[0.07]'
-				: 'border-border/80 bg-gradient-to-b from-card/70 to-card/20 hover:border-primary/50 hover:from-primary/[0.05]',
+				? 'bg-primary/[0.07]'
+				: 'bg-gradient-to-b from-white/70 to-white/30 hover:from-primary/[0.05] dark:from-black/30 dark:to-black/10',
 			uploading && 'pointer-events-none opacity-70',
 			className
 		)}
@@ -149,6 +149,27 @@
 			them unlabelled. This element exists only so a click can open the file
 			picker, which is the one thing script cannot do on its own.
 		-->
+		<!--
+			The border, and the ants.
+
+			`stroke-dasharray` says how long a dash is and how far apart they sit,
+			which no CSS border can; animating `stroke-dashoffset` walks them round
+			the edge. The rectangle's geometry comes from CSS rather than
+			attributes so it can be inset by exactly half the stroke — otherwise
+			the outer half of the line falls outside the box and the corners look
+			clipped.
+		-->
+		<svg class="pointer-events-none absolute inset-0 size-full" aria-hidden="true">
+			<rect
+				class={cn('ants', dragging && 'ants-eager')}
+				fill="none"
+				stroke="currentColor"
+				stroke-width="1.75"
+				stroke-dasharray="9 9"
+				stroke-linecap="round"
+			/>
+		</svg>
+
 		<input
 			bind:this={input}
 			type="file"
@@ -192,3 +213,43 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	.ants {
+		/* Geometry as CSS properties, which SVG2 allows and which lets the rect
+		   inset itself by half a stroke without hard-coding the box size. */
+		x: 0.75px;
+		y: 0.75px;
+		width: calc(100% - 1.5px);
+		height: calc(100% - 1.5px);
+		rx: 15px;
+		ry: 15px;
+		/* `--border` is a hairline colour, drawn to disappear. These dashes are
+		   the invitation, so they sit well above it in both themes. */
+		color: color-mix(in oklab, var(--foreground) 30%, transparent);
+		animation: ants 12s linear infinite;
+	}
+
+	/* Faster and in the accent the moment something is over the box, so the
+	   border answers the drag before the drop lands. */
+	.ants-eager {
+		color: var(--primary);
+		animation-duration: 2.4s;
+	}
+
+	@keyframes ants {
+		to {
+			stroke-dashoffset: -180;
+		}
+	}
+
+	:global(.group:hover) .ants {
+		color: color-mix(in oklab, var(--primary) 55%, transparent);
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.ants {
+			animation: none;
+		}
+	}
+</style>
