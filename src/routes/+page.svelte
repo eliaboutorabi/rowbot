@@ -157,16 +157,22 @@
 				class="grid gap-px overflow-hidden rounded-2xl bg-border/70 ring-1 ring-border md:grid-cols-3"
 			>
 				{#each steps as step (step.title)}
-					<li class="group bg-card p-6 transition-colors duration-200 hover:bg-accent/40">
+					<!--
+						A wash rather than a flat fill, warming towards the corner the
+						mark sits in. Enough to give the surface a direction and no more:
+						at this size a gradient you can name is a gradient that has taken
+						over. No hover — these are three statements, not three controls,
+						and a surface that lights up under the pointer promises a click
+						that never comes.
+					-->
+					<li
+						class="bg-gradient-to-br from-primary/[0.055] via-card to-card p-6 dark:from-primary/[0.09]"
+					>
 						<!-- Two lines' worth of room whether the title needs it or not, so
 						     the three paragraphs start on the same line as each other. One
 						     title wrapping should not stagger the row. -->
 						<h2 class="flex items-start gap-2.5 font-medium md:min-h-[3rem]">
-							<Icon
-								icon={step.icon}
-								size={18}
-								class="mt-0.5 shrink-0 text-accent-ink transition-transform duration-200 group-hover:scale-110 motion-reduce:group-hover:scale-100"
-							/>
+							<Icon icon={step.icon} size={18} class="mt-0.5 shrink-0 text-accent-ink" />
 							<span class="text-balance">{step.title}</span>
 						</h2>
 						<p class="mt-3 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
