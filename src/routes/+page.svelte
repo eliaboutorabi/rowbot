@@ -86,13 +86,6 @@
 	<main>
 		<section class="relative px-6 pt-16 pb-20">
 			<div class="mx-auto max-w-3xl text-center">
-				<p
-					class="mb-6 inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground"
-				>
-					<span class="size-1.5 rounded-full bg-primary"></span>
-					Mistral Document AI · GPT-5.6 · Deep Agents
-				</p>
-
 				<h1 class="text-5xl leading-[1.08] font-semibold tracking-tight text-balance sm:text-6xl">
 					Tables out of documents,
 					<span class="text-accent-ink">with the working shown</span>
