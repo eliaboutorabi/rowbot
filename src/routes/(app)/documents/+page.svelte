@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
 	import { invalidateAll } from '$app/navigation';
 	import Icon from '$lib/components/ui/icon.svelte';
@@ -8,11 +9,13 @@
 		Delete02Icon,
 		FileSpreadsheetIcon,
 		Image01Icon,
+		ArrowDataTransferVerticalIcon,
 		More01Icon,
 		Message01Icon,
 		Pdf01Icon,
 		ScanImageIcon,
-		Search01Icon
+		Search01Icon,
+		Tick02Icon
 	} from '@hugeicons/core-free-icons';
 	import { toast } from 'svelte-sonner';
 	import Dropzone from '$lib/components/app/dropzone.svelte';
@@ -22,6 +25,7 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { secondaryName, timeAgo } from '$lib/format';
+	import { isSortKey, lastTouched, SORTS, sortDocuments, type SortKey } from '$lib/sort-documents';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -49,32 +53,55 @@
 
 	const matches = $derived.by(() => {
 		const needle = query.trim().toLowerCase();
-		if (!needle) return data.documents;
-		return data.documents.filter(
-			(doc) =>
-				doc.name.toLowerCase().includes(needle) ||
-				doc.originalFilename.toLowerCase().includes(needle) ||
-				// Searching for what the workbook is called has to find it too, now
-				// that that is the name on the card.
-				(doc.title?.toLowerCase().includes(needle) ?? false)
-		);
+		const found = !needle
+			? data.documents
+			: data.documents.filter(
+					(doc) =>
+						doc.title?.toLowerCase().includes(needle) ||
+						doc.name.toLowerCase().includes(needle) ||
+						doc.originalFilename.toLowerCase().includes(needle)
+				);
+
+		return sortDocuments(found, sort);
 	});
 
-	/** A line of arithmetic about the library, for the header to say something true. */
+	/**
+	 * How the grid is ordered. The comparators live in `sort-documents.ts`,
+	 * where they can be tested; this only remembers the choice.
+	 *
+	 * Kept in local storage: whichever of adding, working through or hunting
+	 * for a name somebody is doing, they are usually still doing it tomorrow.
+	 */
+	let sort = $state<SortKey>('added');
+
+	onMount(() => {
+		const held = localStorage.getItem('rowbot:sort');
+		if (isSortKey(held)) sort = held;
+	});
+
+	function reorder(key: SortKey) {
+		sort = key;
+		try {
+			localStorage.setItem('rowbot:sort', key);
+		} catch {
+			// Private browsing refuses writes; the order just will not persist.
+		}
+	}
+
+	const sortLabel = $derived(SORTS.find((option) => option.key === sort)?.label ?? 'Date added');
+
 	/**
 	 * The projects with a conversation in them, most recently spoken to first.
 	 *
 	 * Capped: this is a shortcut back into something you were doing, and a list
-	 * of twenty is the library again with a different sort order.
+	 * of twenty is the library again with a different sort order. Independent
+	 * of the grid's sort — this row always means "recent", whatever order the
+	 * grid below happens to be in.
 	 */
 	const recent = $derived(
 		data.documents
 			.filter((doc) => doc.conversation !== null)
-			.sort(
-				(a, b) =>
-					new Date(b.conversation!.lastActiveAt).getTime() -
-					new Date(a.conversation!.lastActiveAt).getTime()
-			)
+			.sort((a, b) => lastTouched(b) - lastTouched(a))
 			.slice(0, 6)
 			.map((doc) => ({ ...doc, conversation: doc.conversation! }))
 	);
@@ -82,8 +109,7 @@
 	const tally = $derived.by(() => {
 		const docs = data.documents.length;
 		const sheets = data.documents.reduce((total, doc) => total + doc.sheetCount, 0);
-		const pages = data.documents.reduce((total, doc) => total + (doc.pageCount ?? 0), 0);
-		return { docs, sheets, pages };
+		return { docs, sheets };
 	});
 
 	/**
@@ -138,7 +164,7 @@
 
 		{#if tally.docs}
 			<dl class="flex shrink-0 items-center gap-6 text-sm">
-				{#each [{ label: tally.docs === 1 ? 'project' : 'projects', value: tally.docs }, { label: tally.pages === 1 ? 'page read' : 'pages read', value: tally.pages }, { label: tally.sheets === 1 ? 'sheet built' : 'sheets built', value: tally.sheets }] as stat (stat.label)}
+				{#each [{ label: tally.docs === 1 ? 'project' : 'projects', value: tally.docs }, { label: tally.sheets === 1 ? 'sheet built' : 'sheets built', value: tally.sheets }] as stat (stat.label)}
 					<div>
 						<dd class="text-2xl font-semibold tracking-tight tabular-nums">{stat.value}</dd>
 						<dt class="mt-0.5 text-xs text-muted-foreground">{stat.label}</dt>
@@ -232,19 +258,41 @@
 				{/if}
 			</h2>
 
-			<div class="relative w-full sm:w-64">
-				<Icon
-					icon={Search01Icon}
-					size={15}
-					class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
-				/>
-				<input
-					type="search"
-					bind:value={query}
-					placeholder="Search projects"
-					aria-label="Search projects"
-					class="h-9 w-full rounded-lg border bg-card pr-3 pl-9 text-sm placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none"
-				/>
+			<div class="flex w-full items-center gap-2 sm:w-auto">
+				<div class="relative w-full sm:w-64">
+					<Icon
+						icon={Search01Icon}
+						size={15}
+						class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
+					/>
+					<input
+						type="search"
+						bind:value={query}
+						placeholder="Search projects"
+						aria-label="Search projects"
+						class="h-9 w-full rounded-lg border bg-card pr-3 pl-9 text-sm placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none"
+					/>
+				</div>
+
+				<DropdownMenu.Root>
+					<DropdownMenu.Trigger
+						class="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border bg-card px-3 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:border-ring focus-visible:outline-none"
+						aria-label="Sort projects. Currently {sortLabel.toLowerCase()}."
+					>
+						<Icon icon={ArrowDataTransferVerticalIcon} size={15} />
+						<span class="hidden sm:inline">{sortLabel}</span>
+					</DropdownMenu.Trigger>
+					<DropdownMenu.Content align="end" class="w-44">
+						{#each SORTS as option (option.key)}
+							<DropdownMenu.Item onclick={() => reorder(option.key)} class="justify-between">
+								{option.label}
+								{#if sort === option.key}
+									<Icon icon={Tick02Icon} size={14} class="text-accent-ink" />
+								{/if}
+							</DropdownMenu.Item>
+						{/each}
+					</DropdownMenu.Content>
+				</DropdownMenu.Root>
 			</div>
 		</div>
 
@@ -259,7 +307,9 @@
 				see at a glance which one is the scanned receipt and which is the
 				seven-page report, without reading a single line of metadata.
 			-->
-			<ul class="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+			<ul
+				class="grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6"
+			>
 				{#each matches as doc (doc.id)}
 					<li class="group relative">
 						<a
