@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
-	import { goto } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/state';
 	import Icon from '$lib/components/ui/icon.svelte';
 	import { CloudUploadIcon, Key01Icon, Loading03Icon } from '@hugeicons/core-free-icons';
 	import { toast } from 'svelte-sonner';
 	import { Button } from '$lib/components/ui/button';
 	import { ACCEPTED_MIME_TYPES, prettySize, rejectionReason, MAX_UPLOAD_BYTES } from '$lib/uploads';
+	import { LIBRARY } from '$lib/library-data';
 	import { cn } from '$lib/utils';
 
 	let { class: className }: { class?: string } = $props();
@@ -59,6 +60,10 @@
 			}
 
 			const { document } = await response.json();
+			// The library is layout data and will not refetch itself on a
+			// navigation — so without this the reader walks into the workspace and
+			// comes back to a list that predates the file they just uploaded.
+			await invalidate(LIBRARY);
 			// Straight into the workspace — the agent starts as soon as it loads.
 			await goto(resolve('/(app)/d/[documentId]', { documentId: document.id }));
 		} catch (cause) {

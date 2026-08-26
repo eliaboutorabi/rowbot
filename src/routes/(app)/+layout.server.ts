@@ -4,6 +4,7 @@ import type { LayoutServerLoad } from './$types';
 import { db } from '$lib/server/db';
 import { document, run, workbook } from '$lib/server/db/schema';
 import { allowanceFor } from '$lib/server/entitlements';
+import { LIBRARY } from '$lib/library-data';
 
 interface Built {
 	sheets: number;
@@ -88,7 +89,24 @@ async function builtWorkbooks(documentIds: string[]): Promise<Map<string, Built>
  * straight from one document to another without a trip through the library is
  * most of the point of that panel.
  */
-export const load: LayoutServerLoad = async ({ locals, url }) => {
+export const load: LayoutServerLoad = async ({ locals, url, depends }) => {
+	/**
+	 * Nameable, because otherwise this runs once and never again.
+	 *
+	 * SvelteKit re-runs a layout load only when something it depends on
+	 * changes, and for a signed-in reader this one touches neither `url` nor
+	 * `params` — so it has no dependencies at all. The library was therefore
+	 * fetched when the app first opened and kept for the rest of the session:
+	 * upload a document, walk into it, come back, and you are looking at the
+	 * list from before the upload. On a fresh account that means an empty
+	 * library that stays empty however many files you add.
+	 *
+	 * Anything that changes what is in the library — an upload, a delete, a run
+	 * that finishes and gives a document a title and some sheets — invalidates
+	 * this key.
+	 */
+	depends(LIBRARY);
+
 	if (!locals.user) {
 		redirect(302, `/sign-in?next=${encodeURIComponent(url.pathname + url.search)}`);
 	}

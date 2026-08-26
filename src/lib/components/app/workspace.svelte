@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
+	import { invalidate } from '$app/navigation';
 	import Icon from '$lib/components/ui/icon.svelte';
 	import {
 		Alert01Icon,
@@ -27,6 +28,7 @@
 	import { widths } from '$lib/stores/layout.svelte';
 	import ResizeEdge from '$lib/components/app/resize-edge.svelte';
 	import { fileSize } from '$lib/format';
+	import { LIBRARY } from '$lib/library-data';
 	import { describeRunFailure } from '$lib/run-error';
 	import { parseRef, type SheetRef } from '$lib/sheet-ref';
 	import { cn } from '$lib/utils';
@@ -217,6 +219,20 @@
 			.catch(() => {
 				// The fallback is already on screen. Nothing to report.
 			});
+	});
+
+	/**
+	 * A finished turn changes how this document looks in the library — it now
+	 * has a title the agent chose, some sheets, and a conversation to pick back
+	 * up. The library is layout data and does not refetch on a navigation, so
+	 * without this you would finish a conversion, go back, and find the card
+	 * still saying nobody had started.
+	 */
+	let wasBusy = false;
+	$effect(() => {
+		const busy = run.busy;
+		if (wasBusy && !busy) void invalidate(LIBRARY);
+		wasBusy = busy;
 	});
 
 	const canStart = $derived(!run.busy && run.timeline.length === 0 && !run.workbook);

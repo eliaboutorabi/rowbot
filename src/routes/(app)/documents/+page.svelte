@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { resolve } from '$app/paths';
-	import { invalidateAll } from '$app/navigation';
+	import { invalidate } from '$app/navigation';
 	import Icon from '$lib/components/ui/icon.svelte';
 	import {
 		CheckmarkBadge01Icon,
@@ -22,6 +22,7 @@
 	import * as Dialog from '$lib/components/ui/dialog';
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { secondaryName, timeAgo } from '$lib/format';
+	import { LIBRARY } from '$lib/library-data';
 	import { forgetThumbnail } from '$lib/thumbnail-cache';
 	import { isSortKey, SORTS, sortDocuments, type SortKey } from '$lib/sort-documents';
 	import type { PageData } from './$types';
@@ -124,7 +125,7 @@
 			// The picture of a document that no longer exists is not worth keeping.
 			void forgetThumbnail(id);
 			toast.success(`Deleted “${name}”`);
-			await invalidateAll();
+			await invalidate(LIBRARY);
 		} finally {
 			deleting = false;
 		}
