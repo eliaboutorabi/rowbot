@@ -31,6 +31,9 @@ interface Body {
 	effort?: string;
 }
 
+/** What the untouched import is called in the workbook's history. */
+const RAW_SUMMARY = 'Straight off the page, before any corrections';
+
 /**
  * What a turn is called in the workbook's history.
  *
@@ -141,6 +144,12 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 						const final = result.current;
 						if (final) {
 							if (final.revision > 0 && final.workbook.sheets.length) {
+								// The reader's own output first, then the agent's work on top
+								// of it, so the history has a version nobody has touched to
+								// compare a correction against.
+								if (final.asImported?.sheets.length) {
+									await saveWorkbook(doc.id, activeRun.id, final.asImported, RAW_SUMMARY);
+								}
 								await saveWorkbook(doc.id, activeRun.id, final.workbook, turnSummary(body.message));
 							}
 							await addUsage(activeRun.id, final.usage);
@@ -158,6 +167,9 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 						// Whatever the agent finished before the failure is still worth
 						// keeping — this is the difference between a hiccup and lost work.
 						if (result.current?.revision && result.current.workbook.sheets.length) {
+							if (result.current.asImported?.sheets.length) {
+								await saveWorkbook(doc.id, activeRun.id, result.current.asImported, RAW_SUMMARY);
+							}
 							await saveWorkbook(
 								doc.id,
 								activeRun.id,

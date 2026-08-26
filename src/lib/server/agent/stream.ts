@@ -34,6 +34,13 @@ export interface StreamRunOptions {
 
 export interface StreamRunResult {
 	workbook: WorkbookModel;
+	/**
+	 * The workbook as it came off the page, before the agent corrected anything
+	 * — captured at the first op that is not an import. Null when this turn did
+	 * not import (a follow-up turn has nothing raw of its own) or when it
+	 * imported and then changed nothing.
+	 */
+	asImported: WorkbookModel | null;
 	usage: UsageTotals;
 	status: 'complete' | 'interrupted' | 'cancelled';
 	/**
@@ -85,6 +92,9 @@ function subagentType(args: string | undefined): string {
 	}
 	return 'subagent';
 }
+
+/** Ops that bring the page in, as opposed to ops that change what came in. */
+const IMPORT_OPS: ReadonlySet<string> = new Set(['addSheet', 'appendRows']);
 
 function contentText(content: unknown): string {
 	if (typeof content === 'string') return content;
@@ -161,6 +171,19 @@ export async function* streamRun(
 
 	let workbook = options.initialWorkbook ?? emptyModel();
 	let workbookVersion = 0;
+	/**
+	 * A version of the workbook nobody has touched.
+	 *
+	 * The turn used to be saved once, at the end, so the agent's corrections
+	 * were baked into the first version that ever existed and there was no way
+	 * back to what the reader actually returned. That is exactly the version a
+	 * reviewer wants when they are deciding whether to trust a correction — so
+	 * the state at the moment the agent first changes something is kept, and
+	 * saved as the version before its work.
+	 */
+	let asImported: WorkbookModel | null = null;
+	/** This turn brought sheets in, so there is a raw state worth keeping. */
+	let imported = false;
 	const usage: UsageTotals = { input: 0, output: 0, reasoning: 0 };
 	const pending = new Map<string, PendingCall>();
 	const openSubagents = new Set<string>();
@@ -187,7 +210,7 @@ export async function* streamRun(
 	 * then found the document with none.
 	 */
 	const publish = (status: StreamRunResult['status'] = 'complete') => {
-		result.current = { workbook, usage, status, revision: workbookVersion };
+		result.current = { workbook, asImported, usage, status, revision: workbookVersion };
 	};
 	publish();
 
@@ -331,7 +354,13 @@ export async function* streamRun(
 			}
 
 			if (Array.isArray(update.workbook)) {
-				workbook = applyOps(workbook, update.workbook as WorkbookOp[]);
+				// One at a time, so the snapshot lands exactly between the last
+				// import and the first correction even when both arrive together.
+				for (const op of update.workbook as WorkbookOp[]) {
+					if (IMPORT_OPS.has(op.op)) imported = true;
+					else if (imported && !asImported) asImported = workbook;
+					workbook = applyOps(workbook, [op]);
+				}
 				workbookVersion++;
 				publish();
 				yield { type: 'workbook', workbook, version: workbookVersion };

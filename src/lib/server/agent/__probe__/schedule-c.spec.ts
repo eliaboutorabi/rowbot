@@ -95,12 +95,22 @@ describe.runIf(live)('Schedule C, through the agent', () => {
 			`title:  ${workbook?.title}`
 		];
 
+		let unnamed = 0;
 		for (const sheet of workbook?.sheets ?? []) {
 			const filled = sheet.rows.flat().filter((cell) => cell.v !== null && cell.v !== '').length;
+			// A sheet whose source had no header row leaves every column called A,
+			// B, C. Naming them is the agent's job and has silently stopped
+			// happening before now, which is invisible in a diff and obvious on a
+			// screen — so it is counted here.
+			const labels = sheet.columns.map((column) => column.label).filter(Boolean);
+			unnamed += sheet.columns.length - labels.length;
 			report.push(
-				`  "${sheet.name}"  ${sheet.rows.length} x ${sheet.rows[0]?.length ?? 0}, ${filled} filled`
+				`  "${sheet.name}"  ${sheet.rows.length} x ${sheet.rows[0]?.length ?? 0}, ` +
+					`${filled} filled, headerRows=${sheet.headerRows}, ` +
+					`${labels.length}/${sheet.columns.length} columns named`
 			);
 		}
+		report.push(`\ncolumns left unnamed: ${unnamed}`);
 
 		// What the reviewer actually reads, and the two things that used to be
 		// wrong with it: an arithmetic answer that displayed as `Result: {`, and a
@@ -127,5 +137,9 @@ describe.runIf(live)('Schedule C, through the agent', () => {
 		console.log(report.join('\n'));
 
 		expect(workbook).toBeDefined();
+		// Every column ends up with a name: the tables on this form have no header
+		// row of their own, so a sheet of A/B/C/D is what a reviewer gets unless
+		// the agent supplies one.
+		expect(unnamed, 'columns with no label').toBe(0);
 	}, 900_000);
 });

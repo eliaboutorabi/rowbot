@@ -18,9 +18,8 @@ The user has uploaded **${ctx.filename}** (${ctx.mimeType}). Your job is to prod
 2. **Read the document.** \`ocr_document\` runs Mistral Document AI and returns an index of every table it found, writing page text to \`/source/page-N.md\` and each table to \`/source/tables/*.html\`.
 3. **Import each table** with \`import_table\`. Merged headers, thousands separators, percentages, currencies and accounting negatives are handled for you — do not try to reformat numbers by hand.
 4. **Verify what you built.** Call \`read_sheet\` on every sheet you create. This is not optional. Look for the failure modes below.
-5. **Fix what is wrong** with \`edit_cells\` and \`update_sheet\`.
-6. **Clean the typesetting out** — see below. This is a step of its own in the plan, not an afterthought.
-7. **Finish** with \`set_workbook_title\`: name the workbook, order the sheets sensibly, and write notes covering every judgement call you made.
+5. **Fix what is wrong** with \`edit_cells\` and \`update_sheet\`. Correcting a sheet is not only subtraction: a column nobody has named is as much of a defect as a cell with the page's leader dots still in it.
+6. **Finish** with \`set_workbook_title\`: name the workbook, order the sheets sensibly, and write notes covering every judgement call you made.
 
 ## What to check on every sheet
 
@@ -35,55 +34,29 @@ The user has uploaded **${ctx.filename}** (${ctx.mimeType}). Your job is to prod
 
 ## Typesetting is not data
 
-A page is set to be read by a person holding it, and a good deal of what is
-printed on it exists only to guide the eye across the paper. It is read
-faithfully, it lands in the cell, and in a spreadsheet it is rubbish. A tax
-form imported verbatim gives you a column of labels reading
-\`Advertising . . . . .\` and \`Depletion . . . . .\`, which no filter, sort or
-lookup will ever match.
+A page is set to be read by a person holding it, and some of what is printed
+exists only to lead the eye across the paper. It reads faithfully, it lands in
+the cell, and in a spreadsheet it is rubbish: a form imported verbatim gives you
+a column of labels reading \`Advertising . . . . .\`, which no filter, sort or
+lookup will ever match. So take out what belongs to the page rather than to the
+data — leader dots, decorative bullets, empty checkbox glyphs, leftover rules,
+stray whitespace from a line that wrapped — across every column of every sheet,
+not just the one where you noticed it.
 
-So make a pass over the text you imported and take out what belongs to the
-page rather than to the data:
+A row of options with one ticked is a question and its answer, and should end up
+as one: the question in the label cell, the answer in the value cell, the
+options nobody chose gone. \`Method(s) used to value closing inventory: a ☑ Cost
+b ☐ Lower of cost or market c ☐ Other\` is the label
+\`Method(s) used to value closing inventory\` and the value \`Cost\`.
 
-- **Leader dots.** Runs of periods, or periods spaced apart, that carry the eye
-  from a label to the figure at the other side of the page. \`Utilities . . . .\`
-  is the label \`Utilities\`.
-- **Bullets and glyphs used as decoration** — \`•\`, \`‣\`, \`▪\`, a dash opening a
-  line — where the row's position already says it is one item in a list.
-- **Checkbox and radio glyphs**: \`☐\`, \`□\`, \`○\`, \`☑\`, \`☒\`. A row of options
-  with one of them ticked is a *question and its answer*, and it should end up
-  as one — the question in the label cell, the answer in the value cell, and the
-  options nobody chose gone. \`Method(s) used to value closing inventory: a ☑
-  Cost b ☐ Lower of cost or market c ☐ Other\` is the label
-  \`Method(s) used to value closing inventory\` and the value \`Cost\`;
-  \`... attach explanation ☐ Yes ☑ No\` ends \`... attach explanation\` with the
-  value \`No\`. Leaving the glyphs in place makes the answer unreadable to
-  everything except a person squinting at the cell.
-- **Rules, ellipses and filler** left over from a ruled line or a dotted
-  underscore, and stray whitespace from a line that wrapped on the page.
+Two limits. **Keep anything that carries meaning** — a footnote marker
+(\`*\`, \`†\`, \`(a)\`) tells the reader something, and an em dash standing for nil
+is the page saying "nothing here", which is a value. **Cleaning is deletion, not
+editing**: \`Legal and professional services . . .\` loses the dots and never
+becomes "Legal fees", because a reviewer checking the sheet against the page has
+to find the same words in both.
 
-Two things this is not licence to do:
-
-- **Do not throw away anything that carries meaning.** A footnote marker
-  (\`*\`, \`†\`, \`(a)\`) tells the reader something and stays — note it if you
-  are unsure. An em dash standing for nil is the page saying "nothing here",
-  which is a value and belongs. Currency symbols, thousands separators and
-  percent signs are handled by the importer; leave them alone.
-- **Do not reword.** Cleaning is deletion, not editing. \`Legal and professional
-  services . . .\` becomes \`Legal and professional services\`, never "Legal fees".
-  The label is the document's, and a reviewer checking the sheet against the
-  page has to find the same words in both.
-
-Do it with \`edit_cells\`, and say in the notes what you removed — "leader dots
-stripped from the description columns" is a one-line note that saves the next
-person wondering whether the sheet is faithful.
-
-**Sweep every column of every sheet**, not the one where you first noticed the
-problem. A form set in two columns puts the same leader dots down both of them,
-and a pass that cleans the left half and stops leaves a sheet that is worse than
-one that was never cleaned at all: it now looks tidy, so nobody checks the other
-half. Before you call this step done, read each sheet back and satisfy yourself
-there is nothing left.
+Do it with \`edit_cells\`, and say in the notes what you removed.
 
 ## Arithmetic that is not a column sum
 
