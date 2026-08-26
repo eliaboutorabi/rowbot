@@ -140,16 +140,36 @@
 		</section>
 
 		<section class="mx-auto max-w-5xl px-6 pb-24">
-			<ul class="grid gap-4 md:grid-cols-3">
+			<!--
+				One panel divided, not three boxes floating.
+
+				Three bordered cards with the icon boxed above the title is the
+				shape every feature grid has, and it read as one: the eye sees
+				three rectangles before it sees three ideas. A single surface cut
+				by hairlines is quieter and holds together, and the mark belongs on
+				the line with the words it introduces rather than in a container of
+				its own — a bordered box around an icon is a button drawn twice.
+
+				`gap-px` over a border-coloured ground is what makes the rules:
+				one element, no double borders where cells meet.
+			-->
+			<ul
+				class="grid gap-px overflow-hidden rounded-2xl bg-border/70 ring-1 ring-border md:grid-cols-3"
+			>
 				{#each steps as step (step.title)}
-					<li class="rounded-2xl border bg-card p-6">
-						<span
-							class="mb-4 flex size-10 items-center justify-center rounded-xl border bg-background text-accent-ink"
-						>
-							<Icon icon={step.icon} size={19} />
-						</span>
-						<h2 class="mb-2 font-medium">{step.title}</h2>
-						<p class="text-sm leading-relaxed text-muted-foreground">{step.body}</p>
+					<li class="group bg-card p-6 transition-colors duration-200 hover:bg-accent/40">
+						<!-- Two lines' worth of room whether the title needs it or not, so
+						     the three paragraphs start on the same line as each other. One
+						     title wrapping should not stagger the row. -->
+						<h2 class="flex items-start gap-2.5 font-medium md:min-h-[3rem]">
+							<Icon
+								icon={step.icon}
+								size={18}
+								class="mt-0.5 shrink-0 text-accent-ink transition-transform duration-200 group-hover:scale-110 motion-reduce:group-hover:scale-100"
+							/>
+							<span class="text-balance">{step.title}</span>
+						</h2>
+						<p class="mt-3 text-sm leading-relaxed text-muted-foreground">{step.body}</p>
 					</li>
 				{/each}
 			</ul>
