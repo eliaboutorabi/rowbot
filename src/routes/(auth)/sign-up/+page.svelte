@@ -73,8 +73,24 @@
 					spellcheck={false}
 					class="pl-9"
 					placeholder="The code you were given"
+					aria-describedby="invite-help"
 				/>
 			</div>
+			<!-- Quiet on purpose: it answers the one question the field raises for
+			     somebody who arrived without a code, and gets out of the way of
+			     everybody who has one. -->
+			<p id="invite-help" class="text-xs leading-relaxed text-muted-foreground">
+				Not got one? Message
+				<a
+					href="https://www.linkedin.com/in/elham-aboutorabi/"
+					target="_blank"
+					rel="noreferrer"
+					class="text-foreground underline decoration-dotted underline-offset-2 hover:decoration-solid"
+				>
+					Elham Aboutorabi
+				</a>
+				on LinkedIn and I will send you one.
+			</p>
 		</div>
 
 		<div class="space-y-2">
