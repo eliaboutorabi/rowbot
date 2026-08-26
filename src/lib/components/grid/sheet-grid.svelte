@@ -50,32 +50,25 @@
 		range?: SheetRef | null;
 	} = $props();
 
-	/**
-	 * A column reads as numeric when most of its data cells are.
+	/*
+	 * Everything starts at the same edge.
 	 *
-	 * Computed once per sheet rather than per cell, because the header row and
-	 * the column strip both ask. A `Q1` heading has to sit over the right edge
-	 * of the figures it labels; aligning it by its own type — text, therefore
-	 * left — is what put every quarter's name at the far side of a column of
-	 * right-aligned numbers.
+	 * Figures used to be right-aligned, which is what a spreadsheet does and
+	 * what makes a column of digits comparable at a glance. It stops being
+	 * worth it here. Columns are sized to their contents, so a two-character
+	 * quantity in a column headed `Qty` sat on the far side of the header
+	 * naming it, and a receipt of five short numeric columns came out as five
+	 * values scattered against five right edges with their labels stranded at
+	 * the left. The reader is checking a transcription against a page, not
+	 * scanning a ledger for magnitude, and for that the label and the value
+	 * belonging to the same start line beats the digits lining up.
+	 *
+	 * `tabular-nums` stays. It no longer lines the decimal points up — nothing
+	 * does, once numbers of different lengths start at the same edge — but it
+	 * keeps every digit the same width, so figures of equal length still agree
+	 * down the column and a value does not shift sideways when a 1 is edited
+	 * into an 8.
 	 */
-	const numericColumns = $derived.by(() => {
-		const flags: boolean[] = [];
-		for (let c = 0; c < sheet.columns.length; c++) {
-			let numeric = 0;
-			let seen = 0;
-			for (let r = sheet.headerRows; r < Math.min(sheet.rows.length, sheet.headerRows + 12); r++) {
-				const cell = sheet.rows[r]?.[c];
-				if (!cell || cell.t === 'blank') continue;
-				seen++;
-				if (isNumericCell(cell)) numeric++;
-			}
-			flags[c] = seen > 0 && numeric / seen >= 0.6;
-		}
-		return flags;
-	});
-
-	const numericColumn = (index: number) => numericColumns[index] ?? false;
 
 	const inRange = (row: number, column: number) => Boolean(range && contains(range, row, column));
 
@@ -733,8 +726,7 @@
 						<button
 							type="button"
 							class={cn(
-								'flex w-full cursor-pointer items-baseline gap-1.5 px-3 py-1.5 text-[13px] font-medium transition-colors hover:text-foreground',
-								numericColumn(c) ? 'justify-end' : 'justify-start'
+								'flex w-full cursor-pointer items-baseline justify-start gap-1.5 px-3 py-1.5 text-[13px] font-medium transition-colors hover:text-foreground'
 							)}
 							onclick={(event) => takeColumn(c, event.shiftKey)}
 							aria-label="Select column {columnLetter(c)}"
@@ -821,11 +813,10 @@
 									// attached to nothing is no better than no header row.
 									frozenColumn === c && 'sticky start-(--gutter) shadow-[var(--freeze-edge)]',
 									frozenColumn === c && (isHeader ? 'z-22' : 'z-12 bg-[var(--grid-frozen-bg)]'),
-									// Tabular figures keep digits on a shared grid; the slight
+									// Tabular figures keep digits on a shared grid, so decimal
+									// points still line up down a left-aligned column; the slight
 									// negative tracking stops long currency strings sprawling.
-									// A header cell follows its column, not its own type.
-									(isHeader ? numericColumn(c) : isNumericCell(cell)) &&
-										'text-end tracking-[-0.01em] tabular-nums',
+									isNumericCell(cell) && 'tracking-[-0.01em] tabular-nums',
 
 									// Correctness, not confidence — so it does not wait for the
 									// heat map to be switched on.

@@ -307,12 +307,13 @@ log(round(d.reduce((a, b) => a + b)));`;
 							>
 								<span class="sr-only">Row</span>
 							</th>
-							{#each columns as column, i (column)}
+							<!-- Left, all of it, as the app's grid now is. The paper docked
+							     below still right-aligns its figures, because printed reports
+							     do — and that difference between the page and the sheet is
+							     real, so the shot should show it. -->
+							{#each columns as column (column)}
 								<th
-									class="border-b border-[var(--grid-line)] bg-[var(--grid-header-bg)] px-2 py-1 font-medium {i ===
-									0
-										? 'text-left'
-										: 'text-right'}"
+									class="border-b border-[var(--grid-line)] bg-[var(--grid-header-bg)] px-2 py-1 text-left font-medium"
 								>
 									{column}
 								</th>
@@ -328,11 +329,7 @@ log(round(d.reduce((a, b) => a + b)));`;
 									{r + 2}
 								</th>
 								{#each row as cell, c (c)}
-									<td
-										class="border-b border-[var(--grid-line-vertical)] px-2 py-1 {c === 0
-											? 'text-left'
-											: 'text-right'}"
-									>
+									<td class="border-b border-[var(--grid-line-vertical)] px-2 py-1 text-left">
 										{cell}
 									</td>
 								{/each}
@@ -346,7 +343,7 @@ log(round(d.reduce((a, b) => a + b)));`;
 							</th>
 							{#each totals as cell, c (c)}
 								<td
-									class="px-2 py-1 font-medium {c === 0 ? 'text-left' : 'text-right'} {c === FLAGGED
+									class="px-2 py-1 text-left font-medium {c === FLAGGED
 										? 'bg-amber-500/15 ring-2 ring-accent-ink ring-inset'
 										: ''}"
 								>
