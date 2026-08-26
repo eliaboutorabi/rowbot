@@ -2,13 +2,54 @@ import { redirect } from '@sveltejs/kit';
 import { desc, eq, inArray, sql } from 'drizzle-orm';
 import type { LayoutServerLoad } from './$types';
 import { db } from '$lib/server/db';
-import { document, workbook } from '$lib/server/db/schema';
+import { document, run, workbook } from '$lib/server/db/schema';
 import { allowanceFor } from '$lib/server/entitlements';
 
 interface Built {
 	sheets: number;
 	/** What the agent named the workbook, which is rarely what the file was called. */
 	title: string | null;
+}
+
+/** How far the conversation about a document got, and when it last moved. */
+interface Conversation {
+	turns: number;
+	status: string;
+	lastActiveAt: Date;
+}
+
+/**
+ * The newest run per document.
+ *
+ * So the library can offer to pick a conversation back up: which project you
+ * were last talking to, how far it got, and whether it is still going. Sorted
+ * newest-first and taken once per document, the same shape as `builtWorkbooks`
+ * and for the same reason — a correlated subquery binds the wrong `id`.
+ */
+async function conversations(documentIds: string[]): Promise<Map<string, Conversation>> {
+	if (!documentIds.length) return new Map();
+
+	const rows = await db
+		.select({
+			documentId: run.documentId,
+			turns: run.turns,
+			status: run.status,
+			updatedAt: run.updatedAt
+		})
+		.from(run)
+		.where(inArray(run.documentId, documentIds))
+		.orderBy(desc(run.updatedAt));
+
+	const found = new Map<string, Conversation>();
+	for (const row of rows) {
+		if (found.has(row.documentId)) continue;
+		found.set(row.documentId, {
+			turns: row.turns ?? 0,
+			status: row.status,
+			lastActiveAt: row.updatedAt
+		});
+	}
+	return found;
 }
 
 /**
@@ -68,7 +109,8 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 		.orderBy(desc(document.createdAt))
 		.limit(100);
 
-	const built = await builtWorkbooks(rows.map((r) => r.id));
+	const ids = rows.map((r) => r.id);
+	const [built, chats] = await Promise.all([builtWorkbooks(ids), conversations(ids)]);
 
 	// Every page in the workspace wants to know what is left in the allowance —
 	// the dropzone to warn before an upload, the composer to warn before a turn.
@@ -77,9 +119,12 @@ export const load: LayoutServerLoad = async ({ locals, url }) => {
 		allowance: await allowanceFor(locals.user),
 		documents: rows.map((row) => {
 			const made = built.get(row.id);
+			const chat = chats.get(row.id);
 			return {
 				...row,
 				sheetCount: made?.sheets ?? 0,
+				/** Null where nobody has said anything to this document yet. */
+				conversation: chat && chat.turns > 0 ? chat : null,
 				/**
 				 * What to call it on screen. The agent reads a title off the page —
 				 * "Meridian Group — Global Sales Ledger FY2025" — and the library was

@@ -58,7 +58,7 @@ export function normalise(text: string): string {
 		.replace(/[۰-۹]/g, (d) => String(d.charCodeAt(0) - 0x06f0))
 		.replace(/٫/g, '.')
 		.toLowerCase()
-		.replace(/[\s ,٬'’]/g, '')
+		.replace(/[\s\u00a0,٬'’]/g, '')
 		.replace(/^[£$€¥]/, '')
 		.replace(/[()]/g, '')
 		.trim();

@@ -66,14 +66,6 @@
 		event.preventDefault();
 		if (sidebar.open !== 'projects') sidebar.toggle('projects');
 	}
-
-	// Arriving at the library with the project list open would show the same
-	// thing twice, in two sizes, side by side.
-	$effect(() => {
-		if (page.url.pathname.startsWith('/documents') && sidebar.open === 'projects') {
-			sidebar.toggle('projects');
-		}
-	});
 </script>
 
 <svelte:window onkeydown={onKeydown} />

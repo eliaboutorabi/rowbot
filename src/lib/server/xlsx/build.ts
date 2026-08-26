@@ -233,6 +233,7 @@ export async function buildWorkbook(model: WorkbookModel): Promise<Uint8Array> {
  * Characters a filesystem genuinely objects to, plus the control range.
  * Windows is the strict one; everything here is illegal there.
  */
+// eslint-disable-next-line no-control-regex -- the control range is the point
 const ILLEGAL = /[\u0000-\u001f\u007f<>:"/\\|?*]+/g;
 
 /**

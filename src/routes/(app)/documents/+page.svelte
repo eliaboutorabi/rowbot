@@ -3,11 +3,13 @@
 	import { invalidateAll } from '$app/navigation';
 	import Icon from '$lib/components/ui/icon.svelte';
 	import {
+		ArrowRight01Icon,
 		CheckmarkBadge01Icon,
 		Delete02Icon,
 		FileSpreadsheetIcon,
 		Image01Icon,
 		More01Icon,
+		Message01Icon,
 		Pdf01Icon,
 		ScanImageIcon,
 		Search01Icon
@@ -59,6 +61,24 @@
 	});
 
 	/** A line of arithmetic about the library, for the header to say something true. */
+	/**
+	 * The projects with a conversation in them, most recently spoken to first.
+	 *
+	 * Capped: this is a shortcut back into something you were doing, and a list
+	 * of twenty is the library again with a different sort order.
+	 */
+	const recent = $derived(
+		data.documents
+			.filter((doc) => doc.conversation !== null)
+			.sort(
+				(a, b) =>
+					new Date(b.conversation!.lastActiveAt).getTime() -
+					new Date(a.conversation!.lastActiveAt).getTime()
+			)
+			.slice(0, 6)
+			.map((doc) => ({ ...doc, conversation: doc.conversation! }))
+	);
+
 	const tally = $derived.by(() => {
 		const docs = data.documents.length;
 		const sheets = data.documents.reduce((total, doc) => total + doc.sheetCount, 0);
@@ -157,6 +177,50 @@
 			</ol>
 		</div>
 	{:else}
+		<!-- ── Pick up where you left off ──────────────────────────────────
+		     The grid below is ordered by when a document arrived, which is the
+		     right order for finding one and the wrong order for carrying on with
+		     one. A conversation you were in the middle of yesterday is at the
+		     bottom of the page by the time you have uploaded four more things.
+		     These are the same projects, ordered by when you last spoke to them. -->
+		{#if !query.trim() && recent.length}
+			<section class="mt-11">
+				<h2 class="mb-3 text-sm font-medium text-muted-foreground">Carry on</h2>
+				<ul class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+					{#each recent as doc (doc.id)}
+						<li>
+							<a
+								href={resolve('/(app)/d/[documentId]', { documentId: doc.id })}
+								class="group flex items-center gap-3 rounded-xl border bg-card px-3.5 py-3 shadow-sm transition-all hover:-translate-y-px hover:border-primary/40 hover:shadow motion-reduce:hover:translate-y-0"
+							>
+								<span
+									class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/[0.08] text-accent-ink dark:bg-primary/15"
+								>
+									<Icon icon={Message01Icon} size={15} />
+								</span>
+								<span class="min-w-0 flex-1">
+									<span class="block truncate text-sm font-medium">{doc.title ?? doc.name}</span>
+									<span class="block truncate text-xs text-muted-foreground">
+										{doc.conversation.turns}
+										{doc.conversation.turns === 1 ? 'message' : 'messages'} ·
+										{timeAgo(doc.conversation.lastActiveAt)}
+										{#if doc.conversation.status === 'running'}
+											· still going
+										{/if}
+									</span>
+								</span>
+								<Icon
+									icon={ArrowRight01Icon}
+									size={15}
+									class="shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
+								/>
+							</a>
+						</li>
+					{/each}
+				</ul>
+			</section>
+		{/if}
+
 		<div class="mt-11 mb-5 flex flex-wrap items-center justify-between gap-3">
 			<h2 class="text-sm font-medium text-muted-foreground">
 				{#if query.trim()}

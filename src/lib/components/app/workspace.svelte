@@ -6,7 +6,6 @@
 		ArrowRight01Icon,
 		Cancel01Icon,
 		Key01Icon,
-		PlayIcon,
 		RefreshIcon,
 		FileSpreadsheetIcon,
 		Message01Icon,
@@ -55,7 +54,6 @@
 		} | null;
 		runStatus: string | null;
 		runError: string | null;
-		autoStart: boolean;
 		preferences: { model: string; effort: string };
 	}
 

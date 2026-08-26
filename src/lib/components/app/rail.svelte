@@ -35,7 +35,6 @@
 	let { initials }: { initials: string } = $props();
 
 	const isWorkspace = $derived(page.url.pathname.startsWith('/d/'));
-	const onLibrary = $derived(page.url.pathname.startsWith('/documents'));
 </script>
 
 {#snippet railButton(panel: SidebarPanel, icon: IconSvgElement, label: { on: string; off: string })}
@@ -118,16 +117,16 @@
 	{/if}
 
 	<!--
-		Not in the library, where the same list is already the page. The panel
-		exists to hop between projects while you are working on one; offering it
-		here would be the third door to the room you are standing in.
+		Everywhere, the library included. It was hidden there on the grounds that
+		the same list is already the page — true, and it made the rail change
+		shape as you moved around, so the one control that is always in the same
+		place stopped being always in the same place. The chat button is the only
+		one that comes and goes, because outside a document there is no chat.
 	-->
-	{#if !onLibrary}
-		{@render railButton('projects', DashboardSquare01Icon, {
-			on: 'Close the project list',
-			off: 'Your projects'
-		})}
-	{/if}
+	{@render railButton('projects', DashboardSquare01Icon, {
+		on: 'Close the project list',
+		off: 'Your projects'
+	})}
 	<div class="flex-1"></div>
 
 	<button

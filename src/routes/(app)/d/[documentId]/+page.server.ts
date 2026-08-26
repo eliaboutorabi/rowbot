@@ -41,7 +41,6 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		 * decision lives here rather than in a URL flag the client has to race the
 		 * router to clear.
 		 */
-		autoStart: !run && !saved,
 		preferences: {
 			model: asModelId(run?.model ?? locals.user!.defaultModel),
 			effort: asEffort(run?.effort ?? locals.user!.defaultEffort)
