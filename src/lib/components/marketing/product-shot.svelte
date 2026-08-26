@@ -49,14 +49,21 @@
 		['North America', '12,430', '13,905', '8,200', '16,880'],
 		['EMEA', '8,120', '8,640', '6,300', '10,050'],
 		['APAC', '5,600', '6,215', '4,400', '7,995'],
-		['LATAM', '2,310', '2,480', '2,200', '2,910']
+		['LATAM', '2,310', '2,480', '2,200', '2,910'],
+		['UK & Ireland', '4,870', '5,120', '3,650', '6,240'],
+		['DACH', '3,940', '4,305', '2,980', '5,110'],
+		['Nordics', '2,150', '2,390', '1,720', '2,845'],
+		['Japan', '3,275', '3,610', '2,540', '4,320']
 	];
-	const totals = ['Total', '28,460', '31,240', '20,100', '37,835'];
+	const totals = ['Total', '42,695', '46,665', '30,990', '56,350'];
+
+	/** Row the total lands on: a header plus one per region. */
+	const TOTAL_ROW = rows.length + 2;
 	/**
-	 * Q3 is column D, and with a header row plus four regions the total lands on
-	 * row 6 — so the flagged cell is D6 and the range under it is D2:D5. The
-	 * whole point of the shot is a tool that checks arithmetic; the arithmetic
-	 * in the shot has to survive being checked.
+	 * Q3 is column D, so the flagged cell is D10 and the range under it D2:D9.
+	 * The whole point of the shot is a tool that checks arithmetic, so the
+	 * arithmetic in the shot has to survive being checked: every column here
+	 * adds up, and Q3 is out by exactly the thousand the caption claims.
 	 */
 	const FLAGGED = 3;
 
@@ -72,7 +79,7 @@
 log(round(d.reduce((a, b) => a + b)));`;
 
 	const SHEETS = [
-		{ name: 'Revenue by Region', rows: 5 },
+		{ name: 'Revenue by Region', rows: 8 },
 		{ name: 'Details', rows: 9 }
 	];
 </script>
@@ -157,9 +164,9 @@ log(round(d.reduce((a, b) => a + b)));`;
 					Three of the four quarterly totals reconcile. <span
 						class="rounded bg-accent-ink/10 px-1 font-mono text-[10px] text-accent-ink"
 					>
-						Revenue!D6
+						Revenue!D10
 					</span>
-					prints 20,100 where the column adds up to 21,100 — I kept the page's figure and flagged it.
+					prints 30,990 where the column adds up to 31,990 — I kept the page's figure and flagged it.
 				</p>
 			</div>
 		</div>
@@ -250,7 +257,7 @@ log(round(d.reduce((a, b) => a + b)));`;
 							<th
 								class="border-r border-[var(--grid-line)] bg-[var(--grid-header-bg)] px-1 text-right font-normal text-muted-foreground"
 							>
-								6
+								{TOTAL_ROW}
 							</th>
 							{#each totals as cell, c (c)}
 								<td
@@ -270,9 +277,9 @@ log(round(d.reduce((a, b) => a + b)));`;
 				>
 					<Icon icon={Alert01Icon} size={12} class="mt-0.5 shrink-0 text-amber-500" />
 					<span>
-						<span class="font-mono text-foreground">D6</span> — the page printed 20,100, but D2:D5
+						<span class="font-mono text-foreground">D10</span> — the page printed 30,990, but D2:D9
 						adds up to
-						<span class="text-foreground">21,100</span>.
+						<span class="text-foreground">31,990</span>.
 					</span>
 				</p>
 			</div>
