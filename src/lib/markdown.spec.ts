@@ -111,3 +111,84 @@ describe('renderInline', () => {
 		expect(renderInline('<script>alert(1)</script>')).not.toContain('<script');
 	});
 });
+
+describe('tables', () => {
+	const RECONCILIATION = [
+		'| Line | Invoice | Net | Printed Gross | Difference |',
+		'|---:|---|---:|---:|---:|',
+		'| 032 | SI-4232 | 2,247.10 | 2,669.52 | **(27.00)** |'
+	].join('\n');
+
+	it('renders a pipe table as a table', () => {
+		const html = renderMarkdown(RECONCILIATION);
+		expect(html).toContain('<table');
+		expect(html).toContain('<thead>');
+		expect(html).toContain('<th');
+		expect(html).toContain('SI-4232');
+		// The delimiter row is structure, not content.
+		expect(html).not.toContain('---');
+	});
+
+	it('takes each column\u2019s alignment from the delimiter row', () => {
+		const html = renderMarkdown(RECONCILIATION);
+		const heads = [...html.matchAll(/<th class="([^"]*)"/g)].map((m) => m[1]);
+		expect(heads[0]).toContain('text-right');
+		expect(heads[1]).toContain('text-start');
+		expect(heads[4]).toContain('text-right');
+	});
+
+	it('centres a column marked :--:', () => {
+		const html = renderMarkdown('| a |\n|:-:|\n| 1 |');
+		expect(html).toContain('text-center');
+	});
+
+	it('still formats inside a cell', () => {
+		const html = renderMarkdown(RECONCILIATION);
+		expect(html).toContain('<strong class="font-semibold">(27.00)</strong>');
+	});
+
+	it('turns a reference in a cell into a chip', () => {
+		const html = renderMarkdown('| where |\n|---|\n| [[Ledger!B4]] |');
+		expect(html).toContain('data-ref="Ledger!B4"');
+	});
+
+	it('pads a short row and drops the overflow of a long one', () => {
+		const html = renderMarkdown('| a | b |\n|---|---|\n| 1 |\n| 1 | 2 | 3 |');
+		const rows = [...html.matchAll(/<tr>(?:(?!<\/tr>).)*<\/tr>/g)].map((m) => m[0]);
+		// Header plus two body rows, every one of them two cells wide.
+		expect(rows).toHaveLength(3);
+		for (const row of rows) expect(row.match(/<t[hd]/g)).toHaveLength(2);
+	});
+
+	it('scrolls sideways rather than squeezing the columns', () => {
+		expect(renderMarkdown(RECONCILIATION)).toContain('overflow-x-auto');
+	});
+
+	it('leaves prose that merely contains a pipe alone', () => {
+		const html = renderMarkdown('Use A | B to split the column.');
+		expect(html).not.toContain('<table');
+		expect(html).toContain('<p');
+	});
+
+	it('needs a delimiter row, not just pipes', () => {
+		expect(renderMarkdown('| a | b |\n| c | d |')).not.toContain('<table');
+	});
+
+	it('ends the table at a blank line', () => {
+		const html = renderMarkdown('| a |\n|---|\n| 1 |\n\nAfterwards.');
+		expect(html).toContain('Afterwards.');
+		expect(html.indexOf('</table>')).toBeLessThan(html.indexOf('Afterwards.'));
+	});
+
+	it('keeps an escaped pipe inside its cell', () => {
+		const html = renderMarkdown('| formula |\n|---|\n| a \\| b |');
+		expect(html).toContain('a | b');
+		expect(html.match(/<td/g)).toHaveLength(1);
+	});
+
+	it('cannot be used to smuggle markup in', () => {
+		const html = renderMarkdown('| x |\n|---|\n| <img src=x onerror=alert(1)> |');
+		expect(html).not.toContain('<img');
+		expect(html).toContain('&lt;img');
+	});
+});
