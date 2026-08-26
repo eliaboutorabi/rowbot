@@ -44,14 +44,46 @@ export interface StreamRunResult {
 	revision: number;
 }
 
-/** `['tools:abc', 'sheet-auditor:1']` → `sheet-auditor` */
-function subagentFrom(namespace: readonly string[] | undefined): string | undefined {
-	if (!namespace?.length) return undefined;
-	for (let i = namespace.length - 1; i >= 0; i--) {
-		const segment = namespace[i].split(':')[0];
-		if (segment && segment !== 'tools' && segment !== 'model_request') return segment;
+/**
+ * The `tools:` node a chunk is running inside, if any.
+ *
+ * This used to look for the subagent's name in the namespace, on the
+ * assumption that it appeared as a segment. It does not, and never did: the
+ * top-level agent's own work arrives as `['model_request:<id>']`, and a
+ * subagent's arrives as `['tools:<id>', 'model_request:<id>']` — a subagent
+ * runs inside the `task` tool, so it inherits that tool node's namespace and
+ * nothing else. Every chunk therefore fell through to `undefined`, and no
+ * event in a run was ever attributed to the subagent that produced it.
+ *
+ * The name only exists in the `task` call's own arguments, so what the
+ * namespace can give us is identity, not the name: the same `tools:<id>`
+ * appears on every chunk of one delegation, which is enough to join the two.
+ *
+ * Depth matters. The top-level agent's own tool node also emits under a bare
+ * `['tools:<id>']`, and so does the `task` tool's state update — neither is a
+ * subagent talking. A subagent always runs one level further in, under its own
+ * `model_request` or its own tool node, so a `tools:` segment only means
+ * delegation when something follows it.
+ */
+function delegationRoot(namespace: readonly string[] | undefined): string | undefined {
+	if (!namespace || namespace.length < 2) return undefined;
+	const index = namespace.findIndex((segment) => segment.startsWith('tools:'));
+	return index >= 0 && index < namespace.length - 1 ? namespace[index] : undefined;
+}
+
+/** The `subagent_type` out of a `task` call's arguments, however far they got. */
+function subagentType(args: string | undefined): string {
+	if (args) {
+		try {
+			const parsed = JSON.parse(args) as { subagent_type?: unknown };
+			if (typeof parsed.subagent_type === 'string' && parsed.subagent_type) {
+				return parsed.subagent_type;
+			}
+		} catch {
+			// Arguments still mid-flight. Fall through to the generic label.
+		}
 	}
-	return undefined;
+	return 'subagent';
 }
 
 function contentText(content: unknown): string {
@@ -132,6 +164,17 @@ export async function* streamRun(
 	const usage: UsageTotals = { input: 0, output: 0, reasoning: 0 };
 	const pending = new Map<string, PendingCall>();
 	const openSubagents = new Set<string>();
+	/** `tools:<id>` of a running delegation → the subagent's name. */
+	const delegationNames = new Map<string, string>();
+	/**
+	 * Argument text of each `task` call, in the order the calls were made.
+	 *
+	 * The name has to come from here rather than from a completed `tool_calls`
+	 * entry, because this stream never emits one: the arguments arrive only as
+	 * deltas, and by the time the subagent starts speaking the deltas are all
+	 * that exist.
+	 */
+	const delegationsMade: { id: string; args: string }[] = [];
 	let interrupted = false;
 
 	/**
@@ -190,7 +233,17 @@ export async function* streamRun(
 	for await (const chunk of stream as AsyncIterable<unknown>) {
 		// With `subgraphs: true` every chunk is [namespace, mode, payload].
 		const [namespace, mode, payload] = chunk as [string[], string, unknown];
-		const subagent = subagentFrom(namespace);
+
+		// Bind this delegation to a name the first time it says anything. The
+		// pairing is by the order subagents start speaking, which is the only
+		// signal there is; with several `task` calls of different types running
+		// at once it can put the wrong name on a badge, and that is the whole
+		// cost of getting it wrong.
+		const root = delegationRoot(namespace);
+		if (root && !delegationNames.has(root)) {
+			delegationNames.set(root, subagentType(delegationsMade.shift()?.args));
+		}
+		const subagent = root ? delegationNames.get(root) : undefined;
 
 		if (subagent && !openSubagents.has(subagent)) {
 			openSubagents.add(subagent);
@@ -208,7 +261,12 @@ export async function* streamRun(
 			const [message] = payload as [unknown, Record<string, unknown>];
 			if (!(message instanceof AIMessageChunk)) continue;
 
-			const text = contentText(message.content);
+			// A subagent's closing words come back as the `task` tool's result, so
+			// streaming them here as well put them in the assistant's message a
+			// second time — with no attribution, and with no break between one
+			// auditor's report and the next. Four of them ran together into a
+			// single paragraph above the actual summary.
+			const text = root ? '' : contentText(message.content);
 			if (text) yield { type: 'text', delta: text };
 
 			for (const part of message.tool_call_chunks ?? []) {
@@ -216,11 +274,16 @@ export async function* streamRun(
 				// deltas identified only by index, so the id has to be remembered.
 				if (part.name && part.id) {
 					pending.set(part.id, { name: part.name, subagent });
+					if (part.name === 'task') delegationsMade.push({ id: part.id, args: '' });
 					yield { type: 'tool:start', id: part.id, name: part.name, subagent };
 				}
 				if (part.args) {
 					const id = part.id ?? [...pending.keys()].at(-1);
-					if (id) yield { type: 'tool:args', id, delta: part.args };
+					if (id) {
+						const delegation = delegationsMade.find((made) => made.id === id);
+						if (delegation) delegation.args += part.args;
+						yield { type: 'tool:args', id, delta: part.args };
+					}
 				}
 			}
 

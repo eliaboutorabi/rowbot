@@ -107,3 +107,20 @@ describe('run_analysis', () => {
 		expect(run('const x = 1;').result).toContain('returned nothing');
 	});
 });
+
+describe('what the reviewer sees', () => {
+	// The activity feed shows a tool result's first line, so an answer that
+	// starts with a lone `{` reaches the reviewer as nothing at all.
+	it('puts a small answer on one line', () => {
+		const { result } = run('return { line28: 100385, line31: 20920 };');
+		expect(result).toBe('{"line28":100385,"line31":20920}');
+		expect(result.split('\n')).toHaveLength(1);
+	});
+
+	it('indents an answer too big to read on one line', () => {
+		const { result } = run(
+			'const out = {}; for (let i = 0; i < 40; i++) out["row" + i] = i * 1000; return out;'
+		);
+		expect(result.split('\n').length).toBeGreaterThan(1);
+	});
+});

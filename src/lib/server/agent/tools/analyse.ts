@@ -118,11 +118,25 @@ function sandbox(sheets: Record<string, unknown>, logs: string[]) {
 }
 
 /** Whatever came back, as something that can go in a tool message. */
+/**
+ * One line when it fits, indented when it does not.
+ *
+ * The activity feed shows the first line of a tool's result, which for an
+ * indented object is `{` — so a check the reviewer is meant to be able to read
+ * the answer off displayed nothing but an opening brace. Almost every answer
+ * here is a handful of numbers and fits on a line comfortably; only the ones
+ * that genuinely do not get the indenting that makes them legible, and those
+ * are being read in the transcript rather than glanced at in the feed.
+ */
+const ONE_LINE = 300;
+
 function present(value: unknown): string {
 	if (value === undefined) return '(the code returned nothing)';
 	try {
-		const text = JSON.stringify(value, null, 2);
-		return text === undefined ? String(value) : text.slice(0, 4000);
+		const compact = JSON.stringify(value);
+		if (compact === undefined) return String(value).slice(0, 4000);
+		if (compact.length <= ONE_LINE) return compact;
+		return (JSON.stringify(value, null, 2) ?? compact).slice(0, 4000);
 	} catch {
 		return String(value).slice(0, 4000);
 	}
