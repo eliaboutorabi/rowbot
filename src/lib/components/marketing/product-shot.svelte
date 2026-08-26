@@ -23,10 +23,12 @@
 		File01Icon,
 		FileSpreadsheetIcon,
 		Message01Icon,
+		PlusSignIcon,
 		Moon02Icon,
 		Settings01Icon,
 		SourceCodeIcon,
-		ThermometerIcon
+		ThermometerIcon,
+		ViewIcon
 	} from '@hugeicons/core-free-icons';
 	import Logo from '$lib/components/brand/logo.svelte';
 	import { confidenceColor } from '$lib/confidence';
@@ -262,7 +264,7 @@ log(round(d.reduce((a, b) => a + b)));`;
 							{#each totals as cell, c (c)}
 								<td
 									class="px-2 py-1 font-medium {c === 0 ? 'text-left' : 'text-right'} {c === FLAGGED
-										? 'bg-amber-500/15 ring-1 ring-amber-500/50 ring-inset'
+										? 'bg-amber-500/15 ring-2 ring-accent-ink ring-inset'
 										: ''}"
 								>
 									{cell}
@@ -272,14 +274,39 @@ log(round(d.reduce((a, b) => a + b)));`;
 					</tbody>
 				</table>
 
-				<p
-					class="flex items-start gap-1.5 border-t bg-muted/25 px-2.5 py-2 text-[11px] text-muted-foreground"
+				<!--
+					The cell inspector, which is what the real app puts under the grid
+					the moment anything is selected — and the place "shows you where on
+					the page each figure came from" actually happens. A shot that
+					omitted it was omitting the control the headline is about.
+				-->
+				<div
+					class="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-t bg-muted/25 px-2.5 py-1.5 text-[10px]"
 				>
-					<Icon icon={Alert01Icon} size={12} class="mt-0.5 shrink-0 text-amber-500" />
+					<span class="font-mono text-[11px] font-semibold tabular-nums">D10</span>
+					<span class="text-[11px] text-foreground tabular-nums">30,990</span>
+					<span class="text-muted-foreground">Q3</span>
+					<span class="text-muted-foreground">Number</span>
+					<span class="flex items-center gap-0.5 rounded-md bg-primary/10 px-1.5 text-accent-ink">
+						<Icon icon={PlusSignIcon} size={10} />
+						Add to chat
+					</span>
+					<span class="flex items-center gap-0.5 text-accent-ink">
+						<Icon icon={ViewIcon} size={11} />
+						Show on page 1
+					</span>
+					<span class="tabular-nums" style={`color:${confidenceColor(WORST)}`}>
+						{(WORST * 100).toFixed(1)}% · slightly unsure
+					</span>
+				</div>
+
+				<p
+					class="flex items-start gap-1.5 border-t bg-destructive/8 px-2.5 py-2 text-[11px] text-destructive"
+				>
+					<Icon icon={Alert01Icon} size={12} class="mt-0.5 shrink-0" />
 					<span>
-						<span class="font-mono text-foreground">D10</span> — the page printed 30,990, but D2:D9
-						adds up to
-						<span class="text-foreground">31,990</span>.
+						The page printed <span class="font-medium">30,990</span>, but D2:D9 adds up to
+						<span class="font-medium">31,990</span>. Kept the page's figure and flagged it.
 					</span>
 				</p>
 			</div>
