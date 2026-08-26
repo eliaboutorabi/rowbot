@@ -43,7 +43,7 @@
 </script>
 
 <svelte:head>
-	<title>Rowbot · Agentic OCR that turns any document into Excel</title>
+	<title>Rowbot · Agentic OCR that turns paper into spreadsheets</title>
 </svelte:head>
 
 <div class="relative min-h-dvh overflow-x-clip bg-background">
@@ -110,19 +110,20 @@
 			<div class="mx-auto max-w-3xl text-center">
 				<h1 class="text-5xl leading-[1.08] font-semibold tracking-tight text-balance sm:text-6xl">
 					Agentic OCR that turns
-					<span class="text-accent-ink">any document into Excel</span>
+					<span class="text-accent-ink">paper into spreadsheets</span>
 				</h1>
 
 				<!--
-					The headline says what comes out; this says what goes in and what
-					survives the trip — the tables, the detail around them, the checking
-					and the provenance. Between them they should leave nothing important
-					for the reader to find further down the page.
+					The headline is the shape of the thing; this is the detail. It also
+					carries the word "Excel", which the headline traded away for being
+					shorter and which is the word somebody would actually type into a
+					search box. Between them they should leave nothing important for the
+					reader to find further down the page.
 				-->
 				<p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-pretty text-muted-foreground">
-					A PDF, a photograph, a bad scan. Rowbot pulls out every table — and the names, dates and
-					reference numbers around them — checks the totals by running the arithmetic, and shows you
-					where on the page each figure came from.
+					A PDF, a photograph, a bad scan. Rowbot pulls every table — and the names, dates and
+					reference numbers around them — into a working Excel file, checks the totals by running
+					the arithmetic, and shows you where on the page each figure came from.
 				</p>
 
 				<div class="mt-9 flex flex-wrap items-center justify-center gap-3">
