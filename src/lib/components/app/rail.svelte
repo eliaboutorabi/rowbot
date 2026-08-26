@@ -23,6 +23,7 @@
 		DashboardSquare01Icon,
 		Message01Icon,
 		Moon02Icon,
+		Logout01Icon,
 		Settings01Icon,
 		Sun03Icon
 	} from '@hugeicons/core-free-icons';
@@ -31,8 +32,9 @@
 	import { activity } from '$lib/stores/activity.svelte';
 	import { sidebar, type SidebarPanel } from '$lib/stores/sidebar.svelte';
 	import { cn } from '$lib/utils';
+	import * as Popover from '$lib/components/ui/popover';
 
-	let { initials }: { initials: string } = $props();
+	let { initials, name, email }: { initials: string; name: string; email: string } = $props();
 
 	const isWorkspace = $derived(page.url.pathname.startsWith('/d/'));
 </script>
@@ -144,20 +146,39 @@
 	<!--
 		The one thing here that keeps a container, because it is not an icon —
 		a pair of initials needs something to be a pair of initials *on*.
+
+		A popover rather than a panel. What is behind it is a name, an address
+		and a way out: three lines, and they were sliding a three-hundred-pixel
+		column out of the side of the window and pushing the sheet over to do
+		it. Filling that column with settings to justify its width would be
+		fitting the content to the container, and settings already has a panel
+		of its own.
 	-->
-	<button
-		type="button"
-		class={cn(
-			'mt-1 flex size-8 items-center justify-center rounded-full text-[0.7rem] font-semibold transition-[background-color,color,transform] duration-150 active:scale-90',
-			sidebar.open === 'account'
-				? 'bg-accent-ink text-background'
-				: 'bg-foreground/8 text-muted-foreground hover:text-foreground'
-		)}
-		aria-pressed={sidebar.open === 'account'}
-		aria-label={sidebar.open === 'account' ? 'Close the account panel' : 'Account'}
-		title="Account"
-		onclick={() => sidebar.toggle('account')}
-	>
-		{initials}
-	</button>
+	<Popover.Root>
+		<Popover.Trigger
+			class={cn(
+				'mt-1 flex size-8 items-center justify-center rounded-full text-[0.7rem] font-semibold transition-[background-color,color,transform] duration-150 active:scale-90',
+				'bg-foreground/8 text-muted-foreground hover:text-foreground data-[state=open]:bg-accent-ink data-[state=open]:text-background'
+			)}
+			title="Account"
+			aria-label="Account"
+		>
+			{initials}
+		</Popover.Trigger>
+		<Popover.Content side="right" align="end" sideOffset={10} class="w-60 gap-0 p-0">
+			<div class="border-b px-3 py-2.5">
+				<p class="truncate text-sm font-medium">{name}</p>
+				<p class="truncate text-xs text-muted-foreground">{email}</p>
+			</div>
+			<form method="post" action="/documents?/signOut" class="p-1">
+				<button
+					type="submit"
+					class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+				>
+					<Icon icon={Logout01Icon} size={15} />
+					Sign out
+				</button>
+			</form>
+		</Popover.Content>
+	</Popover.Root>
 </nav>

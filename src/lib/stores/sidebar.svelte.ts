@@ -15,7 +15,12 @@
  * preference you want to find again tomorrow having forgotten you set it. The
  * conversation is open to begin with because in a workspace it is the point.
  */
-export type SidebarPanel = 'chat' | 'projects' | 'settings' | 'account';
+/**
+ * `account` is not here. What it held was a name, an address and a way out,
+ * and it is a popover on the avatar now — a panel that pushes the sheet aside
+ * for three lines is a poor trade for a thing you do once a month.
+ */
+export type SidebarPanel = 'chat' | 'projects' | 'settings';
 
 class Sidebar {
 	open = $state<SidebarPanel | null>('chat');

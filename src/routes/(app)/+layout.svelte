@@ -13,12 +13,11 @@
 	import { slide } from 'svelte/transition';
 	import { cubicOut } from 'svelte/easing';
 	import Icon from '$lib/components/ui/icon.svelte';
-	import { Cancel01Icon, Logout01Icon } from '@hugeicons/core-free-icons';
+	import { Cancel01Icon } from '@hugeicons/core-free-icons';
 	import Rail from '$lib/components/app/rail.svelte';
 	import ResizeEdge from '$lib/components/app/resize-edge.svelte';
 	import ProjectsPanel from '$lib/components/app/projects-panel.svelte';
 	import SettingsPanel from '$lib/components/app/settings-panel.svelte';
-	import { Button } from '$lib/components/ui/button';
 	import { sidebar } from '$lib/stores/sidebar.svelte';
 	import { widths } from '$lib/stores/layout.svelte';
 	import type { LayoutData } from './$types';
@@ -44,7 +43,7 @@
 	 */
 	const showing = $derived(sidebar.open === 'chat' ? null : sidebar.open);
 
-	const TITLES = { projects: 'Projects', settings: 'Settings', account: 'Account' } as const;
+	const TITLES = { projects: 'Projects', settings: 'Settings' } as const;
 
 	/** The chord this reader actually presses. */
 	const QUICK_OPEN =
@@ -71,7 +70,7 @@
 <svelte:window onkeydown={onKeydown} />
 
 <div class="flex h-dvh bg-background">
-	<Rail {initials} />
+	<Rail {initials} name={data.user.name} email={data.user.email} />
 
 	{#if showing}
 		<!--
@@ -125,20 +124,6 @@
 					<ProjectsPanel documents={data.documents} />
 				{:else if showing === 'settings'}
 					<SettingsPanel allowance={data.allowance} />
-				{:else}
-					<div class="flex flex-1 flex-col gap-4 p-4">
-						<div class="min-w-0">
-							<p class="truncate font-medium">{data.user.name}</p>
-							<p class="truncate text-sm text-muted-foreground">{data.user.email}</p>
-						</div>
-
-						<form method="post" action="/documents?/signOut" class="contents">
-							<Button type="submit" variant="outline" size="sm" class="w-full justify-center gap-2">
-								<Icon icon={Logout01Icon} size={15} />
-								Sign out
-							</Button>
-						</form>
-					</div>
 				{/if}
 			</div>
 		</aside>
