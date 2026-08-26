@@ -88,11 +88,18 @@
 								></span>
 							{/if}
 						</span>
+						<!--
+							No strikethrough on a finished step. The green tick and the
+							muted text already say it is done twice over, and a rule drawn
+							through a line of prose is the one thing that makes it harder to
+							read — which matters here, because the plan is what somebody
+							scrolls back to when they want to know what the agent thought it
+							was doing.
+						-->
 						<span
 							class={cn(
 								'min-w-0 flex-1 leading-snug',
-								todo.status === 'completed' &&
-									'text-muted-foreground line-through decoration-muted-foreground/40',
+								todo.status === 'completed' && 'text-muted-foreground',
 								todo.status === 'in_progress' && 'font-medium'
 							)}
 						>

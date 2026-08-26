@@ -126,7 +126,10 @@ log(round(d.reduce((a, b) => a + b)));`;
 				</div>
 				<ul class="space-y-1.5">
 					{#each plan as step (step)}
-						<li class="flex gap-1.5 text-[11px] leading-snug text-muted-foreground line-through">
+						<!-- Not struck through, because the app does not strike them
+						     through. A shot of the product has to be a shot of the
+						     product. -->
+						<li class="flex gap-1.5 text-[11px] leading-snug text-muted-foreground">
 							<Icon
 								icon={CheckmarkCircle02Icon}
 								size={11}

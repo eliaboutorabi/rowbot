@@ -584,7 +584,14 @@
 			</button>
 		</div>
 
-		{#if view === 'workbook' && workbook?.title}
+		<!--
+			Shown whenever the workbook is on screen, which includes the split
+			view. These were keyed on `view === 'workbook'`, so docking the page
+			took away the workbook's title, its notes, its history, the confidence
+			map and the download button — every control belonging to a grid that
+			was still sitting there in the top half of the pane.
+		-->
+		{#if view !== 'source' && workbook?.title}
 			<!--
 				A minimum width, or nothing. Between the two tabs on the left and
 				the four controls on the right this had no slack of its own and
@@ -598,7 +605,7 @@
 			</span>
 		{/if}
 
-		{#if view === 'workbook' && sheets.length}
+		{#if view !== 'source' && sheets.length}
 			<span class="ml-auto flex shrink-0 items-center gap-1.5">
 				{#if hasNotes}
 					<Popover.Root>
