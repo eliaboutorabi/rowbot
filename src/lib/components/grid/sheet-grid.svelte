@@ -503,6 +503,8 @@
 	let draft = $state('');
 	let saving = $state(false);
 	let editor = $state<HTMLInputElement>();
+	/** What the editor was opened with, to compare against on the way out. */
+	let opened = '';
 
 	function beginEdit(row: number, column: number) {
 		if (!onedit || saving) return;
@@ -515,6 +517,8 @@
 		// The formula, if there is one — editing a computed cell should show you
 		// what computes it, not the number it produced.
 		draft = cell.f ? `=${cell.f}` : formatCell(cell, sheet.columns[column]?.fmt);
+		// Kept so a commit can tell a correction from a look. See `commitEdit`.
+		opened = draft;
 		editing = { row, column };
 		selected = { row, column };
 		tick().then(() => editor?.select());
@@ -525,7 +529,24 @@
 		const at = editing;
 		const value = draft;
 		const held = sheet.rows[at.row]?.[at.column]?.v;
+		const unchanged = value === opened;
 		editing = null;
+
+		/*
+		 * Opening a cell and closing it again is not an edit.
+		 *
+		 * It used to save anyway, and saving rebuilds the cell from the text in
+		 * the box — which loses the reader's confidence, because a figure a
+		 * person typed has no OCR confidence to carry. So double-clicking a cell
+		 * to read it and pressing Escape's neighbour took the colour off it, and
+		 * wrote a revision into the history saying you had edited something you
+		 * had not.
+		 */
+		if (unchanged) {
+			if (next) pick(next.row, next.column);
+			scroller?.focus({ preventScroll: true });
+			return;
+		}
 
 		// Move on before the save resolves. Correcting a column means typing,
 		// Enter, typing, Enter, and waiting for a round trip between each one
