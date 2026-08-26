@@ -5,9 +5,35 @@
 	import RouteProgress from '$lib/components/app/route-progress.svelte';
 	import { trackScrolling } from '$lib/scrolling';
 	import { Toaster } from '$lib/components/ui/sonner';
+	import DesktopOnly from '$lib/components/marketing/desktop-only.svelte';
 	import { theme } from '$lib/theme.svelte';
 
 	let { children } = $props();
+
+	/**
+	 * Below this width Rowbot is not shown at all.
+	 *
+	 * The product puts a workbook, the page it was read from and the
+	 * conversation beside each other; there is no phone width where that holds,
+	 * and a cramped version of it would be a version that cannot make its own
+	 * case. `767px` rather than a touch-detection heuristic: it is a rule that
+	 * fails in the right direction — a desktop window narrowed past it recovers
+	 * the moment it is widened, and no laptop is ever wrongly turned away.
+	 */
+	const NARROW = '(max-width: 767px)';
+
+	// Starts false so the server, which cannot measure a window, renders the app
+	// — and so the phone never gets a flash of it, because the CSS below has
+	// already hidden it by the time anything is painted.
+	let narrow = $state(false);
+
+	$effect(() => {
+		const query = window.matchMedia(NARROW);
+		const sync = () => (narrow = query.matches);
+		sync();
+		query.addEventListener('change', sync);
+		return () => query.removeEventListener('change', sync);
+	});
 
 	// Reveals a scroller's bar while it is moving; see `$lib/scrolling`.
 	$effect(trackScrolling);
@@ -45,8 +71,27 @@
 	/>
 </svelte:head>
 
-<RouteProgress />
+<!--
+	Two gates, doing two different jobs. The CSS one hides the app from the
+	first paint, so a phone never sees a frame of something it cannot use. The
+	`{#if}` unmounts it a moment later, once the client has measured the window,
+	so it also stops fetching documents and drawing page thumbnails nobody is
+	going to look at.
 
-<Toaster position="bottom-right" theme={theme.current} richColors closeButton />
+	`contents` rather than `block`: on a wide screen the wrapper must not exist
+	as far as layout is concerned, or it becomes a box between the body and a
+	shell that expects to own the whole window.
+-->
+<div class="hidden md:contents">
+	{#if !narrow}
+		<RouteProgress />
 
-{@render children()}
+		<Toaster position="bottom-right" theme={theme.current} richColors closeButton />
+
+		{@render children()}
+	{/if}
+</div>
+
+<div class="md:hidden">
+	<DesktopOnly />
+</div>

@@ -157,8 +157,15 @@
 	<Popover.Root>
 		<Popover.Trigger
 			class={cn(
-				'mt-1 flex size-8 items-center justify-center rounded-full text-[0.7rem] font-semibold transition-[background-color,color,transform] duration-150 active:scale-90',
-				'bg-foreground/8 text-muted-foreground hover:text-foreground data-[state=open]:bg-accent-ink data-[state=open]:text-background'
+				'mt-1 flex size-8 items-center justify-center rounded-full text-[0.7rem] font-semibold transition-[background-color,box-shadow,transform] duration-150 active:scale-90',
+				// The accent, at full strength. Every other thing in this rail is a
+				// muted glyph, so the one element that stands for a person can carry
+				// the colour — and being the only saturated thing in the column is
+				// what makes it findable without a label.
+				'bg-accent-ink text-background hover:brightness-110',
+				// Open state can no longer be "turn it the accent colour", since it
+				// already is one. A ring reads as pressed and does not move anything.
+				'data-[state=open]:ring-2 data-[state=open]:ring-accent-ink/40 data-[state=open]:ring-offset-2 data-[state=open]:ring-offset-rail'
 			)}
 			title="Account"
 			aria-label="Account"
