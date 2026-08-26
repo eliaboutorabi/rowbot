@@ -106,7 +106,7 @@
 			visitor should see without scrolling, and on a 900px window the old
 			spacing pushed the foot of the shot just past the fold.
 		-->
-		<section class="relative px-6 pt-9 pb-10">
+		<section class="relative px-6 pt-8 pb-8">
 			<div class="mx-auto max-w-3xl text-center">
 				<h1 class="text-5xl leading-[1.08] font-semibold tracking-tight text-balance sm:text-6xl">
 					Agentic OCR that turns
@@ -128,7 +128,7 @@
 					Excel file — with the totals checked by running the arithmetic.
 				</p>
 
-				<div class="mt-7 flex flex-wrap items-center justify-center gap-3">
+				<div class="mt-6 flex flex-wrap items-center justify-center gap-3">
 					<Button size="lg" href={data.user ? '/documents' : '/sign-up'} class="gap-2">
 						{data.user ? 'Open Rowbot' : 'Start converting'}
 						<Icon icon={ArrowRightBigIcon} size={17} />

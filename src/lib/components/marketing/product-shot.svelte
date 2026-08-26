@@ -54,22 +54,29 @@
 		['EMEA', '8,120', '8,640', '6,300', '10,050'],
 		['APAC', '5,600', '6,215', '4,400', '7,995'],
 		['LATAM', '2,310', '2,480', '2,200', '2,910'],
-		['UK & Ireland', '4,870', '5,120', '3,650', '6,240'],
-		['DACH', '3,940', '4,305', '2,980', '5,110'],
-		['Nordics', '2,150', '2,390', '1,720', '2,845'],
-		['Japan', '3,275', '3,610', '2,540', '4,320']
+		['UK & Ireland', '4,870', '5,120', '3,650', '6,240']
 	];
-	const totals = ['Total', '42,695', '46,665', '30,990', '56,350'];
+	const totals = ['Total', '33,330', '36,360', '23,750', '44,075'];
 
 	/** Row the total lands on: a header plus one per region. */
 	const TOTAL_ROW = rows.length + 2;
+	/** The flagged cell and the range under it, as the copy has to name them. */
+	const FLAGGED_CELL = `D${TOTAL_ROW}`;
+	const FLAGGED_RANGE = `D2:D${TOTAL_ROW - 1}`;
 	/**
-	 * Q3 is column D, so the flagged cell is D10 and the range under it D2:D9.
+	 * Q3 is column D, so the flagged cell is D7 and the range under it D2:D6.
 	 * The whole point of the shot is a tool that checks arithmetic, so the
 	 * arithmetic in the shot has to survive being checked: every column here
-	 * adds up, and Q3 is out by exactly the thousand the caption claims.
+	 * adds up, and Q3 is out by exactly the thousand the caption claims —
+	 * 24,750 against a printed 23,750.
+	 *
+	 * Five regions, not eight. Three more rows said nothing the five do not,
+	 * and cost the shot its last inch of the first screen; a visitor scrolling
+	 * to find the bottom of a picture is a visitor who has stopped reading.
 	 */
 	const FLAGGED = 3;
+	const PRINTED = '23,750';
+	const COMPUTED = '24,750';
 
 	/** The least confident cell on the sheet, which colours the readout. */
 	const WORST = 0.912;
@@ -99,7 +106,7 @@ log(round(d.reduce((a, b) => a + b)));`;
 	];
 
 	const SHEETS = [
-		{ name: 'Revenue by Region', rows: 8 },
+		{ name: 'Revenue by Region', rows: 5 },
 		{ name: 'Details', rows: 9 }
 	];
 </script>
@@ -130,7 +137,7 @@ log(round(d.reduce((a, b) => a + b)));`;
 		</div>
 
 		<!-- The conversation. Below `md` the sheet is the whole story. -->
-		<div class="hidden flex-col gap-2.5 border-r p-3 md:flex">
+		<div class="hidden flex-col gap-2.5 border-r p-2.5 md:flex">
 			<div class="rounded-xl border bg-card p-2.5">
 				<div class="mb-2 flex items-center gap-2">
 					<span class="text-[10px] font-medium tracking-widest text-muted-foreground uppercase">
@@ -187,9 +194,10 @@ log(round(d.reduce((a, b) => a + b)));`;
 					Three of the four quarterly totals reconcile. <span
 						class="rounded bg-accent-ink/10 px-1 font-mono text-[10px] text-accent-ink"
 					>
-						Revenue!D10
+						Revenue!{FLAGGED_CELL}
 					</span>
-					prints 30,990 where the column adds up to 31,990 — I kept the page's figure and flagged it.
+					prints {PRINTED} where the column adds up to {COMPUTED} — I kept the page's figure and flagged
+					it.
 				</p>
 			</div>
 
@@ -237,7 +245,7 @@ log(round(d.reduce((a, b) => a + b)));`;
 		</div>
 
 		<!-- The sheet. -->
-		<div class="p-3">
+		<div class="p-2.5">
 			<!--
 				The whole toolbar, not half of it. The shot used to stop after the two
 				view tabs, so the page advertised an app with no confidence readout,
@@ -358,12 +366,12 @@ log(round(d.reduce((a, b) => a + b)));`;
 				<div
 					class="flex flex-wrap items-baseline gap-x-3 gap-y-1 border-t bg-muted/25 px-2.5 py-1.5 text-[10px]"
 				>
-					<span class="font-mono text-[11px] font-semibold tabular-nums">D10</span>
+					<span class="font-mono text-[11px] font-semibold tabular-nums">{FLAGGED_CELL}</span>
 					<!-- `flex-1` on the value, which is how the real inspector does it:
 					     it is what holds the two actions and the confidence against the
 					     right edge rather than letting them trail off after the type. -->
 					<span class="min-w-0 flex-1 truncate text-[11px] text-foreground tabular-nums">
-						30,990
+						{PRINTED}
 					</span>
 					<span class="text-muted-foreground">Q3</span>
 					<span class="text-muted-foreground">Number</span>
@@ -385,8 +393,8 @@ log(round(d.reduce((a, b) => a + b)));`;
 				>
 					<Icon icon={Alert01Icon} size={12} class="mt-0.5 shrink-0" />
 					<span>
-						The page printed <span class="font-medium">30,990</span>, but D2:D9 adds up to
-						<span class="font-medium">31,990</span>. Kept the page's figure and flagged it.
+						The page printed <span class="font-medium">{PRINTED}</span>, but {FLAGGED_RANGE} adds up to
+						<span class="font-medium">{COMPUTED}</span>. Kept the page's figure and flagged it.
 					</span>
 				</p>
 			</div>
