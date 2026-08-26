@@ -106,7 +106,7 @@
 			visitor should see without scrolling, and on a 900px window the old
 			spacing pushed the foot of the shot just past the fold.
 		-->
-		<section class="relative px-6 pt-10 pb-12">
+		<section class="relative px-6 pt-9 pb-10">
 			<div class="mx-auto max-w-3xl text-center">
 				<h1 class="text-5xl leading-[1.08] font-semibold tracking-tight text-balance sm:text-6xl">
 					Agentic OCR that turns
@@ -114,19 +114,21 @@
 				</h1>
 
 				<!--
-					The headline is the shape of the thing; this is the detail. It also
-					carries the word "Excel", which the headline traded away for being
-					shorter and which is the word somebody would actually type into a
-					search box. Between them they should leave nothing important for the
-					reader to find further down the page.
+					The headline is the shape of the thing; this is the detail, and it
+					carries the word "Excel" that the headline traded away for being
+					shorter. Kept to two lines: the shot below now shows the workbook and
+					the page it came from together, and it needs the room more than a
+					third line of prose does — it also makes the point about provenance
+					better than a clause about provenance can.
 				-->
-				<p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-pretty text-muted-foreground">
-					A PDF, a photograph, a bad scan. Rowbot pulls every table — and the names, dates and
-					reference numbers around them — into a working Excel file, checks the totals by running
-					the arithmetic, and shows you where on the page each figure came from.
+				<p
+					class="mx-auto mt-5 max-w-xl text-base leading-relaxed text-pretty text-muted-foreground"
+				>
+					A PDF, a photograph, a bad scan. Every table and the detail around it, into a working
+					Excel file — with the totals checked by running the arithmetic.
 				</p>
 
-				<div class="mt-9 flex flex-wrap items-center justify-center gap-3">
+				<div class="mt-7 flex flex-wrap items-center justify-center gap-3">
 					<Button size="lg" href={data.user ? '/documents' : '/sign-up'} class="gap-2">
 						{data.user ? 'Open Rowbot' : 'Start converting'}
 						<Icon icon={ArrowRightBigIcon} size={17} />
