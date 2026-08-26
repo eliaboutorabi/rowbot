@@ -69,7 +69,13 @@
 		></div>
 	</div>
 
-	<header class="relative mx-auto flex h-14 max-w-6xl items-center gap-4 px-6">
+	<!--
+		A taller bar rather than padding inside it. At `h-14` the mark sat
+		fourteen pixels off the top of the window, which reads as content pushed
+		up against the glass; padding the header would have bought that room by
+		pushing its contents off centre instead. The height buys it evenly.
+	-->
+	<header class="relative mx-auto flex h-20 max-w-6xl items-center gap-4 px-6">
 		<Wordmark size="md" />
 		<div class="ml-auto flex items-center gap-2">
 			<Button
