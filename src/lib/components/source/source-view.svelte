@@ -21,7 +21,7 @@
 	 * the segmentation is an overlay that arrives later and lands on pages that
 	 * are already on screen.
 	 */
-	import { onMount, tick } from 'svelte';
+	import { onMount, tick, untrack } from 'svelte';
 	import Icon from '$lib/components/ui/icon.svelte';
 	import {
 		Alert01Icon,
@@ -41,19 +41,24 @@
 		documentId,
 		mimeType,
 		linkedPaths = [],
-		reading = false,
+		readVersion = 0,
 		focus = null,
 		onopentable
 	}: {
 		documentId: string;
 		mimeType: string;
 		/**
-		 * A run is in progress, so a read may be about to arrive. Watched rather
-		 * than acted on: the segmentation is fetched once when this pane opens,
-		 * and before this the pane a reviewer was watching during the very run
-		 * that read the document stayed blank until they reloaded the page.
+		 * Ticks when the document has just been read.
+		 *
+		 * The segmentation is fetched once when this pane opens, so without this
+		 * the reviewer watching the page during the very run that reads it sees
+		 * nothing until they reload. This used to wait for the run to *end*,
+		 * which is worse than it sounds: reading happens in the first few seconds
+		 * and the rest of a run can be minutes of building the workbook, all of
+		 * it spent looking at an un-annotated page with a notice saying nobody
+		 * has read it.
 		 */
-		reading?: boolean;
+		readVersion?: number;
 		/** Table paths that actually became sheets; only these are offered as links. */
 		linkedPaths?: string[];
 		/**
@@ -183,19 +188,23 @@
 	onMount(loadSegmentation);
 
 	/**
-	 * Pick up a read that landed while this pane was open.
+	 * Pick up a read the moment it lands, while this pane is open.
 	 *
-	 * Only when a run has just ended, and only when there is something to gain:
-	 * the blocks of a forty-page document are not a small payload, and fetching
-	 * them again after a turn that renamed a column would be paying for nothing.
+	 * Keyed on the tick rather than on a run finishing, so the boxes arrive with
+	 * the read. Nothing fetches on the first pass — `onMount` has that — and a
+	 * turn that renames a column ticks nothing, so the blocks of a forty-page
+	 * document are not re-downloaded for free.
 	 */
-	// Plain, not `$state`: the effect writes it, and a reactive flag it also
-	// reads would make it re-run itself.
-	let wasReading = false;
+	// Plain, not `$state`: the effect writes it, and a reactive value it also
+	// reads would make it re-run itself. `untrack` because the initial value is
+	// exactly what is wanted — whatever the count is when this pane opens has,
+	// by definition, already been fetched by `onMount`.
+	let seenVersion = untrack(() => readVersion);
 	$effect(() => {
-		const ended = wasReading && !reading;
-		wasReading = reading;
-		if (ended && !loading && pages.length < (pageCount || 1)) void loadSegmentation();
+		const version = readVersion;
+		if (version === seenVersion) return;
+		seenVersion = version;
+		void loadSegmentation();
 	});
 
 	/* ── Rendering ───────────────────────────────────────────────────── */

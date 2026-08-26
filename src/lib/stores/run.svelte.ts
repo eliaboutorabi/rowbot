@@ -83,6 +83,12 @@ export class RunState {
 	timeline = $state<TimelineItem[]>([]);
 	todos = $state<TodoItem[]>([]);
 	workbook = $state<WorkbookModel | null>(null);
+	/**
+	 * Ticks each time the document is read. Watched by the source viewer, which
+	 * otherwise fetches its segmentation once and never learns that the pages it
+	 * is showing have just been described.
+	 */
+	readVersion = $state(0);
 	workbookVersion = $state(0);
 	usage = $state<UsageTotals>({ input: 0, output: 0, reasoning: 0 });
 	interrupt = $state<InterruptState | null>(null);
@@ -308,6 +314,12 @@ export class RunState {
 			}
 
 			case 'tool:progress': {
+				// A finished read is the moment the source viewer's segmentation
+				// becomes available, and it happens early in a run rather than at
+				// the end of one. `ocr:done` is emitted after the pages are written,
+				// so anything watching this can fetch and be sure of what it gets.
+				if (event.progress.kind === 'ocr:done') this.readVersion++;
+
 				const call = this.#tool(event.id);
 				if (!call) break;
 				call.progress.push(event.progress);

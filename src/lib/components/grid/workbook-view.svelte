@@ -37,6 +37,8 @@
 		workbook,
 		documentId,
 		mimeType,
+		filename,
+		readVersion = 0,
 		busy = false,
 		finished = false,
 		reveal = null,
@@ -46,6 +48,10 @@
 		workbook: WorkbookModel | null;
 		documentId: string;
 		mimeType: string;
+		/** The file as it was uploaded. Named in the toolbar over the page. */
+		filename: string;
+		/** Ticks when the document has been read; the page view refetches on it. */
+		readVersion?: number;
 		busy?: boolean;
 		/** A run has been through this document and stopped. */
 		finished?: boolean;
@@ -585,6 +591,22 @@
 		</div>
 
 		<!--
+			Each view names what you are looking at: the workbook its title, the
+			page the file it was read from. The page had nothing at all, which left
+			the one view where the document's identity matters most — you are
+			staring at a scan, deciding whether it is the right one — as the only
+			view that would not tell you what it was.
+		-->
+		{#if view === 'source'}
+			<span
+				class="hidden min-w-[7rem] truncate text-sm font-medium text-muted-foreground lg:block"
+				title={filename}
+			>
+				{filename}
+			</span>
+		{/if}
+
+		<!--
 			Shown whenever the workbook is on screen, which includes the split
 			view. These were keyed on `view === 'workbook'`, so docking the page
 			took away the workbook's title, its notes, its history, the confidence
@@ -1021,7 +1043,7 @@
 				{documentId}
 				{mimeType}
 				{linkedPaths}
-				reading={busy}
+				{readVersion}
 				{focus}
 				onopentable={openTable}
 			/>

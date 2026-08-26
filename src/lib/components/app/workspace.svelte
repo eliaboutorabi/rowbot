@@ -477,6 +477,8 @@
 				workbook={run.workbook}
 				documentId={data.document.id}
 				mimeType={data.document.mimeType}
+				filename={data.document.originalFilename}
+				readVersion={run.readVersion}
 				busy={run.busy}
 				finished={!run.busy && run.timeline.some((item) => item.kind === 'assistant')}
 				{reveal}
