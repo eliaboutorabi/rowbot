@@ -236,11 +236,8 @@
 		     These are the same projects, ordered by when you last spoke to them. -->
 			{#if !query.trim() && recent.length}
 				<section class="mt-11">
-					<h2
-						class="mb-3 flex items-center gap-3 text-xs font-medium tracking-wide text-muted-foreground uppercase"
-					>
+					<h2 class="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
 						Carry on
-						<span class="h-px flex-1 bg-border"></span>
 					</h2>
 					<ul class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
 						{#each recent as doc (doc.id)}

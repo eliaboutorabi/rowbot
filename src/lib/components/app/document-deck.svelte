@@ -253,11 +253,16 @@
 		transform: rotate(calc((var(--i) - (var(--n) - 1) / 2) * var(--fan, 5deg)));
 
 		/* The shadow goes last in the chain. Anything after it gets filtered too,
-		   which rings every page in a halo. */
-		/* Back pages dim slightly so the deck has thickness. In dark mode they
-		   dim faster: the eye has less shadow to read depth from. */
-		filter: brightness(calc(var(--deck-paper, 1) - var(--i) * var(--deck-dim, 0.05)))
-			var(--deck-shadow);
+		   which rings every page in a halo.
+
+		   No per-card dimming. Each page used to come down a few percent for
+		   every step further back, which was meant to read as depth and read
+		   instead as a stack going grey towards the bottom — paper does not do
+		   that. The rim and the shadow separate them; nothing else needs to.
+		   `--deck-paper` stays, because it takes every page down by the same
+		   amount and only in dark mode, where a grid of pure white rectangles
+		   on a near-black ground is a wall of headlights. */
+		filter: brightness(var(--deck-paper, 1)) var(--deck-shadow);
 		transition:
 			transform 420ms var(--deck-ease),
 			filter 480ms var(--deck-ease);

@@ -329,10 +329,9 @@
 		--deck-shadow: drop-shadow(0 1px 1.5px oklch(0 0 0 / 0.55));
 		--deck-shadow-lift: drop-shadow(0 2px 4px oklch(0 0 0 / 0.6));
 		--deck-rim: 0 0 0 1px oklch(1 0 0 / 0.14);
-		--deck-dim: 0.09;
 		/* Paper is white, and a grid of white rectangles on a near-black ground
-		   is a wall of headlights. Every page comes down a few percent — the
-		   front one included, which is what `--deck-dim` alone cannot do. */
+		   is a wall of headlights. Every page comes down by the same few per
+		   cent — uniformly, so the deck does not shade towards its back. */
 		--deck-paper: 0.9;
 	}
 }
