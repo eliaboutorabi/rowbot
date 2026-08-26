@@ -23,6 +23,12 @@
 	import { originForRow } from '$lib/sheet-source';
 	import type { SourceFocus } from '$lib/components/source/focus';
 	import { isRightToLeft } from '$lib/sheet-direction';
+	import {
+		confidenceColor,
+		confidenceGradient,
+		confidenceOffset,
+		confidenceWords
+	} from '$lib/confidence';
 	import { renderMarkdown } from '$lib/markdown';
 	import { timeAgo } from '$lib/format';
 	import { toast } from 'svelte-sonner';
@@ -460,12 +466,27 @@
 		) ?? 0
 	);
 
-	const lowConfidenceCount = $derived(
-		active?.rows.reduce(
-			(total, row) => total + row.filter((c) => c.conf !== undefined && c.conf < 0.85).length,
-			0
-		) ?? 0
-	);
+	/**
+	 * The least confident cell in the sheet, which is what the control shows.
+	 *
+	 * A count of cells under a threshold was here before and it was always
+	 * zero — see `confidence.ts`. The worst single reading is the honest
+	 * summary: it colours the button, so a green thermometer means there is
+	 * nothing in this sheet worth opening the map for, and anything warmer
+	 * means there is.
+	 */
+	const gradient = confidenceGradient();
+
+	const worstConfidence = $derived.by(() => {
+		let worst: number | undefined;
+		for (const row of active?.rows ?? []) {
+			for (const cell of row) {
+				if (cell.conf === undefined || cell.covered) continue;
+				if (worst === undefined || cell.conf < worst) worst = cell.conf;
+			}
+		}
+		return worst;
+	});
 </script>
 
 <div bind:this={pane} class="flex h-full min-w-0 flex-col bg-rail">
@@ -707,22 +728,24 @@
 					</span>
 				{/if}
 
-				<Button
-					variant={heat ? 'secondary' : 'ghost'}
-					size={lowConfidenceCount > 0 ? 'sm' : 'icon-sm'}
-					class={lowConfidenceCount > 0 ? 'gap-1.5' : ''}
-					onclick={() => (heat = !heat)}
-					title="Tint cells by how confident the reader was, lowest word first"
-					aria-pressed={heat}
-					aria-label="Confidence"
-				>
-					<Icon icon={ThermometerIcon} size={15} />
-					{#if lowConfidenceCount > 0}
-						<span class="rounded bg-destructive/15 px-1 text-[10px] font-medium text-destructive">
-							{lowConfidenceCount}
-						</span>
-					{/if}
-				</Button>
+				{#if worstConfidence !== undefined}
+					<Button
+						variant={heat ? 'secondary' : 'ghost'}
+						size="icon-sm"
+						onclick={() => (heat = !heat)}
+						title={`Least confident cell in this sheet: ${(worstConfidence * 100).toFixed(1)}% — ${confidenceWords(worstConfidence)}`}
+						aria-pressed={heat}
+						aria-label={`Confidence map. Least confident cell ${(worstConfidence * 100).toFixed(0)} percent.`}
+					>
+						<!-- Coloured by the worst reading in the sheet, so the control
+						     itself carries the answer to "is anything wrong here?" -->
+						<Icon
+							icon={ThermometerIcon}
+							size={15}
+							style={`color:${confidenceColor(worstConfidence)}`}
+						/>
+					</Button>
+				{/if}
 
 				<Button size="sm" href="/api/export/{documentId}" download class="gap-1.5">
 					<Icon icon={Download04Icon} size={14} />
@@ -783,25 +806,32 @@
 					class="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-background shadow-sm"
 				>
 					{#if heat}
+						<!-- ── Confidence spectrum ──────────────────────────────
+						     One bar rather than three swatches and a sentence. The
+						     sentence wrapped onto two lines on a wide display and
+						     described bands the data never fell into; the bar is the
+						     scale the tint is drawn from, with the worst cell in this
+						     sheet marked on it. -->
 						<div
-							class="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1.5 border-b bg-muted/30 px-3 py-2 text-[11px]"
+							class="flex h-8 shrink-0 items-center gap-3 border-b bg-muted/30 px-3 text-[11px] text-muted-foreground"
 						>
-							<span class="text-muted-foreground">
-								Tint shows the <strong class="font-medium text-foreground">lowest</strong> word-level
-								OCR confidence in each cell
-							</span>
-							<span class="flex items-center gap-1.5 text-muted-foreground">
-								<span class="size-2.5 rounded-[3px] bg-emerald-500/40"></span> 95%+ read cleanly
-							</span>
-							<span class="flex items-center gap-1.5 text-muted-foreground">
-								<span class="size-2.5 rounded-[3px] bg-amber-500/50"></span> 85–95% slightly unsure
-							</span>
-							<span class="flex items-center gap-1.5 text-muted-foreground">
-								<span class="size-2.5 rounded-[3px] bg-red-500/50"></span> under 85% worth checking
-							</span>
-							{#if lowConfidenceCount > 0}
-								<span class="ml-auto text-muted-foreground">
-									{lowConfidenceCount} cell{lowConfidenceCount === 1 ? '' : 's'} in the last band
+							<span class="shrink-0">Reader confidence</span>
+							<span class="shrink-0 tabular-nums opacity-70">80%</span>
+							<div class="relative h-2 min-w-24 flex-1 rounded-full" style:background={gradient}>
+								{#if worstConfidence !== undefined}
+									<span
+										class="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background shadow"
+										style:inset-inline-start="{confidenceOffset(worstConfidence)}%"
+										style:background={confidenceColor(worstConfidence)}
+									></span>
+								{/if}
+							</div>
+							<span class="shrink-0 tabular-nums opacity-70">100%</span>
+							{#if worstConfidence !== undefined}
+								<span class="ml-auto shrink-0 whitespace-nowrap">
+									lowest <strong class="font-medium" style:color={confidenceColor(worstConfidence)}>
+										{(worstConfidence * 100).toFixed(1)}%
+									</strong>
 								</span>
 							{/if}
 						</div>

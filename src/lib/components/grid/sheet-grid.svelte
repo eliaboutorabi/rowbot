@@ -7,6 +7,7 @@
 	import { toast } from 'svelte-sonner';
 	import { formatCell, isNumericCell } from '$lib/cell-format';
 	import { cn } from '$lib/utils';
+	import { confidenceTint } from '$lib/confidence';
 	import { isRightToLeft } from '$lib/sheet-direction';
 	import { allocateWidths } from '$lib/column-layout';
 	import { measureColumns } from '$lib/column-measure';
@@ -197,19 +198,20 @@
 		return () => observer.disconnect();
 	});
 
-	function confidenceClass(cell: Cell): string {
-		if (!heat || cell.conf === undefined) return '';
-		// Semantic, and deliberately separate from the brand accent: a confidence
-		// warning must not be mistaken for a highlight.
-		//
-		// The clean band is barely there on purpose. A heat map where a whole
-		// clean sheet glows green spends all its contrast saying "nothing is
-		// wrong" — the eye has to find the two amber cells inside a wash of
-		// colour instead of on a quiet ground. Enough tint to show the map is
-		// on and the cell was measured, and no more.
-		if (cell.conf >= 0.95) return 'bg-emerald-500/5';
-		if (cell.conf >= 0.85) return 'bg-amber-500/20';
-		return 'bg-red-500/22';
+	/**
+	 * The tint on a cell, from a continuous ramp rather than three bands.
+	 *
+	 * Semantic colour, deliberately separate from the brand accent: a
+	 * confidence warning must not be mistaken for a highlight. The alpha rises
+	 * with doubt so a clean sheet stays quiet — a heat map where every cell
+	 * glows spends all its contrast saying nothing is wrong, and the eye has
+	 * to find the two doubtful cells inside a wash of colour.
+	 *
+	 * See `confidence.ts` for why the bands went: the middle one never fired.
+	 */
+	function confidenceTintOf(cell: Cell): string | undefined {
+		if (!heat || cell.conf === undefined) return undefined;
+		return confidenceTint(cell.conf);
 	}
 
 	/* ── Keyboard ─────────────────────────────────────────────────────
@@ -803,7 +805,7 @@
 									// A header cell follows its column, not its own type.
 									(isHeader ? numericColumn(c) : isNumericCell(cell)) &&
 										'text-end tracking-[-0.01em] tabular-nums',
-									!isHeader && confidenceClass(cell),
+
 									// Correctness, not confidence — so it does not wait for the
 									// heat map to be switched on.
 									inRange(r, c) && 'bg-[var(--grid-range)]',
@@ -823,6 +825,7 @@
 								style:border-inline-end-width="var(--grid-hairline)"
 								style:scroll-margin-top="var(--sticky-top)"
 								style:scroll-margin-inline-start="2.75rem"
+								style:background-color={isHeader ? undefined : confidenceTintOf(cell)}
 								onmouseenter={(event) => explain(event.currentTarget, cell, c)}
 								onclick={(event) => pick(r, c, event.shiftKey)}
 								ondblclick={() => beginEdit(r, c)}

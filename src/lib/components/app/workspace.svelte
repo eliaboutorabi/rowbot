@@ -21,6 +21,7 @@
 	import WorkbookView from '$lib/components/grid/workbook-view.svelte';
 	import Logo from '$lib/components/brand/logo.svelte';
 	import Suggestions, { type Suggestion } from '$lib/components/agent/suggestions.svelte';
+	import type { IconSvgElement } from '@hugeicons/svelte';
 	import { RunState, type TimelineItem } from '$lib/stores/run.svelte';
 	import { sidebar } from '$lib/stores/sidebar.svelte';
 	import { activity } from '$lib/stores/activity.svelte';
@@ -144,12 +145,40 @@
 		}
 	];
 
-	/** And what usually comes next once there is a workbook to talk about. */
-	const FOLLOW_UP: Suggestion[] = [
+	/**
+	 * What usually comes next, written for this workbook rather than fixed.
+	 *
+	 * A fixed list reads badly the moment you look at it: "re-check against the
+	 * pages" on a workbook whose every figure already reconciles is noise, and
+	 * the one thing worth asking — the figure the reader was unsure of, the
+	 * detail block nobody has pulled out yet — is exactly what a fixed list
+	 * cannot know about. So they are asked for, from the workbook's own shape
+	 * and the agent's closing words.
+	 *
+	 * The fallback below is what shows if that request fails or is still in
+	 * flight. It has to be something, and these three are true of any workbook.
+	 */
+	const ICONS: Record<string, IconSvgElement> = {
+		check: SearchVisualIcon,
+		explain: QuestionIcon,
+		edit: FileSpreadsheetIcon,
+		export: Download04Icon
+	};
+
+	const FALLBACK: Suggestion[] = [
 		{
 			label: 'Re-check against the pages',
 			prompt: 'Re-check every sheet against the source pages and fix anything wrong.',
 			icon: SearchVisualIcon
+		},
+		{
+			label: 'Pull out the details',
+			prompt:
+				'Collect everything on the pages that is not part of a table — names, ' +
+				'addresses, reference numbers, dates, terms, account details — into one ' +
+				'extra sheet called Details, as label and value pairs, and say which page ' +
+				'each came from.',
+			icon: FileSpreadsheetIcon
 		},
 		{
 			label: 'What were you least sure about?',
@@ -157,15 +186,40 @@
 				'Which figures were you least sure of, and why? Point me at the ones worth ' +
 				'checking by hand.',
 			icon: QuestionIcon
-		},
-		{
-			label: 'Tidy it up for sharing',
-			prompt:
-				'Tidy this workbook up so it can be sent to someone else: sensible sheet and ' +
-				'column names, no leftover internal columns, and number formats that match the page.',
-			icon: Download04Icon
 		}
 	];
+
+	let written = $state<Suggestion[] | null>(null);
+	let askedFor = $state<string | null>(null);
+	const followUp = $derived(written ?? FALLBACK);
+
+	/**
+	 * Fetched when a turn finishes, keyed on what the workbook looks like now,
+	 * so a second turn that changes nothing does not pay for a second call.
+	 */
+	$effect(() => {
+		if (run.busy || !run.workbook?.sheets.length) return;
+		const key = `${run.workbook.sheets.length}:${run.timeline.length}`;
+		if (askedFor === key) return;
+		askedFor = key;
+
+		fetch(`/api/suggestions/${data.document.id}`)
+			.then((response) => (response.ok ? response.json() : null))
+			.then((body) => {
+				const items = body?.suggestions;
+				if (!Array.isArray(items) || !items.length) return;
+				written = items
+					.filter((item) => item?.label && item?.prompt)
+					.map((item) => ({
+						label: String(item.label),
+						prompt: String(item.prompt),
+						icon: ICONS[item.kind] ?? QuestionIcon
+					}));
+			})
+			.catch(() => {
+				// The fallback is already on screen. Nothing to report.
+			});
+	});
 
 	const canStart = $derived(!run.busy && run.timeline.length === 0 && !run.workbook);
 	const failure = $derived(run.error ? describeRunFailure(run.error) : null);
@@ -335,7 +389,7 @@
 			     three cheerful suggestions under an error read badly. -->
 			{#if !run.busy && !failure && run.workbook?.sheets.length}
 				<div class="shrink-0 border-t px-3 py-2.5">
-					<Suggestions items={FOLLOW_UP} onpick={send} class="justify-start" />
+					<Suggestions items={followUp} onpick={send} class="justify-start" />
 				</div>
 			{/if}
 

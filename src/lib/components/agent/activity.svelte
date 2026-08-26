@@ -49,6 +49,22 @@
 	});
 
 	/** What the one status line says, from most specific to least. */
+	/**
+	 * The trailing group of tool calls, when one of them is still running.
+	 *
+	 * Split out so the status line can sit above it. Everything before has
+	 * finished and reads as history; this is the part still moving.
+	 */
+	const live = $derived.by(() => {
+		if (!run.busy) return null;
+		const last = blocks.at(-1);
+		return last?.kind === 'tools' && last.calls.some((call) => call.status === 'running')
+			? last
+			: null;
+	});
+
+	const settled = $derived(live ? blocks.slice(0, -1) : blocks);
+
 	const status = $derived.by(() => {
 		if (run.activeSubagents.length) return `${run.activeSubagents.join(', ')} working…`;
 		const running = run.runningTools.at(-1);
@@ -93,7 +109,7 @@
 			{#if empty}{@render empty()}{/if}
 		{/if}
 
-		{#each blocks as block (block.id)}
+		{#each settled as block (block.id)}
 			{#if block.kind === 'entry' && block.item.kind === 'plan'}
 				<div in:fly={{ y: 6, duration: 150 }}>
 					<PlanPanel todos={block.item.todos} revised={block.id !== firstPlanId} />
@@ -170,18 +186,20 @@
 		{/each}
 
 		<!--
-			One status line for the whole run, not three that come and go.
-			Previously "Thinking" was mounted between tool calls and unmounted
-			whenever one started, and the subagent line appeared beside it — so
-			every tool call added and removed a row at the bottom of a feed that
-			is pinned to its bottom, and the whole column jumped. The row is here
-			for as long as the run is, at a fixed height, and only its words
-			change.
+			The status line, and under it whatever is running right now.
+
+			It used to sit below everything, so a live tool card appeared above
+			the words describing it and the eye went to the wrong place. Thinking
+			first, then the work: the order it happens in. At half the height it
+			had, too — it is a status, not a message.
 		-->
 		{#if run.busy}
-			<p class="flex h-6 items-center gap-2 px-1 text-xs text-muted-foreground" aria-live="polite">
+			<p
+				class="flex h-5 items-center gap-2 px-1 text-[0.6875rem] text-muted-foreground"
+				aria-live="polite"
+			>
 				{#if run.activeSubagents.length}
-					<Icon icon={AiBrain01Icon} size={14} class="animate-pulse text-chart-2" />
+					<Icon icon={AiBrain01Icon} size={12} class="animate-pulse text-chart-2" />
 				{:else}
 					<span class="flex items-center gap-[3px]" aria-hidden="true">
 						{#each [0, 1, 2] as i (i)}
@@ -194,6 +212,10 @@
 				{/if}
 				<span class="think-text truncate">{status}</span>
 			</p>
+		{/if}
+
+		{#if live}
+			<ToolGroup calls={live.calls} />
 		{/if}
 	</div>
 </div>
