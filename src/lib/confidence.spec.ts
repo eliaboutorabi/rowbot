@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	confidenceColor,
 	confidenceGradient,
-	confidenceOffset,
+	confidencePercent,
 	confidenceTint,
 	confidenceWords
 } from './confidence';
@@ -39,8 +39,8 @@ describe('confidenceColor', () => {
 });
 
 describe('confidenceTint', () => {
-	it('barely marks a cell that was read cleanly', () => {
-		expect(alpha(confidenceTint(1))).toBeLessThan(0.08);
+	it('keeps a clean cell quiet', () => {
+		expect(alpha(confidenceTint(1))).toBeLessThan(0.16);
 	});
 
 	it('marks a doubtful one clearly', () => {
@@ -48,22 +48,14 @@ describe('confidenceTint', () => {
 	});
 
 	it('never gets so strong it hides the figure', () => {
-		expect(alpha(confidenceTint(0))).toBeLessThanOrEqual(0.35);
+		expect(alpha(confidenceTint(0))).toBeLessThanOrEqual(0.5);
 	});
 });
 
-describe('confidenceOffset', () => {
-	it('puts a perfect read at the far end', () => {
-		expect(confidenceOffset(1)).toBe(100);
-	});
-
-	it('pins anything under 0.8 to the near end', () => {
-		expect(confidenceOffset(0.8)).toBe(0);
-		expect(confidenceOffset(0.2)).toBe(0);
-	});
-
-	it('places the middle in the middle', () => {
-		expect(confidenceOffset(0.9)).toBeCloseTo(50);
+describe('confidencePercent', () => {
+	it('always carries the per cent sign, so the number cannot be read as anything else', () => {
+		expect(confidencePercent(0.982)).toBe('98.2%');
+		expect(confidencePercent(1)).toBe('100.0%');
 	});
 });
 

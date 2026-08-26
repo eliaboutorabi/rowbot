@@ -26,7 +26,7 @@
 	import {
 		confidenceColor,
 		confidenceGradient,
-		confidenceOffset,
+		confidencePercent,
 		confidenceWords
 	} from '$lib/confidence';
 	import { renderMarkdown } from '$lib/markdown';
@@ -728,24 +728,45 @@
 					</span>
 				{/if}
 
-				{#if worstConfidence !== undefined}
-					<Button
-						variant={heat ? 'secondary' : 'ghost'}
-						size="icon-sm"
-						onclick={() => (heat = !heat)}
-						title={`Least confident cell in this sheet: ${(worstConfidence * 100).toFixed(1)}% — ${confidenceWords(worstConfidence)}`}
-						aria-pressed={heat}
-						aria-label={`Confidence map. Least confident cell ${(worstConfidence * 100).toFixed(0)} percent.`}
-					>
-						<!-- Coloured by the worst reading in the sheet, so the control
-						     itself carries the answer to "is anything wrong here?" -->
-						<Icon
-							icon={ThermometerIcon}
-							size={15}
+				<!--
+					Always here, even on a sheet with nothing to show.
+
+					It used to be hidden when the active sheet carried no confidence —
+					which is every sheet the agent wrote itself rather than read off a
+					page, Details among them. Switching to one of those took the button
+					away with the legend still open and no way to shut it.
+				-->
+				<Button
+					variant={heat ? 'secondary' : 'ghost'}
+					size={worstConfidence === undefined ? 'icon-sm' : 'sm'}
+					class={worstConfidence === undefined ? '' : 'gap-1.5'}
+					onclick={() => (heat = !heat)}
+					title={worstConfidence === undefined
+						? 'This sheet was written rather than read, so there is no reader confidence for it'
+						: `Least confident cell here: ${confidencePercent(worstConfidence)} — ${confidenceWords(worstConfidence)}`}
+					aria-pressed={heat}
+					aria-label={worstConfidence === undefined
+						? 'Confidence map. No reader confidence on this sheet.'
+						: `Confidence map. Least confident cell ${confidencePercent(worstConfidence)}.`}
+				>
+					<Icon
+						icon={ThermometerIcon}
+						size={15}
+						style={worstConfidence === undefined
+							? undefined
+							: `color:${confidenceColor(worstConfidence)}`}
+					/>
+					{#if worstConfidence !== undefined}
+						<!-- The per cent sign is not decoration: "98.2" beside a
+						     thermometer could be a temperature. -->
+						<span
+							class="text-[11px] font-medium tabular-nums"
 							style={`color:${confidenceColor(worstConfidence)}`}
-						/>
-					</Button>
-				{/if}
+						>
+							{confidencePercent(worstConfidence)}
+						</span>
+					{/if}
+				</Button>
 
 				<Button size="sm" href="/api/export/{documentId}" download class="gap-1.5">
 					<Icon icon={Download04Icon} size={14} />
@@ -806,33 +827,22 @@
 					class="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-background shadow-sm"
 				>
 					{#if heat}
-						<!-- ── Confidence spectrum ──────────────────────────────
-						     One bar rather than three swatches and a sentence. The
-						     sentence wrapped onto two lines on a wide display and
-						     described bands the data never fell into; the bar is the
-						     scale the tint is drawn from, with the worst cell in this
-						     sheet marked on it. -->
+						<!-- ── What the tint means ──────────────────────────────
+						     A short ramp and the two words that name its ends. The
+						     first version put 80% and 100% on it, which invited the
+						     reader to work out where a given cell fell — arithmetic
+						     they should not be doing, and a question the tint has
+						     already answered. Which end is which is all this has to
+						     say; the figure that matters is on the control above. -->
 						<div
-							class="flex h-8 shrink-0 items-center gap-3 border-b bg-muted/30 px-3 text-[11px] text-muted-foreground"
+							class="flex h-7 shrink-0 items-center gap-2 border-b bg-muted/30 px-3 text-[11px] text-muted-foreground"
 						>
-							<span class="shrink-0">Reader confidence</span>
-							<span class="shrink-0 tabular-nums opacity-70">80%</span>
-							<div class="relative h-2 min-w-24 flex-1 rounded-full" style:background={gradient}>
-								{#if worstConfidence !== undefined}
-									<span
-										class="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-background shadow"
-										style:inset-inline-start="{confidenceOffset(worstConfidence)}%"
-										style:background={confidenceColor(worstConfidence)}
-									></span>
-								{/if}
-							</div>
-							<span class="shrink-0 tabular-nums opacity-70">100%</span>
-							{#if worstConfidence !== undefined}
-								<span class="ml-auto shrink-0 whitespace-nowrap">
-									lowest <strong class="font-medium" style:color={confidenceColor(worstConfidence)}>
-										{(worstConfidence * 100).toFixed(1)}%
-									</strong>
-								</span>
+							{#if worstConfidence === undefined}
+								<span>No reader confidence on this sheet — it was written, not read.</span>
+							{:else}
+								<span>less sure</span>
+								<span class="h-1.5 w-20 rounded-full" style:background={gradient}></span>
+								<span>certain</span>
 							{/if}
 						</div>
 					{/if}

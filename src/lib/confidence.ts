@@ -75,10 +75,19 @@ export function confidenceColor(conf: number, alpha = 1): string {
  */
 export function confidenceTint(conf: number): string {
 	const doubt = Math.min(Math.max(1 - conf, 0), 0.2) / 0.2;
-	return confidenceColor(conf, 0.05 + doubt * 0.3);
+	// Strong enough that the cell is recognisably the colour the legend shows
+	// at that value, and still weighted so a doubtful cell is the loud one.
+	return confidenceColor(conf, 0.12 + doubt * 0.33);
 }
 
-/** The gradient behind the legend, sampled across the ramp. */
+/**
+ * The gradient behind the legend.
+ *
+ * The legend carries no numbers. A scale labelled 80% and 100% invites the
+ * reader to work out where on it a given cell sits, which is arithmetic they
+ * should not have to do and a question the tint already answers. What the
+ * legend has to say is only which end is which.
+ */
 export function confidenceGradient(): string {
 	const steps = [0.8, 0.85, 0.9, 0.93, 0.95, 0.97, 0.98, 0.99, 1];
 	const stops = steps.map(
@@ -87,12 +96,9 @@ export function confidenceGradient(): string {
 	return `linear-gradient(to right, ${stops.join(', ')})`;
 }
 
-/** Where a confidence sits along that gradient, as a percentage. */
-export function confidenceOffset(conf: number): number {
-	const value = Math.min(Math.max(conf, 0.8), 1);
-	// Rounded because (1 - 0.8) / 0.2 is 0.9999999999999998 in binary floating
-	// point, and a marker at 99.99999% of the bar is a marker off the end of it.
-	return Math.round(((value - 0.8) / 0.2) * 10000) / 100;
+/** A confidence as the app writes it: one decimal, and always a per cent sign. */
+export function confidencePercent(conf: number): string {
+	return `${(conf * 100).toFixed(1)}%`;
 }
 
 /** Plain words for the same number, for a tooltip or a screen reader. */
