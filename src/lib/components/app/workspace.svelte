@@ -9,13 +9,18 @@
 		PlayIcon,
 		RefreshIcon,
 		FileSpreadsheetIcon,
-		Message01Icon
+		Message01Icon,
+		Calculator01Icon,
+		SearchVisualIcon,
+		QuestionIcon,
+		Download04Icon
 	} from '@hugeicons/core-free-icons';
 	import { Button } from '$lib/components/ui/button';
 	import Activity from '$lib/components/agent/activity.svelte';
 	import Composer from '$lib/components/agent/composer.svelte';
 	import WorkbookView from '$lib/components/grid/workbook-view.svelte';
 	import Logo from '$lib/components/brand/logo.svelte';
+	import Suggestions, { type Suggestion } from '$lib/components/agent/suggestions.svelte';
 	import { RunState, type TimelineItem } from '$lib/stores/run.svelte';
 	import { sidebar } from '$lib/stores/sidebar.svelte';
 	import { activity } from '$lib/stores/activity.svelte';
@@ -115,13 +120,52 @@
 		run.send({ documentId: data.document.id, resume: value, model, effort });
 	}
 
-	// A document that has never been run starts as soon as the workspace opens.
-	let autoStarted = false;
-	$effect(() => {
-		if (autoStarted || !data.autoStart || run.busy) return;
-		autoStarted = true;
-		send(START_PROMPT);
-	});
+	/**
+	 * What to offer on a document nobody has asked anything about yet.
+	 *
+	 * This used to fire `START_PROMPT` by itself the instant the workspace
+	 * opened, which decided the first turn for the reviewer and started
+	 * spending on a document they might only have wanted to look at. Two
+	 * openings, and they pick.
+	 */
+	const OPENING: Suggestion[] = [
+		{
+			label: 'Turn it into a workbook',
+			prompt: START_PROMPT,
+			icon: FileSpreadsheetIcon
+		},
+		{
+			label: 'Check it for numerical mistakes',
+			prompt:
+				'Read this document and check its arithmetic: every column that is summed, every ' +
+				'total, and every figure derived from other figures on the page. Tell me what does ' +
+				'not add up, and where on the page each problem is.',
+			icon: Calculator01Icon
+		}
+	];
+
+	/** And what usually comes next once there is a workbook to talk about. */
+	const FOLLOW_UP: Suggestion[] = [
+		{
+			label: 'Re-check against the pages',
+			prompt: 'Re-check every sheet against the source pages and fix anything wrong.',
+			icon: SearchVisualIcon
+		},
+		{
+			label: 'What were you least sure about?',
+			prompt:
+				'Which figures were you least sure of, and why? Point me at the ones worth ' +
+				'checking by hand.',
+			icon: QuestionIcon
+		},
+		{
+			label: 'Tidy it up for sharing',
+			prompt:
+				'Tidy this workbook up so it can be sent to someone else: sensible sheet and ' +
+				'column names, no leftover internal columns, and number formats that match the page.',
+			icon: Download04Icon
+		}
+	];
 
 	const canStart = $derived(!run.busy && run.timeline.length === 0 && !run.workbook);
 	const failure = $derived(run.error ? describeRunFailure(run.error) : null);
@@ -263,36 +307,35 @@
 
 			<Activity {run}>
 				{#snippet empty()}
-					<div class="flex flex-col items-center gap-4 px-4 py-14 text-center">
-						<Logo class="size-11 text-muted-foreground" />
+					<div class="flex flex-col items-center gap-5 px-4 py-12 text-center">
+						<!-- The mark, at a size that reads as a greeting rather than as a
+						     bullet point. The soft disc behind it stops it floating. -->
+						<span
+							class="flex size-16 items-center justify-center rounded-2xl bg-primary/[0.07] text-accent-ink ring-1 ring-primary/15 dark:bg-primary/15 dark:ring-primary/25"
+						>
+							<Logo class="size-9" />
+						</span>
 						<div class="space-y-1.5">
-							<p class="font-medium">Ready when you are</p>
+							<p class="text-base font-medium">What shall I do with this?</p>
 							<p class="max-w-xs text-sm text-muted-foreground">
 								{data.document.originalFilename} · {fileSize(data.document.sizeBytes)}
 							</p>
 						</div>
 						{#if canStart}
-							<Button class="mt-1 gap-2" onclick={() => send(START_PROMPT)}>
-								<Icon icon={PlayIcon} size={15} />
-								Extract the tables
-							</Button>
+							<Suggestions items={OPENING} onpick={send} disabled={run.busy} class="max-w-sm" />
 						{/if}
 					</div>
 				{/snippet}
 			</Activity>
 
-			{#if !run.busy && run.workbook?.sheets.length && run.timeline.length === 0}
-				<div class="shrink-0 border-t px-3 py-2">
-					<Button
-						variant="ghost"
-						size="sm"
-						class="w-full gap-2 text-muted-foreground"
-						onclick={() =>
-							send('Re-check every sheet against the source pages and fix anything wrong.')}
-					>
-						<Icon icon={RefreshIcon} size={14} />
-						Re-check this workbook
-					</Button>
+			<!-- ── What next ───────────────────────────────────────────────
+			     Offered once a turn has finished and there is a workbook to talk
+			     about, and taken away the moment another turn starts. Not shown
+			     on a failed turn: the thing to do there is the retry button, and
+			     three cheerful suggestions under an error read badly. -->
+			{#if !run.busy && !failure && run.workbook?.sheets.length}
+				<div class="shrink-0 border-t px-3 py-2.5">
+					<Suggestions items={FOLLOW_UP} onpick={send} class="justify-start" />
 				</div>
 			{/if}
 

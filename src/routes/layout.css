@@ -483,3 +483,63 @@
 	outline: 2px dashed var(--seg-found);
 	outline-offset: 1px;
 }
+
+/*
+ * Thinking.
+ *
+ * Three dots breathing in sequence, and the word beside them lit by a
+ * highlight travelling left to right. `animate-bounce` was doing this job
+ * before and it hopped — a jerky, mechanical motion that read as impatience
+ * from something the reader is waiting on. A wave is calmer and says the same
+ * thing, and the shimmer carries it while the wording stays put.
+ */
+@keyframes rowbot-breathe {
+	0%,
+	72%,
+	100% {
+		opacity: 0.28;
+		transform: scale(0.7);
+	}
+	36% {
+		opacity: 1;
+		transform: scale(1);
+	}
+}
+
+.think-dot {
+	animation: rowbot-breathe 1.35s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes rowbot-shimmer {
+	to {
+		background-position: -200% 0;
+	}
+}
+
+.think-text {
+	background: linear-gradient(
+		90deg,
+		var(--muted-foreground) 35%,
+		var(--foreground) 50%,
+		var(--muted-foreground) 65%
+	);
+	background-size: 200% 100%;
+	background-clip: text;
+	-webkit-background-clip: text;
+	color: transparent;
+	animation: rowbot-shimmer 2.6s linear infinite;
+}
+
+/* Motion is the whole point of both, so with it turned off they simply sit
+   still rather than degrading to something half-animated. */
+@media (prefers-reduced-motion: reduce) {
+	.think-dot {
+		animation: none;
+		opacity: 0.55;
+	}
+	.think-text {
+		animation: none;
+		background: none;
+		color: var(--muted-foreground);
+	}
+}

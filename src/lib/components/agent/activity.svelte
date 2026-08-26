@@ -183,16 +183,16 @@
 				{#if run.activeSubagents.length}
 					<Icon icon={AiBrain01Icon} size={14} class="animate-pulse text-chart-2" />
 				{:else}
-					<span class="flex gap-1" aria-hidden="true">
+					<span class="flex items-center gap-[3px]" aria-hidden="true">
 						{#each [0, 1, 2] as i (i)}
 							<span
-								class="size-1.5 animate-bounce rounded-full bg-primary/60"
-								style="animation-delay: {i * 120}ms"
+								class="think-dot size-1.5 rounded-full bg-primary"
+								style="animation-delay: {i * 160}ms"
 							></span>
 						{/each}
 					</span>
 				{/if}
-				<span class="truncate">{status}</span>
+				<span class="think-text truncate">{status}</span>
 			</p>
 		{/if}
 	</div>
