@@ -1,6 +1,14 @@
 <script lang="ts">
 	import { resolve } from '$app/paths';
 	import Wordmark from '$lib/components/brand/wordmark.svelte';
+	import Icon from '$lib/components/ui/icon.svelte';
+	import { Calculator01Icon, Link01Icon, ScanImageIcon } from '@hugeicons/core-free-icons';
+
+	const FACTS = [
+		{ icon: ScanImageIcon, term: 'Reads', detail: 'PDFs, photos, bad scans' },
+		{ icon: Calculator01Icon, term: 'Checks', detail: 'Arithmetic, by running it' },
+		{ icon: Link01Icon, term: 'Keeps', detail: 'A link to the page' }
+	];
 
 	let { children } = $props();
 </script>
@@ -43,9 +51,14 @@
 			proof from the pitch without another box.
 		-->
 		<dl class="relative grid grid-cols-3 gap-6 border-t pt-6 text-sm">
-			{#each [{ term: 'Reads', detail: 'PDFs, photos, bad scans' }, { term: 'Checks', detail: 'Arithmetic, by running it' }, { term: 'Keeps', detail: 'A link to the page' }] as fact (fact.term)}
+			{#each FACTS as fact (fact.term)}
 				<div>
-					<dt class="text-xs tracking-wide text-muted-foreground uppercase">{fact.term}</dt>
+					<dt
+						class="flex items-center gap-1.5 text-xs tracking-wide text-muted-foreground uppercase"
+					>
+						<Icon icon={fact.icon} size={13} class="shrink-0 text-accent-ink" />
+						{fact.term}
+					</dt>
 					<dd class="mt-1.5 leading-snug font-medium text-pretty">{fact.detail}</dd>
 				</div>
 			{/each}

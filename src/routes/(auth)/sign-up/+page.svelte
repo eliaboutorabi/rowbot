@@ -2,7 +2,14 @@
 	import { resolve } from '$app/paths';
 	import { enhance } from '$app/forms';
 	import Icon from '$lib/components/ui/icon.svelte';
-	import { Alert01Icon, Loading03Icon, Ticket01Icon } from '@hugeicons/core-free-icons';
+	import {
+		Alert01Icon,
+		Loading03Icon,
+		Mail01Icon,
+		SquareLock01Icon,
+		Ticket01Icon,
+		UserIcon
+	} from '@hugeicons/core-free-icons';
 	import { Button } from '$lib/components/ui/button';
 	import { Input } from '$lib/components/ui/input';
 	import { Label } from '$lib/components/ui/label';
@@ -72,40 +79,64 @@
 
 		<div class="space-y-2">
 			<Label for="name">Name</Label>
-			<Input
-				id="name"
-				name="name"
-				autocomplete="name"
-				required
-				value={form?.name ?? ''}
-				placeholder="Ada Lovelace"
-			/>
+			<div class="relative">
+				<Icon
+					icon={UserIcon}
+					size={16}
+					class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
+				/>
+				<Input
+					class="pl-9"
+					id="name"
+					name="name"
+					autocomplete="name"
+					required
+					value={form?.name ?? ''}
+					placeholder="Ada Lovelace"
+				/>
+			</div>
 		</div>
 
 		<div class="space-y-2">
 			<Label for="email">Email</Label>
-			<Input
-				id="email"
-				name="email"
-				type="email"
-				autocomplete="email"
-				required
-				value={form?.email ?? ''}
-				placeholder="you@company.com"
-			/>
+			<div class="relative">
+				<Icon
+					icon={Mail01Icon}
+					size={16}
+					class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
+				/>
+				<Input
+					id="email"
+					name="email"
+					type="email"
+					autocomplete="email"
+					required
+					value={form?.email ?? ''}
+					class="pl-9"
+					placeholder="you@company.com"
+				/>
+			</div>
 		</div>
 
 		<div class="space-y-2">
 			<Label for="password">Password</Label>
-			<Input
-				id="password"
-				name="password"
-				type="password"
-				autocomplete="new-password"
-				required
-				minlength={8}
-				placeholder="At least 8 characters"
-			/>
+			<div class="relative">
+				<Icon
+					icon={SquareLock01Icon}
+					size={16}
+					class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
+				/>
+				<Input
+					id="password"
+					name="password"
+					type="password"
+					autocomplete="new-password"
+					required
+					minlength={8}
+					class="pl-9"
+					placeholder="At least 8 characters"
+				/>
+			</div>
 		</div>
 
 		<Button type="submit" class="w-full" disabled={submitting}>
