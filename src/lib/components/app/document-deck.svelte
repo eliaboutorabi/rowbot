@@ -16,6 +16,7 @@
 	import Icon from '$lib/components/ui/icon.svelte';
 	import { Pdf01Icon } from '@hugeicons/core-free-icons';
 	import { openDocument, renderPage } from '$lib/pdf';
+	import { readThumbnail, writeThumbnail } from '$lib/thumbnail-cache';
 
 	let {
 		documentId,
@@ -42,12 +43,46 @@
 	let root = $state<HTMLElement>();
 	/** True once a render has failed, so the card shows a mark instead of blank paper. */
 	let failed = $state(false);
+	/** Until the top page is on screen the deck is blank paper, and says so quietly. */
+	let ready = $state(false);
 	const canvases = $state<HTMLCanvasElement[]>([]);
 	let drawn = false;
+
+	/** Paint a stored thumbnail straight onto the top card. */
+	async function paint(canvas: HTMLCanvasElement, blob: Blob) {
+		const bitmap = await createImageBitmap(blob);
+		canvas.width = bitmap.width;
+		canvas.height = bitmap.height;
+		const context = canvas.getContext('2d');
+		if (!context) return;
+		context.drawImage(bitmap, 0, 0);
+		bitmap.close();
+	}
 
 	async function render() {
 		if (drawn || isImage) return;
 		drawn = true;
+
+		const canvas = canvases[0];
+		if (!canvas) return;
+
+		/*
+		 * The stored copy first. Fetching the PDF and running pdf.js over it to
+		 * produce a picture this size is most of a second, and it was happening
+		 * on every visit to the library — the grid would appear and the pages
+		 * would follow a beat later, which looks like a page that has not
+		 * finished loading.
+		 */
+		const stored = await readThumbnail(documentId);
+		if (stored) {
+			try {
+				await paint(canvas, stored);
+				ready = true;
+				return;
+			} catch {
+				// A blob that will not decode is a blob worth replacing.
+			}
+		}
 
 		try {
 			const pdf = await openDocument(`/api/source/${documentId}`);
@@ -56,44 +91,57 @@
 			const width = CARD_W * ratio;
 			const height = CARD_H * ratio;
 
-			for (let i = 0; i < Math.min(cards, pdf.numPages); i++) {
-				const canvas = canvases[i];
-				if (!canvas) continue;
+			/*
+			 * Only the top page is drawn. The cards behind it are rotated a few
+			 * degrees and show a sliver of edge each — never enough to read a word
+			 * of — so rendering four more pages per document was four fifths of
+			 * the work for none of the picture. They stay blank paper, which is
+			 * what a sliver of a page looks like anyway.
+			 */
+			const page = await pdf.getPage(1);
+			const unscaled = page.getViewport({ scale: 1 });
+			const viewport = page.getViewport({ scale: width / unscaled.width });
 
-				const page = await pdf.getPage(i + 1);
-				const unscaled = page.getViewport({ scale: 1 });
-				const viewport = page.getViewport({ scale: width / unscaled.width });
+			// Fit the width, then keep the top of the page. A cover crop from the
+			// centre would slice the header off every thumbnail, and the header
+			// is the part that identifies the page.
+			const offscreen = document.createElement('canvas');
+			offscreen.width = viewport.width;
+			offscreen.height = viewport.height;
+			const offContext = offscreen.getContext('2d');
+			if (!offContext) return;
+			offContext.fillStyle = '#ffffff';
+			offContext.fillRect(0, 0, offscreen.width, offscreen.height);
+			await renderPage(page, offscreen, offContext, viewport);
 
-				// Fit the width, then keep the top of the page. A cover crop from the
-				// centre would slice the header off every thumbnail, and the header
-				// is the part that identifies the page.
-				const offscreen = document.createElement('canvas');
-				offscreen.width = viewport.width;
-				offscreen.height = viewport.height;
-				const offContext = offscreen.getContext('2d');
-				if (!offContext) continue;
-				offContext.fillStyle = '#ffffff';
-				offContext.fillRect(0, 0, offscreen.width, offscreen.height);
-				await renderPage(page, offscreen, offContext, viewport);
+			canvas.width = width;
+			canvas.height = height;
+			const context = canvas.getContext('2d');
+			if (!context) return;
+			context.fillStyle = '#ffffff';
+			context.fillRect(0, 0, width, height);
+			context.drawImage(
+				offscreen,
+				0,
+				0,
+				width,
+				Math.min(height, offscreen.height),
+				0,
+				0,
+				width,
+				Math.min(height, offscreen.height)
+			);
+			ready = true;
 
-				canvas.width = width;
-				canvas.height = height;
-				const context = canvas.getContext('2d');
-				if (!context) continue;
-				context.fillStyle = '#ffffff';
-				context.fillRect(0, 0, width, height);
-				context.drawImage(
-					offscreen,
-					0,
-					0,
-					width,
-					Math.min(height, offscreen.height),
-					0,
-					0,
-					width,
-					Math.min(height, offscreen.height)
-				);
-			}
+			// Kept for next time. JPEG rather than PNG: this is a photograph of a
+			// page, and the difference on twenty of them is megabytes.
+			canvas.toBlob(
+				(blob) => {
+					if (blob) void writeThumbnail(documentId, blob);
+				},
+				'image/jpeg',
+				0.82
+			);
 		} catch (cause) {
 			// A thumbnail is decoration and must never break the library — but a
 			// silent failure here is a blank white card, which reads as an empty
@@ -112,7 +160,7 @@
 					observer.disconnect();
 				}
 			},
-			{ rootMargin: '400px 0px' }
+			{ rootMargin: '1200px 0px' }
 		);
 		observer.observe(root);
 		return () => observer.disconnect();
@@ -133,7 +181,7 @@
 		{#each Array.from({ length: cards }, (_, i) => cards - 1 - i) as index (index)}
 			<canvas
 				bind:this={canvases[index]}
-				class="deck-page"
+				class="deck-page {index === 0 && !ready && !failed ? 'deck-waiting' : ''}"
 				style:--i={index}
 				width={CARD_W}
 				height={CARD_H}
@@ -159,6 +207,29 @@
 		/* Room for the widest swing: the outer pages dip below the pivot and
 		   rise above the middle page, and this is exactly that envelope. */
 		aspect-ratio: 1 / 0.83;
+	}
+
+	/* While the top page is still being drawn the card is blank paper with a
+	   breath in it, so the moment the page lands reads as a thing finishing
+	   rather than a thing appearing out of nowhere. */
+	.deck-waiting {
+		animation: deck-waiting 1.6s ease-in-out infinite;
+	}
+
+	@keyframes deck-waiting {
+		0%,
+		100% {
+			background: #fff;
+		}
+		50% {
+			background: #f1f0ee;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.deck-waiting {
+			animation: none;
+		}
 	}
 
 	.deck-page {

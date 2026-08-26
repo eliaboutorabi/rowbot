@@ -113,10 +113,17 @@
 		aria-label="Upload a PDF or image"
 		aria-busy={uploading}
 		class={cn(
-			'group relative flex cursor-pointer flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed px-8 py-14 text-center transition-colors',
+			/*
+			 * A softer box than it was. Two dashed pixels and fourteen of padding
+			 * made the largest, loudest thing on the library the one part of it
+			 * with nothing in it — before any of the reader's own work. It keeps
+			 * the dashes, because that is what says "drop something here", but at
+			 * one pixel over a wash rather than a hard rectangle around a void.
+			 */
+			'group relative flex cursor-pointer flex-col items-center justify-center gap-3.5 overflow-hidden rounded-2xl border border-dashed px-8 py-10 text-center transition-colors',
 			dragging
-				? 'border-primary bg-primary/5'
-				: 'border-border hover:border-primary/50 hover:bg-accent/40',
+				? 'border-primary bg-primary/[0.07]'
+				: 'border-border/80 bg-gradient-to-b from-card/70 to-card/20 hover:border-primary/50 hover:from-primary/[0.05]',
 			uploading && 'pointer-events-none opacity-70',
 			className
 		)}
@@ -157,13 +164,13 @@
 
 		<span
 			class={cn(
-				'flex size-14 items-center justify-center rounded-2xl border bg-card text-accent-ink shadow-sm transition-transform',
+				'flex size-12 items-center justify-center rounded-2xl bg-primary/[0.08] text-accent-ink ring-1 ring-primary/15 transition-transform dark:bg-primary/15 dark:ring-primary/25',
 				dragging ? 'scale-110' : 'group-hover:scale-105'
 			)}
 		>
 			<Icon
 				icon={uploading ? Loading03Icon : CloudUploadIcon}
-				size={26}
+				size={22}
 				class={uploading ? 'animate-spin' : ''}
 			/>
 		</span>
