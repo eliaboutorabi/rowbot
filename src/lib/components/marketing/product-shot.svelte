@@ -15,16 +15,22 @@
 	import Icon from '$lib/components/ui/icon.svelte';
 	import {
 		Alert01Icon,
+		BorderBottom01Icon,
 		CheckmarkCircle02Icon,
+		ClockIcon,
 		DashboardSquare01Icon,
+		Download04Icon,
 		File01Icon,
 		FileSpreadsheetIcon,
 		Message01Icon,
 		Moon02Icon,
 		Settings01Icon,
-		TaskDaily01Icon
+		SourceCodeIcon,
+		ThermometerIcon
 	} from '@hugeicons/core-free-icons';
 	import Logo from '$lib/components/brand/logo.svelte';
+	import { confidenceColor } from '$lib/confidence';
+	import { tokenClass, tokenize } from '$lib/highlight';
 
 	/** The rail, in the order the real one has them. */
 	const RAIL = [
@@ -53,6 +59,22 @@
 	 * in the shot has to survive being checked.
 	 */
 	const FLAGGED = 3;
+
+	/** The least confident cell on the sheet, which colours the readout. */
+	const WORST = 0.912;
+
+	/**
+	 * Real shape: the same helpers the sandbox actually exposes, and short
+	 * enough to fit the conversation column without a clipped line — a snippet
+	 * cut off mid-expression reads as a rendering fault, not as code.
+	 */
+	const SNIPPET = `const d = sheets['Revenue'].col('D');
+log(round(d.reduce((a, b) => a + b)));`;
+
+	const SHEETS = [
+		{ name: 'Revenue by Region', rows: 5 },
+		{ name: 'Details', rows: 9 }
+	];
 </script>
 
 <div
@@ -106,10 +128,24 @@
 				</ul>
 			</div>
 
-			<p class="flex items-center gap-1.5 px-1 text-[11px] text-muted-foreground">
-				<Icon icon={TaskDaily01Icon} size={12} class="shrink-0" />
-				check_totals · Revenue by Region
-			</p>
+			<!--
+				The code, coloured by the same tokeniser the app uses. Writing and
+				running the arithmetic is the thing that separates this from every
+				other converter, and a page that only claims it is asking to be
+				believed. Four lines is enough to show what kind of thing it is.
+			-->
+			<div class="rounded-xl border bg-card p-2.5">
+				<p class="mb-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+					<Icon icon={SourceCodeIcon} size={12} class="shrink-0" />
+					Worked it out · checked four column totals
+				</p>
+				<pre
+					class="overflow-hidden rounded-md bg-muted/40 p-1.5 font-mono text-[9.5px] leading-[1.45]"><code
+						>{#each tokenize(SNIPPET) as token, i (i)}<span class={tokenClass(token.kind)}
+								>{token.text}</span
+							>{/each}</code
+					></pre>
+			</div>
 
 			<div class="flex gap-2">
 				<span
@@ -130,6 +166,12 @@
 
 		<!-- The sheet. -->
 		<div class="p-3">
+			<!--
+				The whole toolbar, not half of it. The shot used to stop after the two
+				view tabs, so the page advertised an app with no confidence readout,
+				no history and no way to get the file out — three of the things
+				somebody deciding whether to sign up most wants to see.
+			-->
 			<div class="flex items-center gap-1.5 pb-2.5">
 				<span
 					class="flex items-center gap-1.5 rounded-md bg-card px-2 py-1 text-[11px] font-medium shadow-sm"
@@ -142,6 +184,25 @@
 				>
 					<Icon icon={File01Icon} size={11} />
 					Source
+				</span>
+				<Icon icon={BorderBottom01Icon} size={11} class="text-muted-foreground/70" />
+
+				<span class="flex-1"></span>
+
+				<Icon icon={ClockIcon} size={11} class="text-muted-foreground/70" />
+				<!-- Coloured off the same ramp the app uses, at the worst cell in
+				     this sheet — which is the point being made. -->
+				<span class="flex items-center gap-1" style={`color:${confidenceColor(WORST)}`}>
+					<Icon icon={ThermometerIcon} size={11} />
+					<span class="text-[10px] font-medium tabular-nums">
+						{(WORST * 100).toFixed(1)}%
+					</span>
+				</span>
+				<span
+					class="flex items-center gap-1 rounded-md bg-primary px-1.5 py-1 text-[10px] font-medium text-primary-foreground"
+				>
+					<Icon icon={Download04Icon} size={10} />
+					.xlsx
 				</span>
 			</div>
 
@@ -214,6 +275,22 @@
 						<span class="text-foreground">21,100</span>.
 					</span>
 				</p>
+			</div>
+
+			<!-- Sheet tabs, where a spreadsheet puts them. A workbook with one
+			     unnamed grid and no tabs is a table; the tabs are what say this
+			     came out as a file somebody can open in Excel. -->
+			<div class="flex items-center gap-1 pt-2">
+				{#each SHEETS as sheet, i (sheet.name)}
+					<span
+						class="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium {i === 0
+							? 'bg-secondary text-foreground'
+							: 'text-muted-foreground'}"
+					>
+						{sheet.name}
+						<span class="text-[9px] text-muted-foreground tabular-nums">{sheet.rows}</span>
+					</span>
+				{/each}
 			</div>
 		</div>
 	</div>

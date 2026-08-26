@@ -1,12 +1,12 @@
 <script lang="ts">
 	import Icon from '$lib/components/ui/icon.svelte';
 	import {
-		AiBrain01Icon,
 		ArrowRight02Icon,
 		FileSearchIcon,
 		Moon02Icon,
-		Sun03Icon,
-		Table01Icon
+		ScanImageIcon,
+		SourceCodeIcon,
+		Sun03Icon
 	} from '@hugeicons/core-free-icons';
 	import ProductShot from '$lib/components/marketing/product-shot.svelte';
 	import Wordmark from '$lib/components/brand/wordmark.svelte';
@@ -16,21 +16,27 @@
 
 	let { data }: { data: LayoutData } = $props();
 
+	/**
+	 * Three things, each one something the app actually does and most of the
+	 * alternatives do not. Written against the build rather than the ambition:
+	 * the confidence is per cell, the arithmetic really is executed, and the
+	 * provenance really does land on the figure.
+	 */
 	const steps = [
 		{
+			icon: ScanImageIcon,
+			title: 'Made for bad scans',
+			body: 'A photograph, a fax, a page that has been through the copier twice. Merged headers and spans survive, right-to-left tables stay the right way round, and every cell carries how sure the reader was.'
+		},
+		{
+			icon: SourceCodeIcon,
+			title: 'Checks the sums by running them',
+			body: 'It writes the arithmetic as code and executes it, so a total that does not reconcile is caught by a computer rather than guessed at — and you can read the code it ran.'
+		},
+		{
 			icon: FileSearchIcon,
-			title: 'Reads the page, not just the text',
-			body: 'Mistral Document AI returns the table structure — merged headers, spans, per-block confidence — instead of a flat wall of characters.'
-		},
-		{
-			icon: AiBrain01Icon,
-			title: 'Shows its working',
-			body: 'A planning agent decides how the workbook should be shaped, then checks itself. Every tool call, every correction, visible as it happens.'
-		},
-		{
-			icon: Table01Icon,
-			title: 'Hands you a real spreadsheet',
-			body: 'Numbers that add up, percentages Excel understands, merged headers intact — and a note on every cell it was unsure about.'
+			title: 'Every figure traceable',
+			body: 'Click a number and the page it came from opens beneath the sheet with that figure marked. Nothing in the workbook is further than one click from the paper.'
 		}
 	];
 </script>
@@ -39,8 +45,30 @@
 	<title>Rowbot · Tables out of documents, with the working shown</title>
 </svelte:head>
 
-<div class="min-h-dvh bg-background">
-	<header class="mx-auto flex h-16 max-w-6xl items-center gap-4 px-6">
+<div class="relative min-h-dvh overflow-x-clip bg-background">
+	<!--
+		One glow, behind the header as well as the hero.
+
+		It used to live inside the hero section, which is `overflow-hidden` — so
+		it was clipped flat along the section's top edge and the result was a
+		band of shading that started exactly where the header ended. The header
+		looked like a separate, slightly darker strip pasted on. Out here it
+		reaches the top of the page and the colour simply arrives, with nothing
+		to draw a line under.
+	-->
+	<div class="pointer-events-none absolute inset-x-0 top-0 h-[46rem]" aria-hidden="true">
+		<div
+			class="absolute top-[-24rem] left-1/2 size-[58rem] -translate-x-1/2 rounded-full bg-primary/12 blur-3xl dark:bg-primary/20"
+		></div>
+		<div
+			class="absolute top-[-14rem] left-[22%] size-[30rem] -translate-x-1/2 rounded-full bg-chart-2/8 blur-3xl dark:bg-chart-2/12"
+		></div>
+		<div
+			class="absolute top-[-18rem] left-[80%] size-[26rem] -translate-x-1/2 rounded-full bg-chart-1/8 blur-3xl dark:bg-chart-1/10"
+		></div>
+	</div>
+
+	<header class="relative mx-auto flex h-16 max-w-6xl items-center gap-4 px-6">
 		<Wordmark size="md" />
 		<div class="ml-auto flex items-center gap-2">
 			<Button variant="ghost" size="icon" onclick={() => theme.toggle()} aria-label="Toggle theme">
@@ -56,13 +84,8 @@
 	</header>
 
 	<main>
-		<section class="relative overflow-hidden px-6 pt-20 pb-24">
-			<div
-				class="pointer-events-none absolute top-[-16rem] left-1/2 size-[44rem] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl"
-				aria-hidden="true"
-			></div>
-
-			<div class="relative mx-auto max-w-3xl text-center">
+		<section class="relative px-6 pt-16 pb-20">
+			<div class="mx-auto max-w-3xl text-center">
 				<p
 					class="mb-6 inline-flex items-center gap-2 rounded-full border bg-card px-3 py-1 text-xs font-medium text-muted-foreground"
 				>
@@ -75,9 +98,10 @@
 					<span class="text-accent-ink">with the working shown</span>
 				</h1>
 
-				<p class="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground">
-					Drop in a PDF or a photo of a table. Rowbot builds the Excel workbook — and lets you watch
-					it plan, read, check and correct, so you know what to trust.
+				<p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-pretty text-muted-foreground">
+					Drop in a PDF or a photograph — a bad scan is fine. Rowbot builds the Excel workbook,
+					checks every total by writing and running the arithmetic, and shows you where on the page
+					each figure came from.
 				</p>
 
 				<div class="mt-9 flex flex-wrap items-center justify-center gap-3">
@@ -97,7 +121,7 @@
 			working, and a page that says so without showing any is asking to be
 			taken on faith.
 		-->
-		<section class="mx-auto -mt-8 max-w-5xl px-6 pb-24">
+		<section class="relative mx-auto max-w-5xl px-6 pb-24">
 			<ProductShot />
 		</section>
 
