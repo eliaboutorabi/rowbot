@@ -14,8 +14,8 @@
 
 <svelte:head><title>Create an account · Rowbot</title></svelte:head>
 
-<div class="space-y-2 text-center">
-	<h1 class="text-2xl font-semibold tracking-tight">Create your account</h1>
+<div class="space-y-2">
+	<h1 class="text-[1.75rem] leading-tight font-semibold tracking-tight">Create your account</h1>
 	<p class="text-sm text-muted-foreground">
 		{data.open
 			? 'Invite-only while Rowbot runs on my API keys.'
@@ -119,10 +119,10 @@
 	</form>
 {/if}
 
-<p class="mt-6 text-center text-sm text-muted-foreground">
+<p class="mt-8 border-t pt-6 text-sm text-muted-foreground">
 	Already have an account?
 	<a
 		href={resolve('/sign-in')}
-		class="font-medium text-foreground underline-offset-4 hover:underline">Sign in</a
+		class="font-medium text-accent-ink underline-offset-4 hover:underline">Sign in</a
 	>
 </p>

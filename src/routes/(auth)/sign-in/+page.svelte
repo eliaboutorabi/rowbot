@@ -14,9 +14,9 @@
 
 <svelte:head><title>Sign in · Rowbot</title></svelte:head>
 
-<div class="space-y-2 text-center">
-	<h1 class="text-2xl font-semibold tracking-tight">Welcome back</h1>
-	<p class="text-sm text-muted-foreground">Sign in to pick up where you left off.</p>
+<div class="space-y-2">
+	<h1 class="text-[1.75rem] leading-tight font-semibold tracking-tight">Welcome back</h1>
+	<p class="text-sm text-muted-foreground">Pick up where you left off.</p>
 </div>
 
 <form
@@ -75,11 +75,11 @@
 	</Button>
 </form>
 
-<p class="mt-6 text-center text-sm text-muted-foreground">
+<p class="mt-8 border-t pt-6 text-sm text-muted-foreground">
 	New here?
 	<a
 		href={resolve('/sign-up')}
-		class="font-medium text-foreground underline-offset-4 hover:underline"
+		class="font-medium text-accent-ink underline-offset-4 hover:underline"
 	>
 		Create an account
 	</a>
