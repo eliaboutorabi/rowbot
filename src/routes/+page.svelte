@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Icon from '$lib/components/ui/icon.svelte';
 	import {
-		ArrowRight02Icon,
+		ArrowRightBigIcon,
 		FileSearchIcon,
 		GithubIcon,
 		Moon02Icon,
@@ -121,7 +121,7 @@
 				<div class="mt-9 flex flex-wrap items-center justify-center gap-3">
 					<Button size="lg" href={data.user ? '/documents' : '/sign-up'} class="gap-2">
 						{data.user ? 'Open Rowbot' : 'Start converting'}
-						<Icon icon={ArrowRight02Icon} size={17} />
+						<Icon icon={ArrowRightBigIcon} size={17} />
 					</Button>
 					{#if !data.user}
 						<Button size="lg" variant="ghost" href="/sign-in">I already have an account</Button>
