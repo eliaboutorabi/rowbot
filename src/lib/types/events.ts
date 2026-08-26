@@ -17,6 +17,9 @@ export type ToolProgress =
 	| { kind: 'sheet:written'; name: string; rows: number; columns: number }
 	| { kind: 'sheet:removed'; name: string }
 	| { kind: 'cells:edited'; sheet: string; count: number }
+	/** The code the agent wrote to check a figure, so the reviewer can read it. */
+	| { kind: 'analysis:start'; label: string; code: string }
+	| { kind: 'analysis:end'; label: string }
 	| { kind: 'note'; text: string };
 
 export interface TodoItem {

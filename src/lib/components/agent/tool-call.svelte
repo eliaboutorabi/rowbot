@@ -19,6 +19,14 @@
 
 	let { call }: { call: ToolCallView } = $props();
 
+	/** The code this call ran, if it ran any. */
+	const analysis = $derived(
+		call.progress.find(
+			(step): step is Extract<typeof step, { kind: 'analysis:start' }> =>
+				step.kind === 'analysis:start'
+		)?.code
+	);
+
 	let open = $state(false);
 
 	const meta = $derived(toolMeta(call.name));
@@ -156,12 +164,40 @@
 									Removed {step.name}
 								{:else if step.kind === 'cells:edited'}
 									Corrected {step.count} cell{step.count === 1 ? '' : 's'} in {step.sheet}
+								{:else if step.kind === 'analysis:start'}
+									{step.label}
+								{:else if step.kind === 'analysis:end'}
+									Done
 								{:else}
 									{step.text}
 								{/if}
 							</li>
 						{/each}
 					</ol>
+				{/if}
+
+				<!-- ── The working ─────────────────────────────────────────
+				     When the agent checks a figure by writing code, the code is
+				     the evidence. Folded away by default, because most of the
+				     time the answer is enough — and one click from the reviewer
+				     who wants to know exactly what was asserted, and on what. -->
+				{#if analysis}
+					<details class="group/code">
+						<summary
+							class="inline-flex cursor-pointer list-none items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground"
+						>
+							<Icon
+								icon={ArrowRight01Icon}
+								size={12}
+								class="transition-transform group-open/code:rotate-90"
+							/>
+							Show the working
+						</summary>
+						<pre
+							class="scroll-slim mt-1.5 max-h-64 overflow-auto rounded-lg border bg-muted/40 p-2.5 text-[11px] leading-relaxed"><code
+								>{analysis}</code
+							></pre>
+					</details>
 				{/if}
 
 				{#if call.error}

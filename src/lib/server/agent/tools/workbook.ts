@@ -18,6 +18,7 @@ import { headerLabels, parseTableHtml, type WordConfidence } from '$lib/server/o
 import { and, eq } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { documentPage } from '$lib/server/db/schema';
+import { confidenceForValue, pageTextSources } from '$lib/server/ocr/text-confidence';
 import type { OcrTable } from '$lib/server/ocr/mistral';
 import {
 	blankCell,
@@ -356,6 +357,14 @@ export const editCellsTool = tool(
 		const applied: Array<{ row: number; column: number; cell: Cell }> = [];
 		const problems: string[] = [];
 
+		/*
+		 * A value typed out of the page text can inherit the confidence of the
+		 * block it came from — see `text-confidence.ts`. Without this a Details
+		 * sheet reads as perfectly certain on a document where half of it is
+		 * faint. Read once per call, and only when the reader has pages stored.
+		 */
+		const sources = await pageTextSources(runtime.context.documentId).catch(() => []);
+
 		for (const edit of edits) {
 			const { row, column } = edit;
 			if (row >= sheet.rows.length || column >= sheet.columns.length) {
@@ -379,7 +388,15 @@ export const editCellsTool = tool(
 					// while every cell around it stayed formatted.
 					fmt: typed.fmt ?? previous.fmt,
 					merge: previous.merge,
-					covered: previous.covered
+					covered: previous.covered,
+					// An explicit correction the reviewer or the agent reasoned out is
+					// not a transcription, so it keeps whatever confidence the page
+					// gives it and no more; where the page says nothing, the cell
+					// carries none rather than a made-up one.
+					...(() => {
+						const conf = confidenceForValue(sources, typed.v);
+						return conf === undefined ? {} : { conf };
+					})()
 				}
 			});
 		}

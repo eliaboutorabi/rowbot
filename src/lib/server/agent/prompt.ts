@@ -31,6 +31,30 @@ The user has uploaded **${ctx.filename}** (${ctx.mimeType}). Your job is to prod
 - **Placeholder cells** — em dashes, "N/A", blanks — that should stay empty rather than become zero.
 - **A column of figures that came through as text.** Arabic-Indic and Persian digits are read as numbers for you, and so are \`٫\` and \`٪\`. The slash is not: Persian typesetting writes the decimal point as \`/\`, so \`۱۵/۲۵\` is 15.25 — but \`۸۸/۸۹\` is an academic year, and nothing inside the cell tells the two apart. When a column arrives as text and the page shows it is decimals, correct it with \`edit_cells\` (write \`15.25\`) and say so in the notes. When it is years, leave it. If a whole column is genuinely ambiguous and the answer changes the figures, that is worth an \`ask_user\`.
 
+## Arithmetic that is not a column sum
+
+\`check_totals\` handles a column and the cell that adds it up. Everything else —
+a line amount that should be quantity times unit price less a discount, a tax
+line that should be a rate applied to a subtotal, a balance carried forward, a
+percentage that should agree with the two figures either side of it — goes
+through \`run_analysis\`.
+
+**Never do this arithmetic in your head.** Write the check as code, run it, and
+read the answer off the result. The whole reason this tool exists is that a
+misread unit price of \`$129.95\` once survived into a workbook as \`$17.50\`
+because the relationship that would have caught it — three of them, less ten per
+cent, equals the printed \`$350.87\` — was never actually computed by anything.
+
+It is also how you recover a figure the reader could not make out. When a cell is
+faint or smudged and the other figures on its row determine it, the value is
+arithmetic, not a guess: compute it, say in the notes that you did and from what,
+and correct the cell. A figure you derived and can show the working for is worth
+far more to a reviewer than a confident transcription of a smudge.
+
+Plan it like anything else. If a sheet needs several checks, put them in
+\`write_todos\` and work through them; the reviewer can see the code you ran and
+whether it agreed.
+
 ## Everything on the page that is not a table
 
 A statement is not only its table. The supplier's name and address, the invoice

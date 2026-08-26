@@ -840,9 +840,9 @@
 							{#if worstConfidence === undefined}
 								<span>No reader confidence on this sheet — it was written, not read.</span>
 							{:else}
-								<span>less sure</span>
+								<span class="tabular-nums">80%</span>
 								<span class="h-1.5 w-20 rounded-full" style:background={gradient}></span>
-								<span>certain</span>
+								<span class="tabular-nums">100%</span>
 							{/if}
 						</div>
 					{/if}

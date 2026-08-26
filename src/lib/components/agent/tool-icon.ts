@@ -13,7 +13,8 @@ import {
 	SearchList01Icon,
 	Table01Icon,
 	TaskEdit01Icon,
-	TextIcon
+	TextIcon,
+	SourceCodeIcon
 } from '@hugeicons/core-free-icons';
 
 export interface ToolMeta {
@@ -43,6 +44,11 @@ const TOOLS: Record<string, ToolMeta> = {
 		icon: Calculator01Icon,
 		running: 'Checking the totals',
 		done: 'Checked the totals'
+	},
+	run_analysis: {
+		icon: SourceCodeIcon,
+		running: 'Working it out in code',
+		done: 'Worked it out'
 	},
 	ask_user: { icon: HelpCircleIcon, running: 'Waiting on you', done: 'Asked you' },
 	set_formula: { icon: Calculator01Icon, running: 'Writing formulas', done: 'Wrote formulas' },
@@ -94,6 +100,8 @@ export function toolDetail(name: string, args: Record<string, unknown> | undefin
 			if (!totals) return sheet;
 			return `${totals} total${totals === 1 ? '' : 's'}${sheet ? ` on ${sheet}` : ''}`;
 		}
+		case 'run_analysis':
+			return str('reason');
 		case 'ask_user':
 			return str('question');
 		case 'set_formula': {
