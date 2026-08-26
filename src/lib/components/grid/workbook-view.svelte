@@ -1,6 +1,8 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import Icon from '$lib/components/ui/icon.svelte';
 	import {
+		BorderBottom01Icon,
 		Alert01Icon,
 		ArrowLeftRightIcon,
 		Clock01Icon,
@@ -170,8 +172,67 @@
 		focusRef(ref);
 	}
 
-	type View = 'workbook' | 'source';
+	type View = 'workbook' | 'source' | 'split';
 	let view = $state<View>('workbook');
+	/**
+	 * Once the source has been opened it stays mounted, hidden, so switching
+	 * back does not re-fetch the page data or throw away pages already drawn.
+	 * It is not mounted before that: a reader who never opens it should not pay
+	 * for the blocks of a forty-page document.
+	 */
+	let sourceUsed = $state(false);
+	$effect(() => {
+		if (view !== 'workbook') sourceUsed = true;
+	});
+
+	/** Height of the docked source, in pixels. Dragged, and remembered. */
+	const DOCK = { min: 180, max: 900, initial: 340 };
+	let dockHeight = $state(DOCK.initial);
+	let dragging = $state(false);
+
+	function startDock(event: PointerEvent) {
+		event.preventDefault();
+		dragging = true;
+		const startY = event.clientY;
+		const startHeight = dockHeight;
+		const target = event.currentTarget as HTMLElement;
+		target.setPointerCapture(event.pointerId);
+
+		const move = (moved: PointerEvent) => {
+			// Dragging the handle up makes the source taller, which is why this
+			// subtracts: the dock grows from the bottom edge of the pane.
+			const wanted = startHeight - (moved.clientY - startY);
+			const room = pane ? pane.clientHeight - 160 : DOCK.max;
+			dockHeight = Math.min(Math.max(wanted, DOCK.min), Math.min(DOCK.max, room));
+		};
+		const done = () => {
+			dragging = false;
+			target.releasePointerCapture(event.pointerId);
+			target.removeEventListener('pointermove', move);
+			target.removeEventListener('pointerup', done);
+			try {
+				localStorage.setItem('rowbot:dock', String(Math.round(dockHeight)));
+			} catch {
+				// Private browsing refuses writes; the dock just won't be remembered.
+			}
+		};
+		target.addEventListener('pointermove', move);
+		target.addEventListener('pointerup', done);
+	}
+
+	onMount(() => {
+		const held = Number(localStorage.getItem('rowbot:dock'));
+		if (Number.isFinite(held) && held >= DOCK.min) dockHeight = Math.min(held, DOCK.max);
+	});
+
+	/** Keyboard equivalent of the drag, for the splitter's ARIA contract. */
+	function nudgeDock(event: KeyboardEvent) {
+		const step = event.shiftKey ? 64 : 16;
+		const by = event.key === 'ArrowUp' ? step : event.key === 'ArrowDown' ? -step : 0;
+		if (!by) return;
+		event.preventDefault();
+		dockHeight = Math.min(Math.max(dockHeight + by, DOCK.min), DOCK.max);
+	}
 
 	let activeId = $state<string | null>(null);
 	let heat = $state(false);
@@ -227,7 +288,9 @@
 					}
 				: undefined
 		};
-		view = 'source';
+		// Somebody who has docked the page wants to keep seeing the workbook;
+		// only the tabbed view needs to switch to show them the page at all.
+		if (view !== 'split') view = 'source';
 	}
 
 	/**
@@ -428,6 +491,25 @@
 					{tab.label}
 				</button>
 			{/each}
+
+			<!-- Split, beside the two it splits. A third tab would say the pane can
+			     show one of three things; this says the two can be shown at once,
+			     which is what it does. -->
+			<button
+				type="button"
+				class={cn(
+					'flex items-center gap-1.5 rounded-[0.4rem] px-2 py-1 text-[0.8125rem] font-medium transition-colors',
+					view === 'split'
+						? 'bg-card text-foreground shadow-sm'
+						: 'text-muted-foreground hover:text-foreground'
+				)}
+				aria-pressed={view === 'split'}
+				title={view === 'split' ? 'Show one at a time' : 'Show the workbook and the page together'}
+				onclick={() => (view = view === 'split' ? 'workbook' : 'split')}
+			>
+				<Icon icon={BorderBottom01Icon} size={14} />
+				<span class="sr-only">Split the view</span>
+			</button>
 		</div>
 
 		{#if view === 'workbook' && workbook?.title}
@@ -650,48 +732,45 @@
 		{/if}
 	</div>
 
-	{#if view === 'source'}
-		<div class="min-h-0 flex-1">
-			<SourceView {documentId} {mimeType} {linkedPaths} {focus} onopentable={openTable} />
-		</div>
-	{:else if !sheets.length}
-		<!--
+	{#if view !== 'source'}
+		{#if !sheets.length}
+			<!--
 			Three states, not two. A run that has finished and produced nothing is
 			a different fact from one that has not started, and saying "sheets will
 			appear once Rowbot reads the document" after it has read the document
 			reads as though the app lost the result.
 		-->
-		<div class="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
-			<span
-				class="flex size-12 items-center justify-center rounded-xl border bg-card text-muted-foreground"
-			>
-				<!-- Only the third state is a problem. A workbook that has not been
+			<div class="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+				<span
+					class="flex size-12 items-center justify-center rounded-xl border bg-card text-muted-foreground"
+				>
+					<!-- Only the third state is a problem. A workbook that has not been
 				     started yet is not a warning, and the triangle was saying it was
 				     — for the whole of every run, since the icon never changed. -->
-				<Icon icon={finished ? Alert01Icon : FileSpreadsheetIcon} size={22} />
-			</span>
-			<p class="text-sm font-medium">
-				{busy ? 'Building your workbook…' : finished ? 'No table here' : 'No sheets yet'}
-			</p>
-			<p class="max-w-xs text-sm leading-relaxed text-muted-foreground">
-				{#if busy}
-					Sheets appear here the moment Rowbot creates them.
-				{:else if finished}
-					Rowbot read the document and did not find a table it could import. Look at what it read on
-					the page, or tell it where the table is.
-				{:else}
-					Sheets will appear here once Rowbot reads the document.
+					<Icon icon={finished ? Alert01Icon : FileSpreadsheetIcon} size={22} />
+				</span>
+				<p class="text-sm font-medium">
+					{busy ? 'Building your workbook…' : finished ? 'No table here' : 'No sheets yet'}
+				</p>
+				<p class="max-w-xs text-sm leading-relaxed text-muted-foreground">
+					{#if busy}
+						Sheets appear here the moment Rowbot creates them.
+					{:else if finished}
+						Rowbot read the document and did not find a table it could import. Look at what it read
+						on the page, or tell it where the table is.
+					{:else}
+						Sheets will appear here once Rowbot reads the document.
+					{/if}
+				</p>
+				{#if finished}
+					<Button variant="outline" size="sm" class="mt-1 gap-2" onclick={() => (view = 'source')}>
+						<Icon icon={File01Icon} size={15} />
+						See what it read
+					</Button>
 				{/if}
-			</p>
-			{#if finished}
-				<Button variant="outline" size="sm" class="mt-1 gap-2" onclick={() => (view = 'source')}>
-					<Icon icon={File01Icon} size={15} />
-					See what it read
-				</Button>
-			{/if}
-		</div>
-	{:else}
-		<!--
+			</div>
+		{:else}
+			<!--
 			The sheet is a surface, not the background. Previously the grid bled to
 			every edge and the inspector ran the full width beneath it, so the pane
 			had no shape at all — and the inspector read as a stray strip rather
@@ -699,103 +778,148 @@
 			shares the sheet tabs' inset, so the whole right column is a stack of
 			aligned surfaces.
 		-->
-		<div class="min-h-0 flex-1 px-3 pt-2">
-			<div
-				class="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-background shadow-sm"
-			>
-				{#if heat}
-					<div
-						class="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1.5 border-b bg-muted/30 px-3 py-2 text-[11px]"
-					>
-						<span class="text-muted-foreground">
-							Tint shows the <strong class="font-medium text-foreground">lowest</strong> word-level OCR
-							confidence in each cell
-						</span>
-						<span class="flex items-center gap-1.5 text-muted-foreground">
-							<span class="size-2.5 rounded-[3px] bg-emerald-500/40"></span> 95%+ read cleanly
-						</span>
-						<span class="flex items-center gap-1.5 text-muted-foreground">
-							<span class="size-2.5 rounded-[3px] bg-amber-500/50"></span> 85–95% slightly unsure
-						</span>
-						<span class="flex items-center gap-1.5 text-muted-foreground">
-							<span class="size-2.5 rounded-[3px] bg-red-500/50"></span> under 85% worth checking
-						</span>
-						{#if lowConfidenceCount > 0}
-							<span class="ml-auto text-muted-foreground">
-								{lowConfidenceCount} cell{lowConfidenceCount === 1 ? '' : 's'} in the last band
+			<div class="min-h-0 flex-1 px-3 pt-2">
+				<div
+					class="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border bg-background shadow-sm"
+				>
+					{#if heat}
+						<div
+							class="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1.5 border-b bg-muted/30 px-3 py-2 text-[11px]"
+						>
+							<span class="text-muted-foreground">
+								Tint shows the <strong class="font-medium text-foreground">lowest</strong> word-level
+								OCR confidence in each cell
 							</span>
+							<span class="flex items-center gap-1.5 text-muted-foreground">
+								<span class="size-2.5 rounded-[3px] bg-emerald-500/40"></span> 95%+ read cleanly
+							</span>
+							<span class="flex items-center gap-1.5 text-muted-foreground">
+								<span class="size-2.5 rounded-[3px] bg-amber-500/50"></span> 85–95% slightly unsure
+							</span>
+							<span class="flex items-center gap-1.5 text-muted-foreground">
+								<span class="size-2.5 rounded-[3px] bg-red-500/50"></span> under 85% worth checking
+							</span>
+							{#if lowConfidenceCount > 0}
+								<span class="ml-auto text-muted-foreground">
+									{lowConfidenceCount} cell{lowConfidenceCount === 1 ? '' : 's'} in the last band
+								</span>
+							{/if}
+						</div>
+					{/if}
+
+					<div class="min-h-0 flex-1">
+						{#if active}
+							{#key active.id}
+								<SheetGrid
+									bind:this={grid}
+									sheet={active}
+									{heat}
+									onedit={saveCell}
+									locked={busy
+										? 'Rowbot is still working — wait for it to finish before editing.'
+										: undefined}
+									bind:selected
+									bind:range
+								/>
+							{/key}
 						{/if}
 					</div>
-				{/if}
 
-				<div class="min-h-0 flex-1">
 					{#if active}
-						{#key active.id}
-							<SheetGrid
-								bind:this={grid}
+						<!-- A cell's note is the agent's prose too, and it writes references
+					     there. Same delegated handler as the workbook notes. -->
+						<!-- svelte-ignore a11y_no_static_element_interactions -->
+						<!-- svelte-ignore a11y_click_events_have_key_events -->
+						<div onclick={onNoteClick}>
+							<CellInspector
 								sheet={active}
-								{heat}
-								onedit={saveCell}
-								locked={busy
-									? 'Rowbot is still working — wait for it to finish before editing.'
-									: undefined}
-								bind:selected
-								bind:range
+								{selected}
+								{range}
+								onshowsource={showOnPage}
+								onattach={onattach ? () => onattach(attachable()) : undefined}
 							/>
-						{/key}
+						</div>
 					{/if}
 				</div>
-
-				{#if active}
-					<!-- A cell's note is the agent's prose too, and it writes references
-					     there. Same delegated handler as the workbook notes. -->
-					<!-- svelte-ignore a11y_no_static_element_interactions -->
-					<!-- svelte-ignore a11y_click_events_have_key_events -->
-					<div onclick={onNoteClick}>
-						<CellInspector
-							sheet={active}
-							{selected}
-							{range}
-							onshowsource={showOnPage}
-							onattach={onattach ? () => onattach(attachable()) : undefined}
-						/>
-					</div>
-				{/if}
 			</div>
-		</div>
 
-		<!-- Sheet tabs, at the bottom where a spreadsheet puts them.
+			<!-- Sheet tabs, at the bottom where a spreadsheet puts them.
 		     The wrapper's padding is the composer's exactly, so the agent column
 		     and the workbook column finish on the same line instead of one
 		     floating above the edge while the other runs into it. -->
-		<div class="shrink-0 px-3 pt-2 pb-3">
-			<div
-				class="scroll-slim flex h-10 items-center gap-1 overflow-x-auto rounded-xl border bg-card px-1.5 shadow-sm"
-			>
-				{#each sheets as sheet (sheet.id)}
-					<button
-						type="button"
-						class={cn(
-							'flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[0.8125rem] font-medium whitespace-nowrap transition-colors',
-							sheet.id === active?.id
-								? 'bg-secondary text-foreground'
-								: 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
-						)}
-						aria-current={sheet.id === active?.id ? 'true' : undefined}
-						onclick={() => {
-							activeId = sheet.id;
-							selected = null;
-						}}
-					>
-						<!-- The name resolves its own direction; the row count stays put
+			<div class="shrink-0 px-3 pt-2 pb-3">
+				<div
+					class="scroll-slim flex h-10 items-center gap-1 overflow-x-auto rounded-xl border bg-card px-1.5 shadow-sm"
+				>
+					{#each sheets as sheet (sheet.id)}
+						<button
+							type="button"
+							class={cn(
+								'flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[0.8125rem] font-medium whitespace-nowrap transition-colors',
+								sheet.id === active?.id
+									? 'bg-secondary text-foreground'
+									: 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
+							)}
+							aria-current={sheet.id === active?.id ? 'true' : undefined}
+							onclick={() => {
+								activeId = sheet.id;
+								selected = null;
+							}}
+						>
+							<!-- The name resolves its own direction; the row count stays put
 						     beside it rather than being dragged to the other end. -->
-						<span dir="auto">{sheet.name}</span>
-						<span class="text-[11px] text-muted-foreground tabular-nums">
-							{Math.max(sheet.rows.length - sheet.headerRows, 0)}
-						</span>
-					</button>
-				{/each}
+							<span dir="auto">{sheet.name}</span>
+							<span class="text-[11px] text-muted-foreground tabular-nums">
+								{Math.max(sheet.rows.length - sheet.headerRows, 0)}
+							</span>
+						</button>
+					{/each}
+				</div>
 			</div>
+		{/if}
+	{/if}
+
+	<!-- ── The page, docked ────────────────────────────────────────────
+	     The workbook and the page it came from are two readings of one
+	     document, and checking a figure against its source means having both
+	     in front of you. Split shows them together; the tabs above still
+	     maximise either one.
+
+	     Mounted once used and then hidden rather than removed, so switching
+	     back does not re-fetch the page data or throw away pages already
+	     drawn — and never mounted at all for a reader who stays in the grid. -->
+	{#if view === 'split'}
+		<!-- The window-splitter pattern: a focusable `separator` is exactly what
+		     WAI-ARIA prescribes here, which the linter has no way to tell from a
+		     decorative rule. Same pair of waivers as `resize-edge.svelte`. -->
+		<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+		<div
+			role="separator"
+			aria-orientation="horizontal"
+			aria-label="Resize the page panel"
+			aria-valuenow={Math.round(dockHeight)}
+			aria-valuemin={DOCK.min}
+			aria-valuemax={DOCK.max}
+			tabindex="0"
+			onpointerdown={startDock}
+			onkeydown={nudgeDock}
+			class={cn(
+				'relative h-1.5 shrink-0 cursor-row-resize touch-none',
+				'before:absolute before:inset-x-0 before:top-1/2 before:h-px before:-translate-y-1/2 before:bg-border',
+				'after:absolute after:inset-x-0 after:top-1/2 after:h-0.5 after:-translate-y-1/2 after:bg-primary after:opacity-0 after:transition-opacity',
+				'hover:after:opacity-60 focus-visible:outline-none focus-visible:after:opacity-100',
+				dragging && 'after:opacity-100'
+			)}
+		></div>
+	{/if}
+
+	{#if sourceUsed}
+		<div
+			class={cn('min-h-0', view === 'source' ? 'flex-1' : view === 'split' ? 'shrink-0' : 'hidden')}
+			style:height={view === 'split' ? `${dockHeight}px` : undefined}
+		>
+			<SourceView {documentId} {mimeType} {linkedPaths} {focus} onopentable={openTable} />
 		</div>
 	{/if}
 </div>
