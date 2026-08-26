@@ -24,6 +24,7 @@
 	import { Button } from '$lib/components/ui/button';
 	import { openDocument, renderPage as drawPage } from '$lib/pdf';
 	import { cn } from '$lib/utils';
+	import { listNumbers, missingPages } from '$lib/page-gaps';
 
 	let {
 		documentId,
@@ -79,6 +80,8 @@
 	const linked = $derived(new Set(linkedPaths));
 
 	let pages = $state<PageInfo[]>([]);
+	/** Pages in the file itself, which is not always how many we hold a read for. */
+	let pageCount = $state(0);
 	let loadError = $state<string | null>(null);
 	let loading = $state(true);
 	let overlay = $state(true);
@@ -109,7 +112,9 @@
 		try {
 			const response = await fetch(`/api/pages/${documentId}`);
 			if (!response.ok) throw new Error(`Could not load the page data (${response.status}).`);
-			pages = (await response.json()).pages ?? [];
+			const body = await response.json();
+			pages = body.pages ?? [];
+			pageCount = body.pageCount ?? pages.length;
 		} catch (cause) {
 			loadError = cause instanceof Error ? cause.message : 'Could not load the page data.';
 		} finally {
@@ -295,6 +300,16 @@
 		return Object.entries(counts).sort((a, b) => b[1] - a[1]);
 	});
 
+	/** Pages of the file we hold no read for. See `page-gaps.ts`. */
+	const missing = $derived(
+		loading
+			? []
+			: missingPages(
+					pageCount,
+					pages.map((page) => page.index)
+				)
+	);
+
 	/**
 	 * The card follows the pointer, not the block.
 	 *
@@ -375,7 +390,7 @@
 	<!-- ── Toolbar ─────────────────────────────────────────────────── -->
 	<div class="flex h-11 shrink-0 items-center gap-3 border-b px-3">
 		<span class="shrink-0 text-xs text-muted-foreground tabular-nums">
-			{#if pages.length}Page {current + 1} of {pages.length}{/if}
+			{#if pages.length}Page {current + 1} of {pageCount || pages.length}{/if}
 		</span>
 
 		{#if overlay && legend.length}
@@ -427,6 +442,22 @@
 			</Button>
 		</div>
 	</div>
+
+	<!-- ── Pages we have no read for ───────────────────────────────── -->
+	{#if missing.length}
+		<p
+			class="flex shrink-0 items-start gap-2 border-b bg-destructive/8 px-3 py-2 text-xs text-destructive"
+			role="status"
+		>
+			<Icon icon={Alert01Icon} size={14} class="mt-px shrink-0" />
+			<span>
+				{missing.length === 1 ? 'Page' : 'Pages'}
+				{listNumbers(missing)} of {pageCount}
+				{missing.length === 1 ? 'has' : 'have'} no read stored. Ask Rowbot to read the document again
+				to restore {missing.length === 1 ? 'it' : 'them'}.
+			</span>
+		</p>
+	{/if}
 
 	<div class="flex min-h-0 flex-1">
 		<!-- ── Thumbnail rail ──────────────────────────────────────── -->
