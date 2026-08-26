@@ -72,6 +72,10 @@
 	--seg-table: oklch(0.525 0.168 3.958);
 	--seg-title: oklch(0.592 0.187 0.584);
 	--seg-figure: oklch(0.63 0.13 346);
+	/* The one thing the reader asked to be shown. Warmer and more saturated
+	   than any segmentation tone so it reads as an answer, not as another
+	   block the reader happened to find. */
+	--seg-found: oklch(0.62 0.21 25);
 }
 
 .dark {
@@ -454,4 +458,28 @@
 		transition-duration: 0.01ms !important;
 		scroll-behavior: auto !important;
 	}
+}
+
+/*
+ * Marking the figure a reviewer asked to be shown.
+ *
+ * `seg-mark-cell` is the real thing: the run of text the PDF drew, found in
+ * its own text layer. `seg-mark-row` is what a scan gets — the row is known
+ * because the table's box divides by its row count, the column is not — and
+ * the dashes are how that gets said without a sentence.
+ *
+ * Written as plain CSS rather than utilities because `outline` and `ring`
+ * belong to one group as far as tailwind-merge is concerned, and it drops all
+ * but the last of them.
+ */
+.seg-mark-cell {
+	background: color-mix(in oklab, var(--seg-found) 25%, transparent);
+	outline: 2px solid var(--seg-found);
+	outline-offset: 1px;
+}
+
+.seg-mark-row {
+	background: color-mix(in oklab, var(--seg-found) 16%, transparent);
+	outline: 2px dashed var(--seg-found);
+	outline-offset: 1px;
 }

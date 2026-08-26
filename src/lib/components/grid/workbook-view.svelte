@@ -19,6 +19,7 @@
 	import type { WorkbookModel } from '$lib/types/workbook';
 	import { formatRef, parseRef, type SheetRef } from '$lib/sheet-ref';
 	import { originForRow } from '$lib/sheet-source';
+	import type { SourceFocus } from '$lib/components/source/focus';
 	import { isRightToLeft } from '$lib/sheet-direction';
 	import { renderMarkdown } from '$lib/markdown';
 	import { timeAgo } from '$lib/format';
@@ -181,7 +182,7 @@
 	 * clicking the same cell twice scroll to it again — without it the effect
 	 * on the other side sees no change and does nothing.
 	 */
-	let focus = $state<{ tablePath: string; nonce: number } | null>(null);
+	let focus = $state<SourceFocus | null>(null);
 	let nonce = 0;
 
 	/**
@@ -205,10 +206,27 @@
 	 */
 	function showOnPage() {
 		if (!active) return;
-		const origin = originForRow(active, selected?.row ?? range?.from.row);
+		const row = selected?.row ?? range?.from.row;
+		const origin = originForRow(active, row);
 		if (!origin) return;
 
-		focus = { tablePath: origin.tablePath, nonce: ++nonce };
+		// The cell's own text, so the page can be narrowed to the figure rather
+		// than to the table it sat in. Both the typed value and what the reader
+		// saw, because the page printed one and the workbook holds the other.
+		const cell = selected ? active.rows[selected.row]?.[selected.column] : undefined;
+
+		focus = {
+			tablePath: origin.tablePath,
+			nonce: ++nonce,
+			cell: cell
+				? {
+						text: cell.v == null ? '' : String(cell.v),
+						raw: cell.raw,
+						row: origin.rowInTable,
+						rows: origin.rowsInTable
+					}
+				: undefined
+		};
 		view = 'source';
 	}
 

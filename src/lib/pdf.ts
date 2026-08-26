@@ -16,6 +16,8 @@
  * white page that never finishes.
  */
 
+import type { TextRun } from './cell-locate';
+
 /** pdf.js has no published types for the document/page handles. */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -103,4 +105,44 @@ export async function renderPage(
 	} finally {
 		cancelDeadline();
 	}
+}
+
+/**
+ * Every run of text on a page, in the OCR's coordinate space.
+ *
+ * This is what makes cell-level provenance possible. Mistral hands back a
+ * table as one box and its content as HTML, with no geometry inside it — but
+ * the PDF itself knows exactly where it drew every figure, and pdf.js will
+ * say. Scaling into the OCR's space here rather than at the call site keeps
+ * the two coordinate systems from ever being mixed up downstream.
+ *
+ * A scanned page has no text layer and returns nothing. That is not a
+ * failure; it is the case the caller falls back for.
+ */
+export async function pageTextRuns(
+	doc: any,
+	pageNumber: number,
+	target: { width: number; height: number }
+): Promise<TextRun[]> {
+	const page = await doc.getPage(pageNumber);
+	const viewport = page.getViewport({ scale: 1 });
+	const content = await page.getTextContent();
+
+	const sx = target.width / viewport.width;
+	const sy = target.height / viewport.height;
+
+	return content.items
+		.filter((item: any) => typeof item.str === 'string' && item.str.trim() !== '')
+		.map((item: any) => {
+			const height = item.height || 0;
+			return {
+				text: item.str,
+				x: item.transform[4] * sx,
+				// PDF measures up from the foot of the page; everything else here
+				// measures down from the head of it.
+				y: (viewport.height - item.transform[5] - height) * sy,
+				width: (item.width || 0) * sx,
+				height: height * sy
+			};
+		});
 }

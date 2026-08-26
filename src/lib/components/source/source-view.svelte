@@ -22,7 +22,9 @@
 		ViewOffSlashIcon
 	} from '@hugeicons/core-free-icons';
 	import { Button } from '$lib/components/ui/button';
-	import { openDocument, renderPage as drawPage } from '$lib/pdf';
+	import { openDocument, pageTextRuns, renderPage as drawPage } from '$lib/pdf';
+	import { locateCell, type Box as CellBox, type Precision, type TextRun } from '$lib/cell-locate';
+	import type { SourceFocus } from './focus';
 	import { cn } from '$lib/utils';
 	import { listNumbers, missingPages } from '$lib/page-gaps';
 
@@ -41,7 +43,7 @@
 		 * A region to reveal. The nonce is what makes the same request twice
 		 * scroll again — without it this effect sees no change on a repeat click.
 		 */
-		focus?: { tablePath: string; nonce: number } | null;
+		focus?: SourceFocus | null;
 		onopentable?: (tablePath: string) => void;
 	} = $props();
 
@@ -339,14 +341,44 @@
 	}
 
 	/**
-	 * Coming from a cell: scroll its page into view and pulse the block it was
-	 * read from. Region-level rather than cell-level — Mistral gives a bounding
-	 * box per block, not per cell, and dividing the box by the grid would be
-	 * inventing coordinates for a product whose whole argument is that it
-	 * doesn't invent things.
+	 * Coming from a cell: scroll its page into view, pulse the block it was
+	 * read from, and — when the file will say where — pick out the figure
+	 * itself rather than the whole table.
+	 *
+	 * Mistral gives a bounding box per block and nothing inside it, so the
+	 * geometry comes from the PDF's own text layer. Where there is no text
+	 * layer the highlight drops to the row, and says so, because a box drawn
+	 * confidently in the wrong place is worse than a box round the table in an
+	 * application whose argument is that you can check its working.
 	 */
 	let flashing = $state<string | null>(null);
 	let flashTimer: ReturnType<typeof setTimeout> | undefined;
+	let pinned = $state<{ page: number; box: CellBox; precision: Precision } | null>(null);
+
+	/** Text runs per page. Reading them costs a parse, and pages get revisited. */
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
+	const runsByPage = new Map<number, TextRun[]>();
+
+	async function textRuns(info: PageInfo): Promise<TextRun[]> {
+		const held = runsByPage.get(info.index);
+		if (held) return held;
+		if (isImage || !info.width || !info.height) return [];
+
+		try {
+			await ensurePdf();
+			const runs = await pageTextRuns(pdf, info.index + 1, {
+				width: info.width,
+				height: info.height
+			});
+			runsByPage.set(info.index, runs);
+			return runs;
+		} catch {
+			// A page whose text layer will not parse is a page we fall back on,
+			// not an error worth putting in front of anybody.
+			runsByPage.set(info.index, []);
+			return [];
+		}
+	}
 
 	$effect(() => {
 		const request = focus;
@@ -358,8 +390,32 @@
 		if (!page) return;
 
 		flashing = request.tablePath;
+		pinned = null;
 		tick().then(() => goTo(page.index));
 
+		const block = page.blocks.find((candidate) => candidate.tablePath === request.tablePath);
+		const cell = request.cell;
+		if (block && cell) {
+			void textRuns(page).then((runs) => {
+				// A later click while this was loading owns the highlight now.
+				if (focus !== request) return;
+				const found = locateCell({
+					table: block.box,
+					runs,
+					text: cell.text,
+					raw: cell.raw,
+					row: cell.row,
+					rows: cell.rows
+				});
+				pinned = { page: page.index, box: found.box, precision: found.precision };
+			});
+		}
+
+		// The pulse is an arrival, so it ends. The mark on the figure stays:
+		// somebody who asked to be shown where a number came from is going to
+		// look at it for longer than a few seconds, and having it vanish while
+		// they read is the sort of thing that makes a feature feel unreliable.
+		// It clears when they ask for something else, or when they dismiss it.
 		clearTimeout(flashTimer);
 		flashTimer = setTimeout(() => (flashing = null), 2600);
 		return () => clearTimeout(flashTimer);
@@ -582,7 +638,12 @@
 													canLink(block) ? 'cursor-pointer' : 'cursor-default',
 													flashing !== null &&
 														block.tablePath === flashing &&
-														'animate-[pulse_0.9s_ease-in-out_3] border-2 border-primary bg-primary/25 ring-4 ring-primary/30'
+														// Quieter once the figure itself is marked: two things
+														// pulsing at once and the reader looks at the bigger
+														// one, which is the table they already knew about.
+														(pinned
+															? 'border-primary/50 !bg-transparent'
+															: 'animate-[pulse_0.9s_ease-in-out_3] border-2 border-primary bg-primary/25 ring-4 ring-primary/30')
 												)}
 												style:left={pos.left}
 												style:top={pos.top}
@@ -601,6 +662,33 @@
 											></button>
 										{/each}
 									</div>
+								{/if}
+
+								<!-- ── The cell you came here to see ──────────────
+								     Outside the `overlay` block: turning the segmentation
+								     off should not take away the one thing that was
+								     explicitly asked for. -->
+								{#if pinned && pinned.page === info.index}
+									{@const at = percent(pinned.box, info)}
+									<button
+										type="button"
+										aria-label="Hide this mark"
+										onclick={() => (pinned = null)}
+										class={cn(
+											'absolute cursor-pointer rounded-[2px]',
+											'animate-[pulse_0.9s_ease-in-out_3]',
+											// A found figure is drawn tight and solid; an inferred row
+											// dashed, so it does not claim to know which column. Both
+											// come from plain CSS rather than utilities: tailwind-merge
+											// treats everything starting `ring-` as one group and drops
+											// all but the last, which ate the dashes the first time.
+											pinned.precision === 'cell' ? 'seg-mark-cell' : 'seg-mark-row'
+										)}
+										style:left={at.left}
+										style:top={at.top}
+										style:width={at.width}
+										style:height={at.height}
+									></button>
 								{/if}
 							</div>
 
