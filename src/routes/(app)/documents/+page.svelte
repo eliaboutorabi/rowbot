@@ -10,7 +10,7 @@
 		FileSpreadsheetIcon,
 		Image01Icon,
 		ArrowDataTransferVerticalIcon,
-		More01Icon,
+		MoreHorizontalIcon,
 		Message01Icon,
 		Pdf01Icon,
 		ScanImageIcon,
@@ -402,16 +402,27 @@
 							<DropdownMenu.Root>
 								<DropdownMenu.Trigger>
 									{#snippet child({ props })}
+										<!--
+											Three dots in a row, and on the right.
+
+											`More01Icon` is a three-by-three grid of dots, which on
+											the corner of a spreadsheet thumbnail reads as a claim
+											about the document — that it holds a table — rather than
+											as a menu. And the corner it sat in was the top left,
+											over the start of the page it is covering. The right-hand
+											corner is where a card keeps its menu, and it is free now
+											that the sheet count has gone.
+										-->
 										<button
 											{...props}
-											class="absolute top-1 left-1 flex size-7 items-center justify-center rounded-md bg-background/90 text-muted-foreground opacity-0 shadow-sm ring-1 ring-border backdrop-blur-sm transition group-hover:opacity-100 hover:text-foreground focus-visible:opacity-100"
+											class="absolute top-1 right-1 flex size-7 items-center justify-center rounded-md bg-background/90 text-muted-foreground opacity-0 shadow-sm ring-1 ring-border backdrop-blur-sm transition group-hover:opacity-100 hover:text-foreground focus-visible:opacity-100"
 											aria-label="Actions for {doc.name}"
 										>
-											<Icon icon={More01Icon} size={15} />
+											<Icon icon={MoreHorizontalIcon} size={15} />
 										</button>
 									{/snippet}
 								</DropdownMenu.Trigger>
-								<DropdownMenu.Content align="start">
+								<DropdownMenu.Content align="end">
 									<DropdownMenu.Item
 										variant="destructive"
 										onSelect={() =>
