@@ -3,6 +3,7 @@
 	import {
 		ArrowRight02Icon,
 		FileSearchIcon,
+		GithubIcon,
 		Moon02Icon,
 		ScanImageIcon,
 		SourceCodeIcon,
@@ -68,9 +69,19 @@
 		></div>
 	</div>
 
-	<header class="relative mx-auto flex h-16 max-w-6xl items-center gap-4 px-6">
+	<header class="relative mx-auto flex h-14 max-w-6xl items-center gap-4 px-6">
 		<Wordmark size="md" />
 		<div class="ml-auto flex items-center gap-2">
+			<Button
+				variant="ghost"
+				size="icon"
+				href="https://github.com/eliaboutorabi/rowbot"
+				target="_blank"
+				rel="noreferrer"
+				aria-label="Rowbot on GitHub"
+			>
+				<Icon icon={GithubIcon} size={18} />
+			</Button>
 			<Button variant="ghost" size="icon" onclick={() => theme.toggle()} aria-label="Toggle theme">
 				<Icon icon={theme.current === 'dark' ? Sun03Icon : Moon02Icon} size={18} />
 			</Button>
@@ -84,7 +95,12 @@
 	</header>
 
 	<main>
-		<section class="relative px-6 pt-16 pb-20">
+		<!--
+			Deliberately tight. The hero and the product shot together are what a
+			visitor should see without scrolling, and on a 900px window the old
+			spacing pushed the foot of the shot just past the fold.
+		-->
+		<section class="relative px-6 pt-10 pb-12">
 			<div class="mx-auto max-w-3xl text-center">
 				<h1 class="text-5xl leading-[1.08] font-semibold tracking-tight text-balance sm:text-6xl">
 					Agentic OCR that
@@ -145,7 +161,18 @@
 			class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-6 py-6 text-sm text-muted-foreground"
 		>
 			<Wordmark size="sm" class="opacity-70" />
-			<span class="ml-auto">Built with SvelteKit, Deep Agents and Mistral Document AI.</span>
+			<a
+				href="https://github.com/eliaboutorabi/rowbot"
+				target="_blank"
+				rel="noreferrer"
+				class="flex items-center gap-1.5 transition-colors hover:text-foreground"
+			>
+				<Icon icon={GithubIcon} size={15} />
+				Source
+			</a>
+			<span class="ml-auto">
+				Designed and developed by Eli Aboutorabi with the help of Claude.
+			</span>
 		</div>
 	</footer>
 </div>
