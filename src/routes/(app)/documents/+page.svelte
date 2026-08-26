@@ -4,13 +4,11 @@
 	import { invalidateAll } from '$app/navigation';
 	import Icon from '$lib/components/ui/icon.svelte';
 	import {
-		ArrowRight01Icon,
 		CheckmarkBadge01Icon,
 		Delete02Icon,
 		FileSpreadsheetIcon,
 		Image01Icon,
 		ArrowDataTransferVerticalIcon,
-		Message01Icon,
 		Pdf01Icon,
 		ScanImageIcon,
 		Search01Icon,
@@ -25,7 +23,7 @@
 	import * as DropdownMenu from '$lib/components/ui/dropdown-menu';
 	import { secondaryName, timeAgo } from '$lib/format';
 	import { forgetThumbnail } from '$lib/thumbnail-cache';
-	import { isSortKey, lastTouched, SORTS, sortDocuments, type SortKey } from '$lib/sort-documents';
+	import { isSortKey, SORTS, sortDocuments, type SortKey } from '$lib/sort-documents';
 	import type { PageData } from './$types';
 
 	let { data }: { data: PageData } = $props();
@@ -69,10 +67,15 @@
 	 * How the grid is ordered. The comparators live in `sort-documents.ts`,
 	 * where they can be tested; this only remembers the choice.
 	 *
-	 * Kept in local storage: whichever of adding, working through or hunting
-	 * for a name somebody is doing, they are usually still doing it tomorrow.
+	 * Defaults to what was last worked on. A library you are in the middle of
+	 * is ordered by where you left off, not by when the files happened to
+	 * arrive — which is also why the row of recent conversations that used to
+	 * sit above the grid is gone: the grid can simply be in that order.
+	 *
+	 * Kept in local storage: whichever of carrying on, adding or hunting for a
+	 * name somebody is doing, they are usually still doing it tomorrow.
 	 */
-	let sort = $state<SortKey>('added');
+	let sort = $state<SortKey>('modified');
 
 	onMount(() => {
 		const held = localStorage.getItem('rowbot:sort');
@@ -88,22 +91,8 @@
 		}
 	}
 
-	const sortLabel = $derived(SORTS.find((option) => option.key === sort)?.label ?? 'Date added');
-
-	/**
-	 * The projects with a conversation in them, most recently spoken to first.
-	 *
-	 * Capped: this is a shortcut back into something you were doing, and a list
-	 * of twenty is the library again with a different sort order. Independent
-	 * of the grid's sort — this row always means "recent", whatever order the
-	 * grid below happens to be in.
-	 */
-	const recent = $derived(
-		data.documents
-			.filter((doc) => doc.conversation !== null)
-			.sort((a, b) => lastTouched(b) - lastTouched(a))
-			.slice(0, 6)
-			.map((doc) => ({ ...doc, conversation: doc.conversation! }))
+	const sortLabel = $derived(
+		SORTS.find((option) => option.key === sort)?.label ?? 'Last worked on'
 	);
 
 	const tally = $derived.by(() => {
@@ -227,52 +216,6 @@
 				</ol>
 			</div>
 		{:else}
-			<!-- ── Pick up where you left off ──────────────────────────────────
-		     The grid below is ordered by when a document arrived, which is the
-		     right order for finding one and the wrong order for carrying on with
-		     one. A conversation you were in the middle of yesterday is at the
-		     bottom of the page by the time you have uploaded four more things.
-		     These are the same projects, ordered by when you last spoke to them. -->
-			{#if !query.trim() && recent.length}
-				<section class="mt-11">
-					<h2 class="mb-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-						Carry on
-					</h2>
-					<ul class="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-						{#each recent as doc (doc.id)}
-							<li>
-								<a
-									href={resolve('/(app)/d/[documentId]', { documentId: doc.id })}
-									class="group flex items-center gap-3 rounded-xl border bg-card px-3.5 py-3 shadow-sm transition-all hover:-translate-y-px hover:border-primary/40 hover:shadow motion-reduce:hover:translate-y-0"
-								>
-									<span
-										class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/[0.08] text-accent-ink dark:bg-primary/15"
-									>
-										<Icon icon={Message01Icon} size={15} />
-									</span>
-									<span class="min-w-0 flex-1">
-										<span class="block truncate text-sm font-medium">{doc.title ?? doc.name}</span>
-										<span class="block truncate text-xs text-muted-foreground">
-											{doc.conversation.turns}
-											{doc.conversation.turns === 1 ? 'message' : 'messages'} ·
-											{timeAgo(doc.conversation.lastActiveAt)}
-											{#if doc.conversation.status === 'running'}
-												· still going
-											{/if}
-										</span>
-									</span>
-									<Icon
-										icon={ArrowRight01Icon}
-										size={15}
-										class="shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5"
-									/>
-								</a>
-							</li>
-						{/each}
-					</ul>
-				</section>
-			{/if}
-
 			<div class="mt-11 mb-5 flex flex-wrap items-center justify-between gap-3">
 				<h2 class="text-xs font-medium tracking-wide text-muted-foreground uppercase">
 					{#if query.trim()}
@@ -374,8 +317,16 @@
 										{/if}
 										<!-- No page count. The deck already shows how thick the
 									     document is, which is the only thing the number was
-									     telling you and it says it without being read. -->
-										{timeAgo(doc.createdAt)}
+									     telling you and it says it without being read.
+
+									     The time follows the sort. A grid ordered by when each
+									     project was last worked on, with the date it was uploaded
+									     under every card, looks like a grid in no order at all. -->
+										{timeAgo(
+											sort === 'modified'
+												? (doc.conversation?.lastActiveAt ?? doc.createdAt)
+												: doc.createdAt
+										)}
 									</p>
 								</div>
 							</a>

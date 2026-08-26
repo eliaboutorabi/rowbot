@@ -3,7 +3,8 @@
  *
  * Newest-first is right for a shelf you are adding to and wrong for one you
  * are working through, and neither helps when you half-remember a name — so
- * it is a choice rather than a default.
+ * it is a choice, and it opens on "last worked on", because a library is
+ * something people come back to more often than they add to.
  *
  * "Last worked on" is not the same as "date added" the moment anybody says
  * anything: it comes from the newest run on the document, and falls back to
@@ -13,9 +14,10 @@
 
 export type SortKey = 'added' | 'modified' | 'name';
 
+/** The default first, since that is the order the grid opens in. */
 export const SORTS: { key: SortKey; label: string }[] = [
-	{ key: 'added', label: 'Date added' },
 	{ key: 'modified', label: 'Last worked on' },
+	{ key: 'added', label: 'Date added' },
 	{ key: 'name', label: 'Name' }
 ];
 
