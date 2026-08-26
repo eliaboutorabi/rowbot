@@ -15,7 +15,32 @@
 	 * not the path, so the padding above the eyes and below the last row
 	 * read as equal: 2.5 above, 2.6 below.
 	 */
-	let { class: className, ...rest }: { class?: string } = $props();
+	let {
+		class: className,
+		/** Off for a mark that should hold still — a favicon, a print header. */
+		blink = true,
+		...rest
+	}: { class?: string; blink?: boolean } = $props();
+
+	let eyes = $state<SVGGElement>();
+
+	/**
+	 * The blink, timed per instance rather than per app.
+	 *
+	 * One period shared by every mark on the page would have them all shut
+	 * their eyes together, which is not endearing — it is a strobe. Each gets
+	 * its own interval and its own head start, so they drift apart and none of
+	 * them looks driven by the same clock.
+	 *
+	 * Set after mount, not during render: `Math.random()` on the server would
+	 * ship one number in the HTML and generate another on hydration, and the
+	 * two would disagree.
+	 */
+	$effect(() => {
+		if (!eyes || !blink) return;
+		eyes.style.setProperty('--blink-every', `${4.5 + Math.random() * 5}s`);
+		eyes.style.setProperty('--blink-offset', `-${Math.random() * 6}s`);
+	});
 </script>
 
 <svg
@@ -34,9 +59,12 @@
 		<rect x="4" y="7" width="24" height="21" rx="6" />
 	</g>
 
-	<!-- eyes: true squares, centres at 11 and 21 -->
-	<rect x="9" y="10.5" width="4" height="4" rx="1.2" class="fill-accent-ink" />
-	<rect x="19" y="10.5" width="4" height="4" rx="1.2" class="fill-accent-ink" />
+	<!-- eyes: true squares, centres at 11 and 21. Grouped so a blink squashes
+	     the pair about one shared centre line. -->
+	<g bind:this={eyes} class={blink ? 'logo-eyes' : undefined}>
+		<rect x="9" y="10.5" width="4" height="4" rx="1.2" class="fill-accent-ink" />
+		<rect x="19" y="10.5" width="4" height="4" rx="1.2" class="fill-accent-ink" />
+	</g>
 
 	<!-- data rows, both centred on 16 -->
 	<g stroke="currentColor" stroke-width="2.4" stroke-linecap="round" opacity="0.42">

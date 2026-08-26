@@ -543,3 +543,38 @@
 		color: var(--muted-foreground);
 	}
 }
+
+/*
+ * The mark blinks.
+ *
+ * Almost all of the cycle is spent open — the closed window is about two per
+ * cent of it — so what you catch is a flick at the edge of vision rather than
+ * a thing that is animating at you. The period and the head start come from
+ * the component, one pair per instance, so two marks on a page are never in
+ * step.
+ */
+@keyframes rowbot-blink {
+	0%,
+	92%,
+	100% {
+		transform: scaleY(1);
+	}
+	95%,
+	96.5% {
+		transform: scaleY(0.08);
+	}
+}
+
+.logo-eyes {
+	/* Percentages on an SVG child resolve against the viewport without this,
+	   which would scale the eyes about the wrong point entirely. */
+	transform-box: fill-box;
+	transform-origin: center;
+	animation: rowbot-blink var(--blink-every, 6s) ease-in-out var(--blink-offset, 0s) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.logo-eyes {
+		animation: none;
+	}
+}
