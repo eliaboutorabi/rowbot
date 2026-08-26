@@ -171,7 +171,16 @@
 				Source
 			</a>
 			<span class="ml-auto">
-				Designed and developed by Eli Aboutorabi with the help of Claude.
+				Designed and developed by
+				<a
+					href="https://www.linkedin.com/in/elham-aboutorabi/"
+					target="_blank"
+					rel="noreferrer"
+					class="font-medium text-foreground underline-offset-4 hover:underline"
+				>
+					Eli Aboutorabi
+				</a>
+				with the help of Claude.
 			</span>
 		</div>
 	</footer>
