@@ -15,6 +15,7 @@
 	import Icon from '$lib/components/ui/icon.svelte';
 	import {
 		Alert01Icon,
+		ArrowUp01Icon,
 		BorderBottom01Icon,
 		CheckmarkCircle02Icon,
 		ClockIcon,
@@ -170,6 +171,30 @@ log(round(d.reduce((a, b) => a + b)));`;
 					</span>
 					prints 30,990 where the column adds up to 31,990 — I kept the page's figure and flagged it.
 				</p>
+			</div>
+
+			<!--
+				The composer. Without it the column is a transcript of something that
+				already happened, and the one thing a visitor most needs to
+				understand — that they can answer back, and that this carries on
+				being a conversation — is nowhere on the page.
+			-->
+			<div class="mt-auto rounded-xl border bg-card">
+				<p class="px-2.5 pt-2 text-[11px] text-muted-foreground">Ask Rowbot for a change…</p>
+				<div class="flex items-center gap-1.5 px-2 pt-1.5 pb-2">
+					<span
+						class="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground"
+					>
+						Terra
+						<span class="opacity-60">· Medium</span>
+					</span>
+					<span class="flex-1"></span>
+					<span
+						class="flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground"
+					>
+						<Icon icon={ArrowUp01Icon} size={11} />
+					</span>
+				</div>
 			</div>
 		</div>
 
