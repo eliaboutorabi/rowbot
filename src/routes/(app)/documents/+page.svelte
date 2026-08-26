@@ -10,7 +10,6 @@
 		FileSpreadsheetIcon,
 		Image01Icon,
 		ArrowDataTransferVerticalIcon,
-		MoreHorizontalIcon,
 		Message01Icon,
 		Pdf01Icon,
 		ScanImageIcon,
@@ -399,40 +398,35 @@
 								</span>
 							{/if}
 
-							<DropdownMenu.Root>
-								<DropdownMenu.Trigger>
-									{#snippet child({ props })}
-										<!--
-											Three dots in a row, and on the right.
+							<!--
+								Delete, at the foot of the deck.
 
-											`More01Icon` is a three-by-three grid of dots, which on
-											the corner of a spreadsheet thumbnail reads as a claim
-											about the document — that it holds a table — rather than
-											as a menu. And the corner it sat in was the top left,
-											over the start of the page it is covering. The right-hand
-											corner is where a card keeps its menu, and it is free now
-											that the sheet count has gone.
-										-->
-										<button
-											{...props}
-											class="absolute top-1 right-1 flex size-7 items-center justify-center rounded-md bg-background/90 text-muted-foreground opacity-0 shadow-sm ring-1 ring-border backdrop-blur-sm transition group-hover:opacity-100 hover:text-foreground focus-visible:opacity-100"
-											aria-label="Actions for {doc.name}"
-										>
-											<Icon icon={MoreHorizontalIcon} size={15} />
-										</button>
-									{/snippet}
-								</DropdownMenu.Trigger>
-								<DropdownMenu.Content align="end">
-									<DropdownMenu.Item
-										variant="destructive"
-										onSelect={() =>
-											(pending = { id: doc.id, name: doc.name, sheets: doc.sheetCount ?? 0 })}
-									>
-										<Icon icon={Delete02Icon} size={16} />
-										Delete
-									</DropdownMenu.Item>
-								</DropdownMenu.Content>
-							</DropdownMenu.Root>
+								It was a dots menu in the top corner, which put it under the
+								"Not started" badge on exactly the documents most likely to be
+								thrown away. There is only one action behind it, so a menu was
+								a click of ceremony around a single button — and a bin says
+								what it does without being opened.
+
+								The box is the deck's own aspect ratio, so "bottom" means the
+								bottom of the paper rather than the bottom of the caption
+								underneath it. It is a sibling of the link, not a child, so
+								pressing it cannot also open the document.
+							-->
+							<div
+								class="pointer-events-none absolute inset-x-0 top-0"
+								style="aspect-ratio: 1 / 0.83"
+							>
+								<button
+									type="button"
+									class="pointer-events-auto absolute right-1 bottom-1 flex size-7 items-center justify-center rounded-md bg-background/90 text-muted-foreground opacity-0 shadow-sm ring-1 ring-border backdrop-blur-sm transition group-hover:opacity-100 hover:text-destructive focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring/40"
+									aria-label="Delete {doc.title ?? doc.name}"
+									title="Delete"
+									onclick={() =>
+										(pending = { id: doc.id, name: doc.name, sheets: doc.sheetCount ?? 0 })}
+								>
+									<Icon icon={Delete02Icon} size={15} />
+								</button>
+							</div>
 						</li>
 					{/each}
 				</ul>
