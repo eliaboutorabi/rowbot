@@ -15,17 +15,24 @@
 	import { duration } from '$lib/format';
 	import { cn } from '$lib/utils';
 	import type { ToolCallView } from '$lib/types/events';
+	import { tokenClass, tokenize } from '$lib/highlight';
 	import { toolDetail, toolMeta } from './tool-icon';
 
 	let { call }: { call: ToolCallView } = $props();
 
-	/** The code this call ran, if it ran any. */
-	const analysis = $derived(
-		call.progress.find(
-			(step): step is Extract<typeof step, { kind: 'analysis:start' }> =>
-				step.kind === 'analysis:start'
-		)?.code
-	);
+	/**
+	 * The code this call ran, if it ran any.
+	 *
+	 * Taken from the call's own arguments rather than from its progress events.
+	 * Progress is live only — a transcript rebuilt from the checkpoint after a
+	 * reload has none — and the working is evidence, so it has to survive the
+	 * page being refreshed. The arguments are part of the message history and
+	 * do.
+	 */
+	const analysis = $derived.by(() => {
+		const code = (call.args as { code?: unknown } | undefined)?.code;
+		return typeof code === 'string' && code.trim() ? code : undefined;
+	});
 
 	let open = $state(false);
 
@@ -193,9 +200,14 @@
 							/>
 							Show the working
 						</summary>
+						<!-- Rendered as elements, not as a string of HTML: Svelte escapes
+						     the text of each token, so nothing in code this application
+						     wrote and then ran can become markup here. -->
 						<pre
-							class="scroll-slim mt-1.5 max-h-64 overflow-auto rounded-lg border bg-muted/40 p-2.5 text-[11px] leading-relaxed"><code
-								>{analysis}</code
+							class="scroll-slim mt-1.5 max-h-64 overflow-auto rounded-lg border bg-muted/40 p-2.5 font-mono text-[11px] leading-relaxed"><code
+								>{#each tokenize(analysis) as token, i (i)}<span class={tokenClass(token.kind)}
+										>{token.text}</span
+									>{/each}</code
 							></pre>
 					</details>
 				{/if}
