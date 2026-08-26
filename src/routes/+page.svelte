@@ -43,7 +43,7 @@
 </script>
 
 <svelte:head>
-	<title>Rowbot · Agentic OCR that checks its own arithmetic</title>
+	<title>Rowbot · Agentic OCR that turns any document into Excel</title>
 </svelte:head>
 
 <div class="relative min-h-dvh overflow-x-clip bg-background">
@@ -109,19 +109,20 @@
 		<section class="relative px-6 pt-10 pb-12">
 			<div class="mx-auto max-w-3xl text-center">
 				<h1 class="text-5xl leading-[1.08] font-semibold tracking-tight text-balance sm:text-6xl">
-					Agentic OCR that
-					<span class="text-accent-ink">checks its own arithmetic</span>
+					Agentic OCR that turns
+					<span class="text-accent-ink">any document into Excel</span>
 				</h1>
 
 				<!--
-					The sub-line no longer repeats the headline. The headline has taken
-					the checking, so this one carries what is left: what you can put in,
-					what comes out, and the provenance.
+					The headline says what comes out; this says what goes in and what
+					survives the trip — the tables, the detail around them, the checking
+					and the provenance. Between them they should leave nothing important
+					for the reader to find further down the page.
 				-->
 				<p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-pretty text-muted-foreground">
-					Drop in a PDF or a photograph — a bad scan is fine. Rowbot builds the Excel workbook,
-					flags any total that does not reconcile, and shows you where on the page every figure came
-					from.
+					A PDF, a photograph, a bad scan. Rowbot pulls out every table — and the names, dates and
+					reference numbers around them — checks the totals by running the arithmetic, and shows you
+					where on the page each figure came from.
 				</p>
 
 				<div class="mt-9 flex flex-wrap items-center justify-center gap-3">
