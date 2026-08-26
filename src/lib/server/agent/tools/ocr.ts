@@ -10,7 +10,7 @@
 import { tool, type ToolRuntime } from '@langchain/core/tools';
 import { Command } from '@langchain/langgraph';
 import { z } from 'zod';
-import { eq } from 'drizzle-orm';
+import { and, count, eq, inArray } from 'drizzle-orm';
 import { db } from '$lib/server/db';
 import { document as documentTable, documentPage } from '$lib/server/db/schema';
 import { readDocument } from '$lib/server/storage';
@@ -69,6 +69,43 @@ function summarizePage(page: OcrPage, files: Record<string, unknown>): OcrTableI
 	}
 
 	return entries;
+}
+
+/**
+ * Writes a pass of OCR into `document_page`, replacing only the pages it read.
+ *
+ * This used to delete every page of the document before inserting, which is
+ * right for a full pass and destructive for any other kind. The tool takes a
+ * page range, the agent is told to retry with a smaller one when a read fails,
+ * and a long document is read in chunks — so a second, narrower pass silently
+ * erased the segmentation for every page it did not cover. The source view
+ * then opened on page two of a document whose first page it no longer had.
+ *
+ * Returns how many pages of this document we now hold a read for.
+ */
+export async function replacePages(
+	documentId: string,
+	rows: (typeof documentPage.$inferInsert)[]
+): Promise<number> {
+	if (rows.length) {
+		await db.delete(documentPage).where(
+			and(
+				eq(documentPage.documentId, documentId),
+				inArray(
+					documentPage.pageIndex,
+					rows.map((row) => row.pageIndex)
+				)
+			)
+		);
+		await db.insert(documentPage).values(rows);
+	}
+
+	const [held] = await db
+		.select({ pages: count() })
+		.from(documentPage)
+		.where(eq(documentPage.documentId, documentId));
+
+	return held?.pages ?? 0;
 }
 
 const schema = z.object({
@@ -195,9 +232,7 @@ export const ocrDocumentTool = tool(
 			].join('\n');
 		}
 
-		// Re-running OCR over a page replaces the previous read for that page.
-		await db.delete(documentPage).where(eq(documentPage.documentId, doc.id));
-		if (dbRows.length) await db.insert(documentPage).values(dbRows);
+		const held = await replacePages(doc.id, dbRows);
 
 		await db
 			.update(documentTable)
@@ -205,7 +240,10 @@ export const ocrDocumentTool = tool(
 				status: 'ready',
 				pageCount: totalPages,
 				ocrModel: OCR_MODEL,
-				ocrPagesProcessed: processed
+				// How many pages of this document we hold a read for, not how many
+				// this call happened to read — otherwise re-reading one page of a
+				// forty-page report records the document as one page processed.
+				ocrPagesProcessed: held
 			})
 			.where(eq(documentTable.id, doc.id));
 
