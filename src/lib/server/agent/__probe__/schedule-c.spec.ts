@@ -82,7 +82,10 @@ describe.runIf(live)('Schedule C, through the agent', () => {
 		writeFileSync(DUMP, events.map((e) => JSON.stringify(e)).join('\n'));
 
 		const named = (id: string) =>
-			events.find((e) => e.type === 'tool:start' && e.id === id)?.name ?? '?';
+			events.find(
+				(e): e is Extract<AgentEvent, { type: 'tool:start' }> =>
+					e.type === 'tool:start' && e.id === id
+			)?.name ?? '?';
 		const done = events.find((e) => e.type === 'done');
 		const workbook = result.current?.workbook;
 

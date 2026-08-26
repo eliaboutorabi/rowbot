@@ -11,6 +11,15 @@
 	 *
 	 * Pages and thumbnails render only as they approach the viewport, so a
 	 * hundred-page PDF costs what you actually look at.
+	 *
+	 * The paper comes first. This used to be driven entirely off the OCR rows,
+	 * so a document that had been uploaded but not yet read showed "nothing has
+	 * been read yet" — which was true of the segmentation and quite untrue of
+	 * the file, which was sitting in storage and perfectly renderable. Nobody
+	 * should have to run an agent to find out what they just uploaded. The page
+	 * list therefore comes from the file's own page count, known at upload, and
+	 * the segmentation is an overlay that arrives later and lands on pages that
+	 * are already on screen.
 	 */
 	import { onMount, tick } from 'svelte';
 	import Icon from '$lib/components/ui/icon.svelte';
@@ -84,10 +93,49 @@
 	let pages = $state<PageInfo[]>([]);
 	/** Pages in the file itself, which is not always how many we hold a read for. */
 	let pageCount = $state(0);
+	/**
+	 * Page shapes taken from the PDF, for the pages OCR has not described.
+	 *
+	 * A canvas with no aspect ratio is a flat line until it is drawn, and a
+	 * column of flat lines that each jump to full height as they render is the
+	 * layout shifting under someone who is trying to read it. Page one is
+	 * measured as soon as the file opens and stands in for the rest — documents
+	 * are overwhelmingly one shape throughout — and every page corrects itself
+	 * to its own dimensions the moment it is actually drawn.
+	 */
+	let sizes = $state<Record<number, { width: number; height: number }>>({});
 	let loadError = $state<string | null>(null);
 	let loading = $state(true);
 	let overlay = $state(true);
 	let current = $state(0);
+
+	/** A blank page, for one the reader has not described. */
+	const bare = (index: number): PageInfo => ({
+		index,
+		width: null,
+		height: null,
+		averageConfidence: null,
+		blocks: []
+	});
+
+	/**
+	 * Every page of the file, carrying its read where there is one.
+	 *
+	 * Falls back to the rows themselves if the count is missing, so a document
+	 * from before the count was recorded still shows what it has.
+	 */
+	const views = $derived.by(() => {
+		const read = new Map(pages.map((page) => [page.index, page]));
+		const total = pageCount || pages.length;
+		return Array.from({ length: total }, (_, index) => read.get(index) ?? bare(index));
+	});
+
+	/** The shape to reserve for a page: its own, the file's, or a portrait guess. */
+	function aspect(info: PageInfo): string {
+		if (info.width && info.height) return `${info.width} / ${info.height}`;
+		const measured = sizes[info.index] ?? sizes[0];
+		return measured ? `${measured.width} / ${measured.height}` : '17 / 22';
+	}
 
 	/** Which block the pointer is on, and where to float its card. */
 	let hovered = $state<{ block: Block; x: number; y: number; above: boolean } | null>(null);
@@ -133,8 +181,12 @@
 	function ensurePdf(): Promise<void> {
 		// pdf.js ships a worker and has no business in the server bundle, so it
 		// is opened lazily and only once.
-		pdfLoading ??= openDocument(`/api/source/${documentId}`).then((doc) => {
+		pdfLoading ??= openDocument(`/api/source/${documentId}`).then(async (doc) => {
 			pdf = doc;
+			// One page, so the column is the right shape before anything is drawn.
+			const first = await doc.getPage(1);
+			const { width, height } = first.getViewport({ scale: 1 });
+			sizes = { ...sizes, 0: { width, height } };
 		});
 		return pdfLoading;
 	}
@@ -143,6 +195,9 @@
 		await ensurePdf();
 		const pdfPage = await pdf.getPage(index + 1);
 		const unscaled = pdfPage.getViewport({ scale: 1 });
+		if (!sizes[index]) {
+			sizes = { ...sizes, [index]: { width: unscaled.width, height: unscaled.height } };
+		}
 		const scale = cssWidth / unscaled.width;
 		const ratio = Math.min(window.devicePixelRatio || 1, 2);
 		const viewport = pdfPage.getViewport({ scale: scale * ratio });
@@ -182,8 +237,8 @@
 
 	/** Render on approach, and track which page is centred so the rail follows. */
 	$effect(() => {
-		if (loading || !pages.length || isImage) return;
-		void pages.length;
+		if (loading || !views.length || isImage) return;
+		void views.length;
 
 		const near = new IntersectionObserver(
 			(entries) => {
@@ -202,8 +257,12 @@
 				if (!el) continue;
 				near.observe(el);
 			}
-			// The first few thumbnails are on screen before any scrolling happens.
-			for (let i = 0; i < Math.min(pages.length, 6); i++) renderThumb(i);
+			// The first few thumbnails are on screen before any scrolling happens,
+			// and so is the first page. Waiting to be told that page one is visible
+			// is a round trip to learn something already known, and it shows: the
+			// pane opens on a white rectangle and fills in a moment later.
+			for (let i = 0; i < Math.min(views.length, 6); i++) renderThumb(i);
+			renderPage(0);
 			trackCurrent();
 		});
 
@@ -304,13 +363,19 @@
 
 	/** Pages of the file we hold no read for. See `page-gaps.ts`. */
 	const missing = $derived(
-		loading
-			? []
+		loading || !pages.length
+			? // Nothing read at all is not a gap in a read — it is a document
+				// nobody has asked about yet, and telling someone to "read it again"
+				// before they have read it once is nonsense.
+				[]
 			: missingPages(
 					pageCount,
 					pages.map((page) => page.index)
 				)
 	);
+
+	/** Read, but not yet by us. Distinguishes "not started" from "went wrong". */
+	const unread = $derived(!loading && !loadError && views.length > 0 && pages.length === 0);
 
 	/**
 	 * The card follows the pointer, not the block.
@@ -446,7 +511,7 @@
 	<!-- ── Toolbar ─────────────────────────────────────────────────── -->
 	<div class="flex h-11 shrink-0 items-center gap-3 border-b px-3">
 		<span class="shrink-0 text-xs text-muted-foreground tabular-nums">
-			{#if pages.length}Page {current + 1} of {pageCount || pages.length}{/if}
+			{#if views.length}Page {current + 1} of {views.length}{/if}
 		</span>
 
 		{#if overlay && legend.length}
@@ -499,6 +564,17 @@
 		</div>
 	</div>
 
+	<!-- ── Uploaded, not yet read ──────────────────────────────────── -->
+	{#if unread}
+		<p class="flex shrink-0 items-start gap-2 border-b bg-muted/40 px-3 py-2 text-xs" role="status">
+			<Icon icon={ViewOffSlashIcon} size={14} class="mt-px shrink-0 text-muted-foreground" />
+			<span class="text-muted-foreground">
+				This is the file as you uploaded it. Ask Rowbot to read it and the segmentation — every
+				block it found, typed and scored — will be laid over these pages.
+			</span>
+		</p>
+	{/if}
+
 	<!-- ── Pages we have no read for ───────────────────────────────── -->
 	{#if missing.length}
 		<p
@@ -517,13 +593,13 @@
 
 	<div class="flex min-h-0 flex-1">
 		<!-- ── Thumbnail rail ──────────────────────────────────────── -->
-		{#if pages.length > 1 && !isImage}
+		{#if views.length > 1 && !isImage}
 			<nav
 				class="scroll-slim w-[7.5rem] shrink-0 overflow-y-auto border-r bg-muted/20 p-2"
 				aria-label="Pages"
 			>
 				<ul class="space-y-2">
-					{#each pages as info (info.index)}
+					{#each views as info (info.index)}
 						<li>
 							<button
 								bind:this={thumbEls[info.index]}
@@ -554,9 +630,7 @@
 										width="96"
 										height="124"
 										class="block w-full"
-										style:aspect-ratio={info.width && info.height
-											? `${info.width} / ${info.height}`
-											: '96 / 124'}
+										style:aspect-ratio={aspect(info)}
 									></canvas>
 								</span>
 								<span
@@ -592,16 +666,16 @@
 					<Icon icon={Alert01Icon} size={16} class="mt-0.5 shrink-0" />
 					{loadError}
 				</div>
-			{:else if !pages.length}
+			{:else if !views.length}
 				<div class="flex h-full flex-col items-center justify-center gap-1.5 text-center">
-					<p class="text-sm font-medium">Nothing has been read yet</p>
+					<p class="text-sm font-medium">There is nothing to show</p>
 					<p class="max-w-xs text-sm text-muted-foreground">
-						Ask Rowbot to extract the tables and the page segmentation will appear here.
+						This document has no pages we can render.
 					</p>
 				</div>
 			{:else}
 				<div class="mx-auto max-w-3xl space-y-5">
-					{#each pages as info (info.index)}
+					{#each views as info (info.index)}
 						<section
 							bind:this={pageEls[info.index]}
 							data-page={info.index}
@@ -620,9 +694,7 @@
 									<canvas
 										bind:this={pageCanvases[info.index]}
 										class="block w-full"
-										style:aspect-ratio={info.width && info.height
-											? `${info.width} / ${info.height}`
-											: '17 / 22'}
+										style:aspect-ratio={aspect(info)}
 									></canvas>
 								{/if}
 
