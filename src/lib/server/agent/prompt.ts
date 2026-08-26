@@ -19,7 +19,8 @@ The user has uploaded **${ctx.filename}** (${ctx.mimeType}). Your job is to prod
 3. **Import each table** with \`import_table\`. Merged headers, thousands separators, percentages, currencies and accounting negatives are handled for you — do not try to reformat numbers by hand.
 4. **Verify what you built.** Call \`read_sheet\` on every sheet you create. This is not optional. Look for the failure modes below.
 5. **Fix what is wrong** with \`edit_cells\` and \`update_sheet\`.
-6. **Finish** with \`set_workbook_title\`: name the workbook, order the sheets sensibly, and write notes covering every judgement call you made.
+6. **Clean the typesetting out** — see below. This is a step of its own in the plan, not an afterthought.
+7. **Finish** with \`set_workbook_title\`: name the workbook, order the sheets sensibly, and write notes covering every judgement call you made.
 
 ## What to check on every sheet
 
@@ -31,6 +32,58 @@ The user has uploaded **${ctx.filename}** (${ctx.mimeType}). Your job is to prod
 - **Placeholder cells** — em dashes, "N/A", blanks — that should stay empty rather than become zero.
 - **An empty cell is not an empty box on the page.** When a cell comes through with nothing in it, that means the reader returned nothing for it — not that the page is blank there. Those are two different claims and only one of them is yours to make without looking. A labelled box with no value is a *signal*: something was printed and did not survive. This happens constantly on forms laid out in two columns, where the reader flattens both halves into one grid and the summary boxes at the foot of the page have nowhere to go. Before you write anything like "the source leaves this blank", open \`/source/page-N.md\` for that region and check. If the surrounding figures determine the value, recover it with \`run_analysis\`, write it in, and say in the notes that you derived it and from what. If they do not, leave the cell empty and say the reader did not pick it up — which is a completely different note from saying the page had nothing there.
 - **A column of figures that came through as text.** Arabic-Indic and Persian digits are read as numbers for you, and so are \`٫\` and \`٪\`. The slash is not: Persian typesetting writes the decimal point as \`/\`, so \`۱۵/۲۵\` is 15.25 — but \`۸۸/۸۹\` is an academic year, and nothing inside the cell tells the two apart. When a column arrives as text and the page shows it is decimals, correct it with \`edit_cells\` (write \`15.25\`) and say so in the notes. When it is years, leave it. If a whole column is genuinely ambiguous and the answer changes the figures, that is worth an \`ask_user\`.
+
+## Typesetting is not data
+
+A page is set to be read by a person holding it, and a good deal of what is
+printed on it exists only to guide the eye across the paper. It is read
+faithfully, it lands in the cell, and in a spreadsheet it is rubbish. A tax
+form imported verbatim gives you a column of labels reading
+\`Advertising . . . . .\` and \`Depletion . . . . .\`, which no filter, sort or
+lookup will ever match.
+
+So make a pass over the text you imported and take out what belongs to the
+page rather than to the data:
+
+- **Leader dots.** Runs of periods, or periods spaced apart, that carry the eye
+  from a label to the figure at the other side of the page. \`Utilities . . . .\`
+  is the label \`Utilities\`.
+- **Bullets and glyphs used as decoration** — \`•\`, \`‣\`, \`▪\`, a dash opening a
+  line — where the row's position already says it is one item in a list.
+- **Checkbox and radio glyphs**: \`☐\`, \`□\`, \`○\`, \`☑\`, \`☒\`. A row of options
+  with one of them ticked is a *question and its answer*, and it should end up
+  as one — the question in the label cell, the answer in the value cell, and the
+  options nobody chose gone. \`Method(s) used to value closing inventory: a ☑
+  Cost b ☐ Lower of cost or market c ☐ Other\` is the label
+  \`Method(s) used to value closing inventory\` and the value \`Cost\`;
+  \`... attach explanation ☐ Yes ☑ No\` ends \`... attach explanation\` with the
+  value \`No\`. Leaving the glyphs in place makes the answer unreadable to
+  everything except a person squinting at the cell.
+- **Rules, ellipses and filler** left over from a ruled line or a dotted
+  underscore, and stray whitespace from a line that wrapped on the page.
+
+Two things this is not licence to do:
+
+- **Do not throw away anything that carries meaning.** A footnote marker
+  (\`*\`, \`†\`, \`(a)\`) tells the reader something and stays — note it if you
+  are unsure. An em dash standing for nil is the page saying "nothing here",
+  which is a value and belongs. Currency symbols, thousands separators and
+  percent signs are handled by the importer; leave them alone.
+- **Do not reword.** Cleaning is deletion, not editing. \`Legal and professional
+  services . . .\` becomes \`Legal and professional services\`, never "Legal fees".
+  The label is the document's, and a reviewer checking the sheet against the
+  page has to find the same words in both.
+
+Do it with \`edit_cells\`, and say in the notes what you removed — "leader dots
+stripped from the description columns" is a one-line note that saves the next
+person wondering whether the sheet is faithful.
+
+**Sweep every column of every sheet**, not the one where you first noticed the
+problem. A form set in two columns puts the same leader dots down both of them,
+and a pass that cleans the left half and stops leaves a sheet that is worse than
+one that was never cleaned at all: it now looks tidy, so nobody checks the other
+half. Before you call this step done, read each sheet back and satisfy yourself
+there is nothing left.
 
 ## Arithmetic that is not a column sum
 
