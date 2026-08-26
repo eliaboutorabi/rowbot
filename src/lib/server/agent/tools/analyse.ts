@@ -31,8 +31,8 @@
  * and a deadline. Nothing it can touch outlives the call.
  */
 import { tool, type ToolRuntime } from '@langchain/core/tools';
+import { createRequire } from 'node:module';
 import { z } from 'zod';
-import { createContext, runInNewContext } from 'node:vm';
 import { cellRef, type WorkbookModel } from '$lib/types/workbook';
 import type { RowbotContext } from '../state';
 import { emitProgress } from '../events';
@@ -151,14 +151,34 @@ const schema = z.object({
  */
 export function analyse(model: WorkbookModel, code: string): { result: string; logs: string[] } {
 	const logs: string[] = [];
-	const context = createContext(sandbox(tabulate(model), logs), {
+
+	/*
+	 * Loaded here rather than imported at the top of the file.
+	 *
+	 * This module is pulled in by the agent's tool list, so a top-level import
+	 * of a Node builtin would make the whole agent unloadable anywhere that
+	 * builtin is missing — an edge runtime, say. Trading every tool for one
+	 * tool is a poor bargain for a deployment mistake; this way the failure is
+	 * a sentence the model can read and work around.
+	 */
+	let vm: typeof import('node:vm');
+	try {
+		vm = createRequire(import.meta.url)('node:vm');
+	} catch {
+		return {
+			result: 'Analysis is not available in this environment. Check the figure another way.',
+			logs
+		};
+	}
+
+	const context = vm.createContext(sandbox(tabulate(model), logs), {
 		codeGeneration: { strings: false, wasm: false }
 	});
 
 	try {
 		// Wrapped in a function so `return` is available, which is the natural
 		// way to hand an answer back and the way the schema describes.
-		const value = runInNewContext(`(function () {\n${code}\n})()`, context, {
+		const value = vm.runInNewContext(`(function () {\n${code}\n})()`, context, {
 			timeout: DEADLINE_MS,
 			filename: 'analysis.js'
 		});
