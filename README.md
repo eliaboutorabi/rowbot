@@ -1,12 +1,31 @@
+<a href="https://rowbot.sh"><img src="screenshot.png" alt="Rowbot — agentic OCR that turns paper into spreadsheets" width="100%"></a>
+
+<p align="center">
+  <img alt="SvelteKit 2" src="https://img.shields.io/badge/SvelteKit-2-FF3E00?style=flat-square&logo=svelte&logoColor=white">
+  <img alt="Svelte 5 runes" src="https://img.shields.io/badge/Svelte_5-runes-FF3E00?style=flat-square&logo=svelte&logoColor=white">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square&logo=typescript&logoColor=white">
+  <img alt="Tailwind CSS 4" src="https://img.shields.io/badge/Tailwind-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white">
+  <br>
+  <img alt="Deep Agents on LangGraph" src="https://img.shields.io/badge/Deep_Agents-LangGraph-1C3C3C?style=flat-square&logo=langchain&logoColor=white">
+  <img alt="GPT-5.6" src="https://img.shields.io/badge/GPT--5.6-agent-412991?style=flat-square&logo=openai&logoColor=white">
+  <img alt="Mistral Document AI" src="https://img.shields.io/badge/Mistral-Document_AI-FA520F?style=flat-square&logo=mistralai&logoColor=white">
+  <br>
+  <img alt="Drizzle ORM on libSQL and Turso" src="https://img.shields.io/badge/Drizzle-libSQL_%C2%B7_Turso-C5F74F?style=flat-square&logo=drizzle&logoColor=black">
+  <img alt="better-auth" src="https://img.shields.io/badge/better--auth-invite_only-6E56CF?style=flat-square">
+  <img alt="Deployed on Vercel" src="https://img.shields.io/badge/Vercel-deployed-000000?style=flat-square&logo=vercel&logoColor=white">
+  <img alt="Vitest and Playwright" src="https://img.shields.io/badge/Vitest-unit_%C2%B7_browser_%C2%B7_e2e-6E9F18?style=flat-square&logo=vitest&logoColor=white">
+</p>
+
 # Rowbot
 
 Turns PDFs and images of tables into multi-sheet Excel workbooks — and shows its
 working, so you can check the output before you trust it.
 
-**Live at [rowbot-sigma.vercel.app](https://rowbot-sigma.vercel.app).** Sign-up
-is invite-only — it runs on my own OpenAI and Mistral keys, and an open sign-up
-form is an open invoice. See [Access and limits](#access-and-limits) for how
-that is enforced.
+**Live at [rowbot.sh](https://rowbot.sh).** Sign-up is invite-only: it runs on my
+own OpenAI and Mistral keys, and an open sign-up form is an open invoice. For a
+code, message me — [Eli Aboutorabi on
+LinkedIn](https://www.linkedin.com/in/elham-aboutorabi/) — and see
+[Access and limits](#access-and-limits) for how the rest is enforced.
 
 Rowbot is built around two ideas. First, reading a table is a _structural_
 problem, not a text problem: [Mistral Document AI](https://docs.mistral.ai)
@@ -18,30 +37,95 @@ its own output, and can be interrupted and corrected at any point.
 
 ## How it works
 
-```
-PDF / image
-   │
-   ├─ Mistral Document AI (mistral-ocr-4-1)
-   │     tables as HTML · block bounding boxes · confidence scores
-   │
-   ├─ Deterministic parsing            src/lib/server/ocr, src/lib/coerce.ts
-   │     merge expansion · number/date/currency typing · provenance
-   │
-   ├─ Deep Agents harness (GPT-5.6)    src/lib/server/agent
-   │     planning · virtual filesystem · sheet-auditor subagent · interrupts
-   │
-   ├─ Workbook model                   src/lib/types/workbook.ts
-   │     one JSON shape shared by the agent, the grid and the exporter
-   │
-   └─ ExcelJS                          src/lib/server/xlsx/build.ts
-         real .xlsx: typed values, merges, freeze panes, cell comments
-```
-
-The split of labour is deliberate. Parsing HTML into a grid and typing values
-are deterministic, so they live in tested code rather than in prompts. The
-agent decides the things that actually need judgement: which tables belong
+The split of labour is the whole design. Parsing HTML into a grid and typing
+values are deterministic, so they live in tested code rather than in prompts.
+The agent decides the things that actually need judgement: which tables belong
 together, what a sheet should be called, where the header really ends, which
 misread cells to correct, and what the reviewer needs warning about.
+
+```mermaid
+flowchart TB
+    upload["A PDF, a photograph, a bad scan"]
+
+    subgraph read["Reading — deterministic, tested, no prompts"]
+        mistral["Mistral Document AI<br/><code>mistral-ocr-4-1</code>"]
+        parser["HTML table parser<br/>merges · typing · per-cell confidence"]
+        mistral -->|"tables as HTML, boxes, confidence"| parser
+    end
+
+    subgraph agent["Judgement — Deep Agents harness on GPT-5.6"]
+        plan["Plan the job"]
+        build["Build<br/><code>import_table · edit_cells · set_formula</code>"]
+        verify["Verify<br/><code>check_totals · run_analysis</code>"]
+        audit["Audit<br/>sheet-auditor subagent"]
+        plan --> build --> verify --> audit
+        audit -.->|"does not reconcile"| build
+    end
+
+    sandbox["node:vm sandbox<br/>runs the arithmetic the model wrote"]
+    model["Workbook model<br/>one JSON shape, three consumers"]
+    grid["Grid and page view<br/>provenance on every cell"]
+    xlsx[".xlsx<br/>typed values · merges · comments"]
+    ckpt[("libSQL checkpoints")]
+
+    upload --> mistral
+    parser --> plan
+    verify <--> sandbox
+    audit --> model
+    model --> grid
+    model --> xlsx
+    agent -.->|"runs outlive the request"| ckpt
+```
+
+| Stage           | Lives in                                  |
+| --------------- | ----------------------------------------- |
+| OCR and parsing | `src/lib/server/ocr`, `src/lib/coerce.ts` |
+| Agent and tools | `src/lib/server/agent`                    |
+| Workbook model  | `src/lib/types/workbook.ts`               |
+| Export          | `src/lib/server/xlsx/build.ts`            |
+
+### A run, end to end
+
+What that looks like from the reviewer's side — including the case Rowbot
+exists for, where the page's own total does not add up.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor R as Reviewer
+    participant UI as Browser
+    participant AG as Agent · GPT-5.6
+    participant OCR as Mistral Document AI
+    participant WB as Workbook
+
+    R->>UI: drops a scan
+    Note over UI: the page is on screen immediately —<br/>nothing has read it yet
+    R->>AG: "turn this into a workbook"
+    AG->>AG: writes a plan the reviewer can watch
+
+    AG->>OCR: ocr_document(pages 0–9)
+    OCR-->>AG: tables as HTML, block boxes, word confidence
+    AG-->>UI: segmentation lands on the page, mid-run
+
+    loop once per table found
+        AG->>WB: import_table
+        WB-->>UI: the sheet appears as it is built
+    end
+    Note over WB: version 1 is saved here: the reader's<br/>own output, before the agent touches it
+
+    AG->>WB: check_totals(D2:D6 into D7)
+    WB-->>AG: page printed 23,750 · the column adds to 24,750
+    AG->>AG: run_analysis — writes the check as code and runs it
+    AG->>WB: keep the printed figure, flag the cell
+    Note right of WB: a source's own number is never overwritten<br/>on the agent's authority
+    UI-->>R: the flagged cell, with the code that caught it
+
+    R->>UI: selects D2:D6 and attaches it to a message
+    R->>AG: "this column is redundant, drop it"
+    AG->>WB: update_sheet(dropColumns)
+    WB-->>UI: a new version — the earlier ones stay in history
+    R->>UI: downloads the .xlsx
+```
 
 ### Design notes
 
@@ -53,6 +137,9 @@ misread cells to correct, and what the reviewer needs warning about.
   `import_table` several times in one step; a plain last-value channel would
   keep one and drop the rest. `src/lib/server/agent/workbook-ops.ts` folds ops
   through a reducer, which also gives the UI a revision history for free.
+- **The reader's own output is kept as version one.** The state at the moment
+  the agent first changes something is saved ahead of its work, so there is
+  always an untouched version to compare a correction against.
 - **Provenance is kept end to end.** Every cell remembers the text the page
   actually showed and how confident the OCR was, surfaced in the grid, the cell
   inspector and as comments in the exported file.
@@ -64,6 +151,13 @@ misread cells to correct, and what the reviewer needs warning about.
   the document printed and carries a flag: Rowbot does not overwrite a source's
   own number on its own authority, and a workbook that silently disagrees with
   its source is worse than one that says so.
+- **Anything that is not a column sum is written as code and run.**
+  `run_analysis` (`src/lib/server/agent/tools/analyse.ts`) hands a script a
+  frozen view of the workbook inside a `node:vm` context — no module loader, no
+  I/O, a deadline — so a quantity times a unit price less a discount is checked
+  by an interpreter rather than predicted. It is also how a figure the reader
+  could not make out gets recovered from the ones around it, with the working
+  kept.
 - **The sheet and the conversation share a vocabulary.** A1 notation
   (`src/lib/sheet-ref.ts`) runs in both directions: the agent writes
   `[[Ledger!D2:D5]]` and it renders as something you can click, and a block you
@@ -84,7 +178,10 @@ make abuse pointless:
 **Sign-up is invite-only.** `ROWBOT_INVITE_CODES` holds a comma-separated list
 of codes; the sign-up form asks for one and the server checks it. Issue and
 revoke by editing the variable. If the variable is unset or empty, **sign-up is
-closed** — a missing config never opens the door.
+closed** — a missing config never opens the door. If you want to try the hosted
+app, message [Eli Aboutorabi on
+LinkedIn](https://www.linkedin.com/in/elham-aboutorabi/) and I will send you a
+code.
 
 **Each account has an allowance.** Everything is in
 `src/lib/server/entitlements.ts`:
@@ -160,3 +257,9 @@ The picker exposes the GPT-5.6 family — Sol, Terra and Luna — and the full
 reasoning-effort range (`none` → `max`). Effort is the lever that matters: a
 clean digital PDF needs almost none, a skewed photo of a merged financial table
 rewards a lot of it.
+
+---
+
+Designed and developed by [Eli
+Aboutorabi](https://www.linkedin.com/in/elham-aboutorabi/) with the help of
+Claude.
