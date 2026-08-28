@@ -15,6 +15,7 @@
 	 */
 	import Icon from '$lib/components/ui/icon.svelte';
 	import { GithubIcon, LaptopIcon } from '@hugeicons/core-free-icons';
+	import { VIDEO_EMBED, VIDEO_TITLE } from '$lib/video';
 	import Wordmark from '$lib/components/brand/wordmark.svelte';
 </script>
 
@@ -46,6 +47,34 @@
 			</div>
 
 			<!--
+				The walkthrough, embedded rather than linked.
+				
+				This is the one page whose reader cannot go and try the thing, so
+				the next best answer to "what is it" is to show them. A link would
+				ask them to leave; an embed lets the page answer its own question.
+
+				`youtube-nocookie` sets no tracking cookie until play is pressed,
+				and `loading="lazy"` keeps the player's payload off the critical
+				path — this page exists to load fast on a phone.
+			-->
+			<div class="overflow-hidden rounded-2xl border bg-card/70 shadow-sm">
+				<div class="aspect-video">
+					<iframe
+						class="h-full w-full border-0"
+						src={VIDEO_EMBED}
+						title={VIDEO_TITLE}
+						loading="lazy"
+						referrerpolicy="strict-origin-when-cross-origin"
+						allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+						allowfullscreen
+					></iframe>
+				</div>
+				<p class="px-4 py-3 text-sm text-muted-foreground">
+					A walk through what Rowbot does, with real documents.
+				</p>
+			</div>
+
+			<!--
 				The one piece of new information on this page, so it is the one
 				thing with a container round it.
 			-->
@@ -55,9 +84,9 @@
 					Open this on a computer
 				</h2>
 				<p class="mt-2.5 text-sm leading-relaxed text-muted-foreground">
-					Rowbot puts the workbook, the page it came from and the conversation side by side, so you
-					can check any figure against the paper without losing your place. That needs a wider
-					screen than a phone has.
+					What you just watched puts the workbook, the page it came from and the conversation side
+					by side, so you can check any figure against the paper without losing your place. That
+					needs a wider screen than a phone has.
 				</p>
 				<p class="mt-3 text-sm leading-relaxed text-muted-foreground">
 					Go to
