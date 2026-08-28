@@ -1,6 +1,11 @@
 <a href="https://rowbot.sh"><img src="screenshot.png" alt="Rowbot — agentic OCR that turns paper into spreadsheets" width="100%"></a>
 
 <p align="center">
+  <a href="https://youtu.be/sFGWTywSG4c"><img alt="Watch the walkthrough" src="https://img.shields.io/badge/Watch-the_walkthrough-FF0000?style=flat-square&logo=youtube&logoColor=white"></a>
+  <a href="https://rowbot.sh"><img alt="Live at rowbot.sh" src="https://img.shields.io/badge/Live-rowbot.sh-B03E63?style=flat-square"></a>
+</p>
+
+<p align="center">
   <img alt="SvelteKit 2" src="https://img.shields.io/badge/SvelteKit-2-FF3E00?style=flat-square&logo=svelte&logoColor=white">
   <img alt="Svelte 5 runes" src="https://img.shields.io/badge/Svelte_5-runes-FF3E00?style=flat-square&logo=svelte&logoColor=white">
   <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-strict-3178C6?style=flat-square&logo=typescript&logoColor=white">
@@ -20,6 +25,9 @@
 
 Turns PDFs and images of tables into multi-sheet Excel workbooks — and shows its
 working, so you can check the output before you trust it.
+
+**[Watch the walkthrough](https://youtu.be/sFGWTywSG4c)** — a tour with real
+documents, including a scan it misreads and then catches itself on.
 
 **Live at [rowbot.sh](https://rowbot.sh).** Sign-up is invite-only: it runs on my
 own OpenAI and Mistral keys, and an open sign-up form is an open invoice. For a

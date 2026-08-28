@@ -80,25 +80,6 @@
 	<header class="relative mx-auto flex h-20 max-w-6xl items-center gap-4 px-6">
 		<Wordmark size="md" />
 		<div class="ml-auto flex items-center gap-2">
-			<!--
-				The walkthrough, in the bar rather than under the buttons. A line of
-				its own below the calls to action would have been more findable and
-				would also have pushed the product shot past the fold, which is the
-				one thing this page is laid out to avoid. The label appears when
-				there is width for it; below that the mark and the tooltip carry it.
-			-->
-			<Button
-				variant="ghost"
-				size="sm"
-				href={VIDEO_URL}
-				target="_blank"
-				rel="noreferrer"
-				class="gap-1.5 text-muted-foreground hover:text-foreground"
-				title={VIDEO_TITLE}
-			>
-				<Icon icon={PlayCircleIcon} size={17} />
-				<span class="hidden lg:inline">Watch the walkthrough</span>
-			</Button>
 			<Button
 				variant="ghost"
 				size="icon"
@@ -150,6 +131,25 @@
 				</p>
 
 				<div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+					<!--
+						Outline, between the filled primary and the ghost sign-in: three
+						buttons in one row need three weights, or the eye has to read all
+						of them to find the one it wants. It costs no height — the row
+						already exists and three of these fit across it — which is what
+						lets the product shot keep the bottom of the first screen.
+					-->
+					<Button
+						size="lg"
+						variant="outline"
+						href={VIDEO_URL}
+						target="_blank"
+						rel="noreferrer"
+						class="gap-2"
+						title={VIDEO_TITLE}
+					>
+						<Icon icon={PlayCircleIcon} size={18} />
+						Watch it work
+					</Button>
 					<Button size="lg" href={data.user ? '/documents' : '/sign-up'} class="gap-2">
 						{data.user ? 'Open Rowbot' : 'Start converting'}
 						<Icon icon={ArrowRightBigIcon} size={17} />
