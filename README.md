@@ -266,6 +266,23 @@ reasoning-effort range (`none` → `max`). Effort is the lever that matters: a
 clean digital PDF needs almost none, a skewed photo of a merged financial table
 rewards a lot of it.
 
+## This is my first big build, and I would like your notes
+
+Rowbot is the first substantial application I have made. A good deal of what is
+in here — the checkpointer, the workbook reducer, the way the agent and the
+deterministic code divide the work — is a first attempt at a thing rather than
+a settled one, and I would rather be told what is wrong with it now than find
+out later.
+
+So if you read the code and something looks naive, or over-engineered, or like
+it already has a name I should have known, please say so. Bug reports are
+welcome and so are architectural opinions:
+[open an issue](https://github.com/eliaboutorabi/rowbot/issues), send a pull
+request, or [message me on
+LinkedIn](https://www.linkedin.com/in/elham-aboutorabi/). Same goes for the
+product — if Rowbot gets something wrong on one of your documents, that is the
+most useful thing you can send me.
+
 ---
 
 Designed and developed by [Eli
